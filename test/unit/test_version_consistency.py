@@ -7,8 +7,6 @@ from pathlib import Path
 
 import yaml
 
-from exasol.ansible_collection.version import VERSION
-
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -18,10 +16,3 @@ def test_project_and_galaxy_versions_match() -> None:
     galaxy = yaml.safe_load((PROJECT_ROOT / "galaxy.yml").read_text())
 
     assert pyproject["project"]["version"] == galaxy["version"]
-
-
-def test_project_and_package_versions_match() -> None:
-    """Verify that the toolbox version module matches the package version."""
-    pyproject = tomllib.loads((PROJECT_ROOT / "pyproject.toml").read_text())
-
-    assert pyproject["project"]["version"] == VERSION

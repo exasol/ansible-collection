@@ -102,4 +102,3 @@ ignore_errors = true
 projectKey = "com.exasol:ansible-collection"
 host.url = "https://sonarcloud.io"
 organization = "exasol"
-exclusions = "exasol/ansible_collection/version.py"
