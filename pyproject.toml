@@ -22,7 +22,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
-    "exasol-toolbox>=6.3.0,<7",
+    "exasol-toolbox>=8,<9",
     "pytest>=9.0.3,<10.0.0",
     "pyyaml>=6.0.3,<7.0.0",
 ]
