@@ -1,0 +1,104 @@
+[project]
+name = "exasol-ansible-collection"
+version = "0.1.0"
+description = "Ansible Collection for installing Exasol."
+authors = [
+    {name = "Mykhailo Skliar", email = "mykhailo.skliar@exasol.com"},
+    {name = "Exasol AG", email = "opensource@exasol.com"},
+]
+requires-python = ">=3.11,<4.0"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["exasol", "ansible", "collection"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "exasol-toolbox>=8,<9",
+    "pytest>=9.0.3,<10.0.0",
+    "pyyaml>=6.0.3,<7.0.0",
+]
+
+[tool.poetry]
+requires-poetry = ">=2.3.0"
+packages = [
+    { include = "exasol" },
+]
+include = [
+    "README.md",
+    "doc/changes/changelog.md",
+    "LICENSE",
+    "galaxy.yml",
+]
+
+[poetry.urls]
+repository = "https://github.com/exasol/ansible-collection"
+homepage = "https://github.com/exasol/ansible-collection"
+
+[build-system]
+requires = ["poetry-core>=2.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.run]
+relative_files = true
+source = [
+    "exasol",
+]
+
+[tool.pytest.ini_options]
+python_files = [
+    "utest_*.py",
+    "itest_*.py",
+    "test_*.py",
+]
+
+[tool.coverage.report]
+# Switch to 15 after code has been added
+fail_under = 0
+
+[tool.black]
+line-length = 88
+verbose = false
+include = "\\.pyi?$"
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+force_grid_wrap = 2
+
+[tool.pylint.master]
+fail-under = 5.0
+ignore = []
+
+[tool.pylint.format]
+max-line-length = 88
+max-module-lines = 800
+
+[tool.ruff.lint]
+extend-ignore = [
+    "E", # Syntax errors
+    "F", # Pyflakes rules (excluding F401)
+    "UP", # pyupgrade rules
+    "D", # Docstring rules
+]
+extend-select = ["F401"]
+unfixable = []
+
+[[tool.mypy.overrides]]
+module = [
+    "test.*",
+]
+ignore_errors = true
+
+[tool.sonar]
+projectKey = "com.exasol:ansible-collection"
+host.url = "https://sonarcloud.io"
+organization = "exasol"

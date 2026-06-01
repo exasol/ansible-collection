@@ -1,0 +1,54 @@
+# Generated and maintained by the exasol-toolbox.
+# Last generated with exasol-toolbox version 8.1.1.
+name: Status Report
+
+on:
+  workflow_call:
+
+jobs:
+
+  report:
+    runs-on: "ubuntu-24.04"
+    permissions:
+      contents: read
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Check out Repository
+        id: check-out-repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python & Poetry Environment
+        id: set-up-python-and-poetry-environment
+        uses: exasol/python-toolbox/.github/actions/python-environment@v8
+        with:
+          python-version: "3.11"
+          poetry-version: "2.3.0"
+
+      - name: Download Artifacts
+        id: download-artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: ./artifacts
+
+      - name: Copy Artifacts into Root Folder
+        id: copy-artifacts-into-root-folder
+        run: poetry run -- nox -s artifacts:copy -- artifacts
+
+      - name: Validate Artifacts
+        id: validate-artifacts
+        run: poetry run -- nox -s artifacts:validate
+
+      - name: Upload to Sonar
+        id: upload-to-sonar
+        env:
+          SONAR_TOKEN: "${{ secrets.SONAR_TOKEN }}"
+        run: poetry run -- nox -s sonar:check
+
+      - name: Generate GitHub Summary
+        id: generate-github-summary
+        run: |-
+          echo -e "# Summary\n" >> $GITHUB_STEP_SUMMARY
+          poetry run -- nox -s dependency:licenses >> $GITHUB_STEP_SUMMARY
