@@ -191,6 +191,12 @@ cython_debug/
 # Ruff stuff:
 .ruff_cache/
 
+# Ansible
+.ansible/
+.ansible-test/
+ansible_collections/
+tests/output/
+
 # PyPI configuration file
 .pypirc
 

@@ -8,8 +8,21 @@ The collection is not published to Ansible Galaxy yet.
 To try it locally, build the collection archive from this checkout and install that archive:
 
 ```bash
-ansible-galaxy collection build --force --output-path dist .
-ansible-galaxy collection install --force dist/exasol-ansible_collection-*.tar.gz
+poetry run nox -s collection:build
+poetry run ansible-galaxy collection install --force dist/exasol-ansible_collection-*.tar.gz
+```
+
+Run the Ansible collection sanity checks with:
+
+```bash
+poetry run nox -s collection:sanity
+```
+
+After the collection is published, installation will use the Galaxy collection
+name:
+
+```bash
+ansible-galaxy collection install exasol.ansible_collection
 ```
 
 ## Runtime Dependencies
@@ -30,12 +43,15 @@ Use the collection from a playbook with the fully qualified collection name:
 
 ```yaml
 ---
-- name: Install Exasol
+- name: Prepare Exasol hosts
   hosts: all
   collections:
     - exasol.ansible_collection
   tasks:
-    - name: Placeholder task
+    - name: Verify the collection is available
       ansible.builtin.debug:
-        msg: "Replace this task with Exasol installation automation."
+        msg: "Exasol collection is installed."
 ```
+
+The collection is currently a skeleton. Add module-specific tasks once public
+modules are available.

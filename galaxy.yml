@@ -13,3 +13,28 @@ tags:
 repository: https://github.com/exasol/ansible-collection
 issues: https://github.com/exasol/ansible-collection/issues
 dependencies: {}
+build_ignore:
+  - "*.egg-info"
+  - "*.pyc"
+  - .ansible
+  - .ansible-test
+  - .build_output
+  - .codex
+  - .coverage
+  - .coverage.*
+  - .git
+  - .html-documentation
+  - .idea
+  - .lint.json
+  - .lint.txt
+  - .mypy_cache
+  - .nox
+  - .pytest_cache
+  - .ruff_cache
+  - .security.json
+  - .sonar
+  - __pycache__
+  - ansible_collections
+  - build
+  - dist
+  - test
