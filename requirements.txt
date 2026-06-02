@@ -1,1 +1,3 @@
+exasol-ansible-runner-wrapper>=2,<3
 pyexasol
+pyproject

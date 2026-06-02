@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import tomllib
-from pathlib import Path
 
 import yaml
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+from noxconfig import PROJECT_CONFIG
+
+PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 
 
 def test_project_and_galaxy_versions_match() -> None:

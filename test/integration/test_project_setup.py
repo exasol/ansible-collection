@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import yaml
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+from noxconfig import PROJECT_CONFIG
+
+PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 
 
 def test_galaxy_metadata_defines_collection() -> None:

@@ -57,37 +57,55 @@ files = [
 
 [[package]]
 name = "ansible"
-version = "12.3.0"
+version = "10.7.0"
 description = "Radically simple IT automation"
 optional = false
-python-versions = ">=3.11"
-groups = ["dev"]
+python-versions = ">=3.10"
+groups = ["main"]
 files = [
-    {file = "ansible-12.3.0-py3-none-any.whl", hash = "sha256:cd156f82fa87f7a899212b0efa9f7ca3a24d609212de9f78428a572eb01e5414"},
-    {file = "ansible-12.3.0.tar.gz", hash = "sha256:02721f6fb432ddd47f1044ac49b04b5e9ae08890bd427def8df3db1607aeec51"},
+    {file = "ansible-10.7.0-py3-none-any.whl", hash = "sha256:0089f08e047ceb70edd011be009f5c6273add613fbe491e9697c0556c989d8ea"},
+    {file = "ansible-10.7.0.tar.gz", hash = "sha256:59d29e3de1080e740dfa974517d455217601b16d16880314d9be26145c68dc22"},
 ]
 
 [package.dependencies]
-ansible-core = ">=2.19.5,<2.20.0"
+ansible-core = ">=2.17.7,<2.18.0"
 
 [[package]]
 name = "ansible-core"
-version = "2.19.10"
+version = "2.17.14"
 description = "Radically simple IT automation"
 optional = false
-python-versions = ">=3.11"
-groups = ["dev"]
+python-versions = ">=3.10"
+groups = ["main"]
 files = [
-    {file = "ansible_core-2.19.10-py3-none-any.whl", hash = "sha256:ed6399e42384f55886ba1c9947496beb81f6e6b9f15cd90b3013a78baf6649ab"},
-    {file = "ansible_core-2.19.10.tar.gz", hash = "sha256:afe0438d3acb402319baeb12a52465e69642e7497889a3a979cf390c6061a138"},
+    {file = "ansible_core-2.17.14-py3-none-any.whl", hash = "sha256:34a49582a57c2f2af17ede2cefd3b3602a2d55d22089f3928570d52030cafa35"},
+    {file = "ansible_core-2.17.14.tar.gz", hash = "sha256:7c17fee39f8c29d70e3282a7e9c10bd70d5cd4fd13ddffc5dcaa52adbd142ff8"},
 ]
 
 [package.dependencies]
 cryptography = "*"
-jinja2 = ">=3.1.0"
+jinja2 = ">=3.0.0"
 packaging = "*"
 PyYAML = ">=5.1"
-resolvelib = ">=0.5.3,<2.0.0"
+resolvelib = ">=0.5.3,<1.1.0"
+
+[[package]]
+name = "ansible-runner"
+version = "2.4.3"
+description = "\"Consistent Ansible Python API and CLI with container and process isolation runtime capabilities\""
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "ansible_runner-2.4.3-py3-none-any.whl", hash = "sha256:cdac6daa151a50084ffda710e769db23fa975fc0507796191d7708831b286e37"},
+    {file = "ansible_runner-2.4.3.tar.gz", hash = "sha256:5f3025529bb968fdc3b627457dd8d418dbf9d53bc73735d50e69c28544d53031"},
+]
+
+[package.dependencies]
+packaging = "*"
+pexpect = ">=4.5"
+python-daemon = "*"
+pyyaml = "*"
 
 [[package]]
 name = "apeye"
@@ -413,8 +431,7 @@ version = "2.0.0"
 description = "Foreign Function Interface for Python calling C code."
 optional = false
 python-versions = ">=3.9"
-groups = ["dev"]
-markers = "platform_python_implementation != \"PyPy\""
+groups = ["main", "dev"]
 files = [
     {file = "cffi-2.0.0-cp310-cp310-macosx_10_13_x86_64.whl", hash = "sha256:0cf2d91ecc3fcc0625c2c530fe004f82c110405f101548512cce44322fa8ac44"},
     {file = "cffi-2.0.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:f73b96c41e3b2adedc34a7356e64c8eb96e03a3782b535e043a986276ce12a49"},
@@ -501,6 +518,7 @@ files = [
     {file = "cffi-2.0.0-cp39-cp39-win_amd64.whl", hash = "sha256:b882b3df248017dba09d6b16defe9b5c407fe32fc7c65a9c69798e6175601be9"},
     {file = "cffi-2.0.0.tar.gz", hash = "sha256:44d1b5909021139fe36001ae048dbdde8214afa20200eda0f64c068cac5d5529"},
 ]
+markers = {main = "platform_python_implementation != \"PyPy\"", dev = "platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and sys_platform == \"linux\" and platform_python_implementation != \"PyPy\""}
 
 [package.dependencies]
 pycparser = {version = "*", markers = "implementation_name != \"PyPy\""}
@@ -827,7 +845,7 @@ version = "48.0.0"
 description = "cryptography is a package which provides cryptographic recipes and primitives to Python developers."
 optional = false
 python-versions = "!=3.9.0,!=3.9.1,>=3.9"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "cryptography-48.0.0-cp311-abi3-macosx_10_9_universal2.whl", hash = "sha256:0c558d2cdffd8f4bbb30fc7134c74d2ca9a476f830bb053074498fbc86f41ed6"},
     {file = "cryptography-48.0.0-cp311-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:f5333311663ea94f75dd408665686aaf426563556bb5283554a3539177e03b8c"},
@@ -879,6 +897,7 @@ files = [
     {file = "cryptography-48.0.0-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:db63bf618e5dea46c07de12e900fe1cdd2541e6dc9dbae772a70b7d4d4765f6a"},
     {file = "cryptography-48.0.0.tar.gz", hash = "sha256:5c3932f4436d1cccb036cb0eaef46e6e2db91035166f1ad6505c3c9d5a635920"},
 ]
+markers = {dev = "platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and sys_platform == \"linux\""}
 
 [package.dependencies]
 cffi = {version = ">=2.0.0", markers = "platform_python_implementation != \"PyPy\""}
@@ -1015,6 +1034,23 @@ typing-extensions = ">=3.7.4.1"
 [package.extras]
 all = ["pytz (>=2019.1)"]
 dates = ["pytz (>=2019.1)"]
+
+[[package]]
+name = "exasol-ansible-runner-wrapper"
+version = "2.0.0"
+description = "Python wrapper for running Ansible"
+optional = false
+python-versions = "<4.0,>=3.10"
+groups = ["main"]
+files = [
+    {file = "exasol_ansible_runner_wrapper-2.0.0-py3-none-any.whl", hash = "sha256:e724ff9f8e5ef140e184d45ab3d800711e2b1bec882e08b8785de9c61c2cd9e4"},
+    {file = "exasol_ansible_runner_wrapper-2.0.0.tar.gz", hash = "sha256:6058c2febd87b144d01c36b80fd8458f7595cf61e5d32da7a72de73818491f70"},
+]
+
+[package.dependencies]
+ansible = ">=10.7.0,<11"
+ansible-runner = ">=2.4.3,<3.0.0"
+types-docker = ">=7.1.0.20260409,<8.0.0.0"
 
 [[package]]
 name = "exasol-toolbox"
@@ -1509,7 +1545,7 @@ version = "3.1.6"
 description = "A very fast and expressive template engine."
 optional = false
 python-versions = ">=3.7"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67"},
     {file = "jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d"},
@@ -1687,6 +1723,18 @@ files = [
 dev = ["Sphinx (>=5.0.2)", "doc8 (>=0.11.2)", "pytest (>=7.0.1)", "pytest-xdist (>=2)", "ruff", "sphinx-autobuild", "sphinx-copybutton", "sphinx-reredirects (>=0.1.2)", "sphinx-rtd-dark-mode (>=1.3.0)", "sphinx-rtd-theme (>=1.0.0)", "sphinxcontrib-apidoc (>=0.4.0)", "twine"]
 
 [[package]]
+name = "lockfile"
+version = "0.12.2"
+description = "Platform-independent file locking module"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "lockfile-0.12.2-py2.py3-none-any.whl", hash = "sha256:6c3cb24f344923d30b2785d5ad75182c8ea7ac1b6171b08657258ec7429d50fa"},
+    {file = "lockfile-0.12.2.tar.gz", hash = "sha256:6aed02de03cba24efabcd600b30540140634fc06cfa603822d508d5361e9f799"},
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "3.0.0"
 description = "Python port of markdown-it. Markdown parsing, done right!"
@@ -1717,7 +1765,7 @@ version = "3.0.3"
 description = "Safely add untrusted strings to HTML/XML markup."
 optional = false
 python-versions = ">=3.9"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "markupsafe-3.0.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:2f981d352f04553a7171b8e44369f2af4055f888dfb147d55e42d29e29e74559"},
     {file = "markupsafe-3.0.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e1c1493fb6e50ab01d20a22826e57520f1284df32f2d8601fdd90b6304601419"},
@@ -2164,7 +2212,7 @@ version = "26.2"
 description = "Core utilities for Python packages"
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "packaging-26.2-py3-none-any.whl", hash = "sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e"},
     {file = "packaging-26.2.tar.gz", hash = "sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661"},
@@ -2186,6 +2234,21 @@ files = [
 hyperscan = ["hyperscan (>=0.7)"]
 optional = ["typing-extensions (>=4)"]
 re2 = ["google-re2 (>=1.1)"]
+
+[[package]]
+name = "pexpect"
+version = "4.9.0"
+description = "Pexpect allows easy control of interactive console applications."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "pexpect-4.9.0-py2.py3-none-any.whl", hash = "sha256:7236d1e080e4936be2dc3e326cec0af72acf9212a7e1d060210e70a47e253523"},
+    {file = "pexpect-4.9.0.tar.gz", hash = "sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f"},
+]
+
+[package.dependencies]
+ptyprocess = ">=0.5"
 
 [[package]]
 name = "pip"
@@ -2349,6 +2412,18 @@ wcwidth = "*"
 tests = ["pytest", "pytest-cov", "pytest-lazy-fixtures"]
 
 [[package]]
+name = "ptyprocess"
+version = "0.7.0"
+description = "Run a subprocess in a pseudo terminal"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "ptyprocess-0.7.0-py2.py3-none-any.whl", hash = "sha256:4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35"},
+    {file = "ptyprocess-0.7.0.tar.gz", hash = "sha256:5c5d0a3b48ceee0b48485e0c26037c0acd7d29765ca3fbb5cb3831d347423220"},
+]
+
+[[package]]
 name = "py-serializable"
 version = "2.1.0"
 description = "Library for serializing and deserializing Python Objects to and from JSON and XML."
@@ -2364,17 +2439,29 @@ files = [
 defusedxml = ">=0.7.1,<0.8.0"
 
 [[package]]
+name = "pyasn1"
+version = "0.6.3"
+description = "Pure-Python implementation of ASN.1 types and DER/BER/CER codecs (X.208)"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "pyasn1-0.6.3-py3-none-any.whl", hash = "sha256:a80184d120f0864a52a073acc6fc642847d0be408e7c7252f31390c0f4eadcde"},
+    {file = "pyasn1-0.6.3.tar.gz", hash = "sha256:697a8ecd6d98891189184ca1fa05d1bb00e2f84b5977c481452050549c8a72cf"},
+]
+
+[[package]]
 name = "pycparser"
 version = "3.0"
 description = "C parser in Python"
 optional = false
 python-versions = ">=3.10"
-groups = ["dev"]
-markers = "platform_python_implementation != \"PyPy\" and implementation_name != \"PyPy\""
+groups = ["main", "dev"]
 files = [
     {file = "pycparser-3.0-py3-none-any.whl", hash = "sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992"},
     {file = "pycparser-3.0.tar.gz", hash = "sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29"},
 ]
+markers = {main = "platform_python_implementation != \"PyPy\" and implementation_name != \"PyPy\"", dev = "platform_machine != \"ppc64le\" and platform_machine != \"s390x\" and sys_platform == \"linux\" and platform_python_implementation != \"PyPy\" and implementation_name != \"PyPy\""}
 
 [[package]]
 name = "pydantic"
@@ -2532,6 +2619,34 @@ files = [
 typing-extensions = ">=4.14.1"
 
 [[package]]
+name = "pyexasol"
+version = "1.3.0"
+description = "Exasol python driver with extra features"
+optional = false
+python-versions = "<4,>=3.9.2"
+groups = ["main"]
+files = [
+    {file = "pyexasol-1.3.0-py3-none-any.whl", hash = "sha256:0bb076346dcb33b36031a2633d6e7b9982f8411b95e770ad8017801ee438a689"},
+    {file = "pyexasol-1.3.0.tar.gz", hash = "sha256:44e5be7245b92343634b0b66a81b62be2fb4b1ca485d4e0f86c0583d5a2cf6b5"},
+]
+
+[package.dependencies]
+cryptography = ">=45.0.7"
+packaging = "*"
+rsa = "*"
+websocket-client = ">=1.0.1,<1.9.0"
+
+[package.extras]
+all = ["orjson (>=3.6)", "pandas (>=2,<3)", "polars (>=1.10,<2.0)", "pproxy", "pyarrow (>=21.0.0,<22.0.0)", "python-rapidjson", "ujson"]
+examples = ["pproxy"]
+orjson = ["orjson (>=3.6)"]
+pandas = ["pandas (>=2,<3)"]
+polars = ["polars (>=1.10,<2.0)"]
+pyarrow = ["pyarrow (>=21.0.0,<22.0.0)"]
+rapidjson = ["python-rapidjson"]
+ujson = ["ujson"]
+
+[[package]]
 name = "pygments"
 version = "2.20.0"
 description = "Pygments is a syntax highlighting package written in Python."
@@ -2644,6 +2759,28 @@ pygments = ">=2.7.2"
 dev = ["argcomplete", "attrs (>=19.2)", "hypothesis (>=3.56)", "mock", "requests", "setuptools", "xmlschema"]
 
 [[package]]
+name = "python-daemon"
+version = "3.1.2"
+description = "Library to implement a well-behaved Unix daemon process."
+optional = false
+python-versions = ">=3.7"
+groups = ["main"]
+files = [
+    {file = "python_daemon-3.1.2-py3-none-any.whl", hash = "sha256:b906833cef63502994ad48e2eab213259ed9bb18d54fa8774dcba2ff7864cec6"},
+    {file = "python_daemon-3.1.2.tar.gz", hash = "sha256:f7b04335adc473de877f5117e26d5f1142f4c9f7cd765408f0877757be5afbf4"},
+]
+
+[package.dependencies]
+lockfile = ">=0.10"
+
+[package.extras]
+build = ["build", "changelog-chug", "docutils", "python-daemon[doc]", "wheel"]
+devel = ["python-daemon[dist,test]"]
+dist = ["python-daemon[build]", "twine"]
+static-analysis = ["isort (>=5.13,<6.0)", "pip-check", "pycodestyle (>=2.12,<3.0)", "pydocstyle (>=6.3,<7.0)", "pyupgrade (>=3.17,<4.0)"]
+test = ["coverage", "python-daemon[build,static-analysis]", "testscenarios (>=0.4)", "testtools"]
+
+[[package]]
 name = "python-discovery"
 version = "1.4.0"
 description = "Python interpreter discovery"
@@ -2752,7 +2889,7 @@ version = "6.0.3"
 description = "YAML parser and emitter for Python"
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "PyYAML-6.0.3-cp38-cp38-macosx_10_13_x86_64.whl", hash = "sha256:c2514fceb77bc5e7a2f7adfaa1feb2fb311607c9cb518dbc378688ec73d8292f"},
     {file = "PyYAML-6.0.3-cp38-cp38-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:9c57bb8c96f6d1808c030b1687b9b5fb476abaa47f0db9c0101f5e9f394e97f4"},
@@ -2888,20 +3025,21 @@ requests = ">=2.0.1,<3.0.0"
 
 [[package]]
 name = "resolvelib"
-version = "1.2.1"
+version = "1.0.1"
 description = "Resolve abstract dependencies into concrete ones"
 optional = false
-python-versions = ">=3.9"
-groups = ["dev"]
+python-versions = "*"
+groups = ["main"]
 files = [
-    {file = "resolvelib-1.2.1-py3-none-any.whl", hash = "sha256:fb06b66c8da04172d9e72a21d7d06186d8919e32ae5ab5cdf5b9d920be805ac2"},
-    {file = "resolvelib-1.2.1.tar.gz", hash = "sha256:7d08a2022f6e16ce405d60b68c390f054efcfd0477d4b9bd019cc941c28fad1c"},
+    {file = "resolvelib-1.0.1-py2.py3-none-any.whl", hash = "sha256:d2da45d1a8dfee81bdd591647783e340ef3bcb104b54c383f70d422ef5cc7dbf"},
+    {file = "resolvelib-1.0.1.tar.gz", hash = "sha256:04ce76cbd63fded2078ce224785da6ecd42b9564b1390793f64ddecbe997b309"},
 ]
 
 [package.extras]
-lint = ["mypy", "ruff", "types-requests"]
+examples = ["html5lib", "packaging", "pygraphviz", "requests"]
+lint = ["black", "flake8", "isort", "mypy", "types-requests"]
 release = ["build", "towncrier", "twine"]
-test = ["packaging", "pytest"]
+test = ["commentjson", "packaging", "pytest"]
 
 [[package]]
 name = "rfc3986"
@@ -2948,6 +3086,21 @@ files = [
     {file = "roman-5.2-py3-none-any.whl", hash = "sha256:89d3b47400388806d06ff77ea77c79ab080bc127820dea6bf34e1f1c1b8e676e"},
     {file = "roman-5.2.tar.gz", hash = "sha256:275fe9f46290f7d0ffaea1c33251b92b8e463ace23660508ceef522e7587cb6f"},
 ]
+
+[[package]]
+name = "rsa"
+version = "4.9.1"
+description = "Pure-Python RSA implementation"
+optional = false
+python-versions = "<4,>=3.6"
+groups = ["main"]
+files = [
+    {file = "rsa-4.9.1-py3-none-any.whl", hash = "sha256:68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762"},
+    {file = "rsa-4.9.1.tar.gz", hash = "sha256:e7bdbfdb5497da4c07dfd35530e1a902659db6ff241e39d9953cad06ebd0ae75"},
+]
+
+[package.dependencies]
+pyasn1 = ">=0.1.3"
 
 [[package]]
 name = "ruamel-yaml"
@@ -3724,6 +3877,53 @@ rich = ">=13.8.0"
 shellingham = ">=1.3.0"
 
 [[package]]
+name = "types-docker"
+version = "7.1.0.20260518"
+description = "Typing stubs for docker"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "types_docker-7.1.0.20260518-py3-none-any.whl", hash = "sha256:59893937816bfe40eb2915c84b31c3131107537500287c47d4a10dd7a9d59deb"},
+    {file = "types_docker-7.1.0.20260518.tar.gz", hash = "sha256:d194c4b82a4110fc58c84af05a5d9de6d3e54f94357ff745d01b5dca12c8eaaa"},
+]
+
+[package.dependencies]
+types-paramiko = "*"
+types-requests = "*"
+urllib3 = ">=2"
+
+[[package]]
+name = "types-paramiko"
+version = "4.0.0.20260518"
+description = "Typing stubs for paramiko"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "types_paramiko-4.0.0.20260518-py3-none-any.whl", hash = "sha256:0ffaf1a6eb796833a49653cba4c7be13af51c8269d75234972d6239763dda270"},
+    {file = "types_paramiko-4.0.0.20260518.tar.gz", hash = "sha256:286f6830945cba63797eedf375ed87138d93198121253afe66c5d6dbcf91318d"},
+]
+
+[package.dependencies]
+cryptography = ">=37.0.0"
+
+[[package]]
+name = "types-requests"
+version = "2.33.0.20260518"
+description = "Typing stubs for requests"
+optional = false
+python-versions = ">=3.10"
+groups = ["main"]
+files = [
+    {file = "types_requests-2.33.0.20260518-py3-none-any.whl", hash = "sha256:626d697d1adaaff76e2044dc8c5c051d8f21abc157bdfe204a75558076fe0bf0"},
+    {file = "types_requests-2.33.0.20260518.tar.gz", hash = "sha256:df7bd3bfe0ca8402dfb841e7d9be714bb5578203283d66d7dc4ef69343449a5e"},
+]
+
+[package.dependencies]
+urllib3 = ">=2"
+
+[[package]]
 name = "typing-extensions"
 version = "4.15.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
@@ -3756,7 +3956,7 @@ version = "2.7.0"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 optional = false
 python-versions = ">=3.10"
-groups = ["dev"]
+groups = ["main", "dev"]
 files = [
     {file = "urllib3-2.7.0-py3-none-any.whl", hash = "sha256:9fb4c81ebbb1ce9531cce37674bbc6f1360472bc18ca9a553ede278ef7276897"},
     {file = "urllib3-2.7.0.tar.gz", hash = "sha256:231e0ec3b63ceb14667c67be60f2f2c40a518cb38b03af60abc813da26505f4c"},
@@ -3811,6 +4011,23 @@ files = [
 ]
 
 [[package]]
+name = "websocket-client"
+version = "1.8.0"
+description = "WebSocket client for Python with low level API options"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "websocket_client-1.8.0-py3-none-any.whl", hash = "sha256:17b44cc997f5c498e809b22cdf2d9c7a9e71c02c8cc2b6c56e7c2d1239bfa526"},
+    {file = "websocket_client-1.8.0.tar.gz", hash = "sha256:3239df9f44da632f96012472805d40a23281a991027ce11d2f45a6f24ac4c3da"},
+]
+
+[package.extras]
+docs = ["Sphinx (>=6.0)", "myst-parser (>=2.0.0)", "sphinx-rtd-theme (>=1.1.0)"]
+optional = ["python-socks", "wsaccel"]
+test = ["websockets"]
+
+[[package]]
 name = "zipp"
 version = "4.1.0"
 description = "Backport of pathlib-compatible object wrapper for zip files"
@@ -3834,4 +4051,4 @@ type = ["pytest-mypy (>=1.0.1) ; platform_python_implementation != \"PyPy\""]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4.0"
-content-hash = "802a43e3e996b497ec7b59ca33eb9a686fdeefaca85d5e2ea2c641b4d878d9f7"
+content-hash = "0884e66fae660fe2027c5ff5b047b9b6833231003223759d6ff0585bcfe3e646"
