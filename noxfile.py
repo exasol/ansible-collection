@@ -21,7 +21,7 @@ nox.options.sessions = ["format:fix"]
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 COLLECTION_NAMESPACE = "exasol"
-COLLECTION_NAME = "ansible_collection"
+COLLECTION_NAME = "exasol"
 
 
 def _collection_build_ignore_patterns() -> tuple[str, ...]:

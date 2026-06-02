@@ -1,6 +1,6 @@
 # Exasol Ansible Collection
 
-Ansible Collection for installing Exasol.
+Ansible Collection for automating Exasol database operations.
 
 ## Installation
 
@@ -9,7 +9,7 @@ To try it locally, build the collection archive from this checkout and install t
 
 ```bash
 poetry run nox -s collection:build
-poetry run ansible-galaxy collection install --force dist/exasol-ansible_collection-*.tar.gz
+poetry run ansible-galaxy collection install --force dist/exasol-exasol-*.tar.gz
 ```
 
 Run the Ansible collection sanity checks with:
@@ -22,7 +22,7 @@ After the collection is published, installation will use the Galaxy collection
 name:
 
 ```bash
-ansible-galaxy collection install exasol.ansible_collection
+ansible-galaxy collection install exasol.exasol
 ```
 
 ## Runtime Dependencies
@@ -46,7 +46,7 @@ Use the collection from a playbook with the fully qualified collection name:
 - name: Prepare Exasol hosts
   hosts: all
   collections:
-    - exasol.ansible_collection
+    - exasol.exasol
   tasks:
     - name: Verify the collection is available
       ansible.builtin.debug:

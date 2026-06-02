@@ -35,7 +35,7 @@ Run Ansible collection sanity checks with:
    poetry run nox -s collection:sanity
 
 The session copies the checkout into a temporary
-``ansible_collections/exasol/ansible_collection`` layout before invoking
+``ansible_collections/exasol/exasol`` layout before invoking
 ``ansible-test sanity``.
 
 Toolbox Checks

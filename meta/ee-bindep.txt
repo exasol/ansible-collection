@@ -1,0 +1,2 @@
+# Keep this file even when there are no system package requirements so
+# ansible-builder does not fall back to root-level bindep.txt.

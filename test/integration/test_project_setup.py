@@ -18,15 +18,33 @@ def test_galaxy_metadata_defines_collection() -> None:
     galaxy = yaml.safe_load(galaxy_path.read_text())
 
     assert galaxy["namespace"] == "exasol"
-    assert galaxy["name"] == "ansible_collection"
+    assert galaxy["name"] == "exasol"
     assert galaxy["readme"] == "README.md"
     assert galaxy["authors"]
     assert galaxy["repository"] == "https://github.com/exasol/ansible-collection"
-    assert {"exasol", "database", "installer"}.issubset(galaxy["tags"])
+    assert {"exasol", "database", "analytics", "datawarehouse"}.issubset(
+        galaxy["tags"]
+    )
     assert galaxy.get("license") or galaxy.get("license_file")
 
     if license_file := galaxy.get("license_file"):
         assert (PROJECT_ROOT / license_file).is_file()
+
+
+def test_standard_collection_directories_exist() -> None:
+    """Verify that the repository exposes the standard collection skeleton."""
+    expected_directories = {
+        "plugins/modules",
+        "plugins/module_utils",
+        "plugins/doc_fragments",
+        "tests/integration/targets",
+        "tests/unit/plugins/modules",
+        "tests/unit/plugins/module_utils",
+        "changelogs/fragments",
+    }
+
+    for directory in expected_directories:
+        assert (PROJECT_ROOT / directory).is_dir()
 
 
 def test_collection_runtime_metadata_exists() -> None:
@@ -38,3 +56,27 @@ def test_collection_runtime_metadata_exists() -> None:
     runtime = yaml.safe_load(runtime_path.read_text())
 
     assert runtime["requires_ansible"]
+
+
+def test_collection_execution_environment_metadata_exists() -> None:
+    """Verify that ansible-builder collection dependency metadata is present."""
+    metadata_path = PROJECT_ROOT / "meta" / "execution-environment.yml"
+    python_requirements_path = PROJECT_ROOT / "meta" / "ee-requirements.txt"
+    system_requirements_path = PROJECT_ROOT / "meta" / "ee-bindep.txt"
+
+    assert metadata_path.is_file()
+    assert python_requirements_path.is_file()
+    assert system_requirements_path.is_file()
+
+    metadata = yaml.safe_load(metadata_path.read_text())
+
+    assert metadata["dependencies"]["python"] == "meta/ee-requirements.txt"
+    assert metadata["dependencies"]["system"] == "meta/ee-bindep.txt"
+    assert "pyexasol" in python_requirements_path.read_text().splitlines()
+
+
+def test_collection_governance_and_changelog_files_exist() -> None:
+    """Verify that community-readiness metadata is present."""
+    assert (PROJECT_ROOT / "CODE_OF_CONDUCT.md").is_file()
+    assert (PROJECT_ROOT / "changelogs" / "config.yaml").is_file()
+    assert (PROJECT_ROOT / "changelogs" / "changelog.yaml").is_file()
