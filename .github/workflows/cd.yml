@@ -15,17 +15,19 @@ jobs:
     permissions:
       contents: read
 
-  build-collection-artifact:
+  build-and-publish:
     needs:
       - check-release-tag
-    name: Build Collection Artifact
+    name: Build & Publish
     uses: ./.github/workflows/build-and-publish.yml
     permissions:
-      contents: read
+      contents: write
+    secrets:
+      PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
   publish-docs:
     needs:
-      - build-collection-artifact
+      - build-and-publish
     name: Publish Documentation
     uses: ./.github/workflows/gh-pages.yml
     permissions:

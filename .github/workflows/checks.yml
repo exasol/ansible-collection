@@ -170,8 +170,8 @@ jobs:
         id: check-format
         run: poetry run -- nox -s format:check
 
-  check-collection:
-    name: Check Collection
+  build-package:
+    name: Build Package
     runs-on: "ubuntu-24.04"
     permissions:
       contents: read
@@ -187,10 +187,27 @@ jobs:
           python-version: "3.11"
           poetry-version: "2.3.0"
 
-      - name: Build Collection
-        id: build-collection
-        run: poetry run -- nox -s collection:build
+      - name: Build Package
+        id: build-package
+        run: poetry run -- nox -s package:check
 
-      - name: Run Collection Sanity
-        id: run-collection-sanity
-        run: poetry run -- nox -s collection:sanity
+  check-workflows:
+    name: Check Workflows
+    runs-on: "ubuntu-24.04"
+    permissions:
+      contents: read
+    steps:
+      - name: Check out Repository
+        id: check-out-repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python & Poetry Environment
+        id: set-up-python-and-poetry-environment
+        uses: exasol/python-toolbox/.github/actions/python-environment@v8
+        with:
+          python-version: "3.11"
+          poetry-version: "2.3.0"
+
+      - name: Check Workflows
+        id: check-workflows
+        run: poetry run -- nox -s workflow:check -- all
