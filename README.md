@@ -34,9 +34,8 @@ execution environment that runs Ansible:
 python -m pip install -r requirements.txt
 ```
 
-The dependency list includes `exasol-ansible-runner-wrapper`, which modules can
-use to delegate Ansible execution, and `pyexasol`, which modules can use for
-Exasol database access.
+The dependency list includes `pyexasol`, which modules can use for Exasol
+database access, and `pyproject`, which modules can use for project metadata.
 
 ## Usage
 

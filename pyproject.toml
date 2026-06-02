@@ -19,12 +19,13 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "exasol-ansible-runner-wrapper>=2,<3",
     "pyexasol",
 ]
 
 [dependency-groups]
 dev = [
+    "ansible>=10.7,<11",
+    "exasol-ansible-runner-wrapper>=2,<3",
     "exasol-toolbox>=8,<9",
     "pytest>=9.0.3,<10.0.0",
     "pyyaml>=6.0.3,<7.0.0",
