@@ -22,9 +22,7 @@ def test_galaxy_metadata_defines_collection() -> None:
     assert galaxy["readme"] == "README.md"
     assert galaxy["authors"]
     assert galaxy["repository"] == "https://github.com/exasol/ansible-collection"
-    assert {"exasol", "database", "analytics", "datawarehouse"}.issubset(
-        galaxy["tags"]
-    )
+    assert {"exasol", "database", "analytics", "datawarehouse"}.issubset(galaxy["tags"])
     assert galaxy.get("license") or galaxy.get("license_file")
 
     if license_file := galaxy.get("license_file"):
