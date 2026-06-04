@@ -35,7 +35,7 @@ python -m pip install -r requirements.txt
 ```
 
 The dependency list includes `pyexasol`, which modules can use for Exasol
-database access, and `pyproject`, which modules can use for project metadata.
+database access.
 
 ## Usage
 

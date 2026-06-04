@@ -14,3 +14,5 @@
 ## Refactorings
 
 * #2: Python Toolbox Compatible Project Bootstrap
+* #12: EXA-ANS-001 Align collection identity, metadata, and standard repository skeleton
+* #13: EXA-ANS-002 Implement shared Exasol module utilities and connection doc fragment

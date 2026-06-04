@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import ssl
 from decimal import Decimal
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -20,7 +21,8 @@ def test_connection_argument_spec_defines_defaults_and_no_log() -> None:
 
     assert spec["login_host"]["default"] == "localhost"
     assert spec["login_port"]["default"] == 8563
-    assert spec["encryption"]["default"] is True
+    assert spec["validate_certs"]["default"] is True
+    assert spec["certificate_fingerprint"]["type"] == "str"
     assert spec["login_password"]["no_log"] is True
     assert spec["client_kwargs"]["no_log"] is True
 
@@ -33,33 +35,39 @@ def test_build_exasol_connect_kwargs_maps_ansible_arguments_to_pyexasol() -> Non
             "login_port": 8564,
             "login_user": "sys",
             "login_password": "secret",
-            "login_db": "APP",
+            "login_schema": "APP",
             "autocommit": False,
             "fetch_size": 1024,
             "compression": True,
-            "encryption": False,
+            "validate_certs": False,
+            "certificate_fingerprint": "ABCDEF",
             "client_kwargs": {
                 "client_name": "ansible-test",
-                "encryption": True,
+                "encryption": False,
+                "websocket_sslopt": {"check_hostname": False},
             },
         }
     )
 
     assert kwargs == {
-        "dsn": "db.example.com:8564",
+        "dsn": "db.example.com/ABCDEF:8564",
         "user": "sys",
         "password": "secret",
         "schema": "APP",
         "autocommit": False,
         "fetch_size_bytes": 1024,
         "compression": True,
-        "encryption": False,
+        "encryption": True,
+        "websocket_sslopt": {
+            "cert_reqs": ssl.CERT_NONE,
+            "check_hostname": False,
+        },
         "client_name": "ansible-test",
     }
 
 
 def test_build_exasol_connect_kwargs_applies_defaults() -> None:
-    """Verify default connection handling, including TLS by default."""
+    """Verify default connection handling, including mandatory TLS."""
     kwargs = exasol_utils.build_exasol_connect_kwargs(
         {
             "login_user": "sys",
@@ -73,6 +81,23 @@ def test_build_exasol_connect_kwargs_applies_defaults() -> None:
     assert kwargs["compression"] is False
     assert kwargs["encryption"] is True
     assert "fetch_size_bytes" not in kwargs
+    assert "websocket_sslopt" not in kwargs
+
+
+def test_build_exasol_connect_kwargs_keeps_ca_validation_with_fingerprint() -> None:
+    """Verify fingerprints pin the certificate without disabling CA validation."""
+    kwargs = exasol_utils.build_exasol_connect_kwargs(
+        {
+            "login_host": "db.example.com",
+            "login_user": "sys",
+            "login_password": "secret",
+            "certificate_fingerprint": "ABCDEF",
+        }
+    )
+
+    assert kwargs["dsn"] == "db.example.com/ABCDEF:8563"
+    assert kwargs["encryption"] is True
+    assert kwargs["websocket_sslopt"] == {"cert_reqs": ssl.CERT_REQUIRED}
 
 
 def test_import_pyexasol_failure_uses_missing_required_lib(

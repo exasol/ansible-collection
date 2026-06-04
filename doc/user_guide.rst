@@ -28,8 +28,7 @@ environment that runs Ansible:
 
    python -m pip install -r requirements.txt
 
-The dependency list includes ``pyexasol`` for Exasol database access and
-``pyproject`` for project metadata.
+The dependency list includes ``pyexasol`` for Exasol database access.
 
 Basic Playbook
 --------------

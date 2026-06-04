@@ -9,6 +9,7 @@ import datetime as dt
 import importlib
 import math
 import re
+import ssl
 from collections.abc import (
     Callable,
     Iterable,
@@ -41,9 +42,9 @@ except ImportError:
 
 DEFAULT_LOGIN_HOST = "localhost"
 DEFAULT_LOGIN_PORT = 8563
-DEFAULT_ENCRYPTION = True
 DEFAULT_AUTOCOMMIT = True
 DEFAULT_COMPRESSION = False
+DEFAULT_VALIDATE_CERTS = True
 MAX_IDENTIFIER_LENGTH = 128
 REDACTED = "********"
 
@@ -65,7 +66,7 @@ EXASOL_CONNECTION_ARGUMENT_SPEC: dict[str, dict[str, Any]] = {
         "required": True,
         "no_log": True,
     },
-    "login_db": {
+    "login_schema": {
         "type": "str",
         "default": "",
     },
@@ -81,9 +82,13 @@ EXASOL_CONNECTION_ARGUMENT_SPEC: dict[str, dict[str, Any]] = {
         "type": "bool",
         "default": DEFAULT_COMPRESSION,
     },
-    "encryption": {
+    "validate_certs": {
         "type": "bool",
-        "default": DEFAULT_ENCRYPTION,
+        "default": DEFAULT_VALIDATE_CERTS,
+    },
+    "certificate_fingerprint": {
+        "type": "str",
+        "required": False,
     },
     "client_kwargs": {
         "type": "dict",
@@ -147,6 +152,10 @@ def build_exasol_dsn(params: Mapping[str, Any]) -> str:
     resolved = connection_parameters_with_defaults(params)
     host = resolved["login_host"]
     port = resolved["login_port"]
+    fingerprint = resolved.get("certificate_fingerprint")
+
+    if fingerprint:
+        return f"{host}/{fingerprint}:{port}"
 
     return f"{host}:{port}"
 
@@ -160,14 +169,21 @@ def build_exasol_connect_kwargs(params: Mapping[str, Any]) -> dict[str, Any]:
         "dsn": build_exasol_dsn(resolved),
         "user": resolved.get("login_user"),
         "password": resolved.get("login_password"),
-        "schema": resolved.get("login_db") or "",
+        "schema": resolved.get("login_schema") or "",
         "autocommit": resolved["autocommit"],
         "compression": resolved["compression"],
-        "encryption": resolved["encryption"],
+        "encryption": True,
     }
 
     if resolved.get("fetch_size") is not None:
         connect_kwargs["fetch_size_bytes"] = resolved["fetch_size"]
+
+    if not resolved["validate_certs"] or resolved.get("certificate_fingerprint"):
+        websocket_sslopt = dict(client_kwargs.get("websocket_sslopt") or {})
+        websocket_sslopt["cert_reqs"] = (
+            ssl.CERT_REQUIRED if resolved["validate_certs"] else ssl.CERT_NONE
+        )
+        connect_kwargs["websocket_sslopt"] = websocket_sslopt
 
     client_kwargs.update(connect_kwargs)
     return client_kwargs

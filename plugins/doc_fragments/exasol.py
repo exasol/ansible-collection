@@ -28,7 +28,7 @@ options:
       - Password used to authenticate with Exasol.
     type: str
     required: true
-  login_db:
+  login_schema:
     description:
       - Schema to open after connecting to Exasol.
       - This value is mapped to the pyexasol C(schema) connection argument.
@@ -50,13 +50,21 @@ options:
         transport.
     type: bool
     default: false
-  encryption:
+  validate_certs:
     description:
-      - Whether pyexasol should use TLS for WebSocket and HTTP transport.
-      - TLS is enabled by default. Set this option to V(false) only when the
-        target Exasol deployment explicitly requires an unencrypted connection.
+      - Whether pyexasol should validate the TLS certificate presented by Exasol.
+      - When O(certificate_fingerprint) is set, this option controls whether CA
+        validation also runs before fingerprint validation.
     type: bool
     default: true
+  certificate_fingerprint:
+    description:
+      - Expected SHA-256 fingerprint of the TLS certificate presented by Exasol.
+      - This value is appended to the pyexasol DSN and validated by pyexasol.
+      - Set O(validate_certs) to V(false) to use the fingerprint as the trust
+        anchor for self-signed certificates.
+      - Use a hexadecimal fingerprint without separators.
+    type: str
   client_kwargs:
     description:
       - Additional keyword arguments passed to C(pyexasol.connect).
