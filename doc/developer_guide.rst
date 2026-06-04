@@ -22,8 +22,9 @@ Build the local collection archive with:
 
    poetry run nox -s collection:build
 
-The archive is written to ``dist/``. The directory is ignored by Git because the
-collection tarball is a generated release artifact, not source.
+The archive is written to ``.build_output/collections/``. The directory is
+ignored by Git because the collection tarball is a generated release artifact,
+not source.
 
 Collection Sanity
 -----------------

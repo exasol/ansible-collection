@@ -72,5 +72,5 @@ options:
     type: dict
     default: {}
 requirements:
-  - pyexasol
+  - exasol-ansible-modules
 """

@@ -10,7 +10,7 @@ checkout locally, build the collection archive and install that archive:
 .. code-block:: bash
 
    poetry run nox -s collection:build
-   poetry run ansible-galaxy collection install --force dist/exasol-exasol-*.tar.gz
+   poetry run ansible-galaxy collection install --force .build_output/collections/exasol-exasol-*.tar.gz
 
 After the collection is published, install it by collection name:
 
@@ -28,7 +28,8 @@ environment that runs Ansible:
 
    python -m pip install -r requirements.txt
 
-The dependency list includes ``pyexasol`` for Exasol database access.
+The dependency list includes ``exasol-ansible-modules``, the Python package with
+the Exasol module runtime logic.
 
 Basic Playbook
 --------------

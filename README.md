@@ -9,7 +9,7 @@ To try it locally, build the collection archive from this checkout and install t
 
 ```bash
 poetry run nox -s collection:build
-poetry run ansible-galaxy collection install --force dist/exasol-exasol-*.tar.gz
+poetry run ansible-galaxy collection install --force .build_output/collections/exasol-exasol-*.tar.gz
 ```
 
 Run the Ansible collection sanity checks with:
@@ -34,8 +34,8 @@ execution environment that runs Ansible:
 python -m pip install -r requirements.txt
 ```
 
-The dependency list includes `pyexasol`, which modules can use for Exasol
-database access.
+The dependency list includes `exasol-ansible-modules`, the Python package with
+the Exasol module runtime logic.
 
 ## Usage
 

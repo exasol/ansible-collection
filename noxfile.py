@@ -85,7 +85,9 @@ def _prepare_ansible_test_collection_layout(tmp_path: Path) -> Path:
 @nox.session(name="collection:build", python=False)
 def collection_build(session: nox.Session) -> None:
     """Build the Ansible collection archive."""
-    (PROJECT_ROOT / "dist").mkdir(exist_ok=True)
+    # Keep Galaxy archives separate from Python artifacts checked by package:check.
+    output_path = PROJECT_ROOT / ".build_output" / "collections"
+    output_path.mkdir(parents=True, exist_ok=True)
 
     with tempfile.TemporaryDirectory(prefix="ansible-collection-build-") as tmp_dir:
         with session.chdir(PROJECT_ROOT):
@@ -95,7 +97,7 @@ def collection_build(session: nox.Session) -> None:
                 "build",
                 "--force",
                 "--output-path",
-                "dist",
+                str(output_path),
                 ".",
                 env=_ansible_env(Path(tmp_dir)),
             )

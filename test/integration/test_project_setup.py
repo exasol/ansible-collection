@@ -70,7 +70,7 @@ def test_collection_execution_environment_metadata_exists() -> None:
 
     assert metadata["dependencies"]["python"] == "meta/ee-requirements.txt"
     assert metadata["dependencies"]["system"] == "meta/ee-bindep.txt"
-    assert "pyexasol" in python_requirements_path.read_text().splitlines()
+    assert "exasol-ansible-modules" in python_requirements_path.read_text().splitlines()
 
 
 def test_collection_governance_and_changelog_files_exist() -> None:
