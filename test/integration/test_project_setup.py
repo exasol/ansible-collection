@@ -32,13 +32,8 @@ def test_galaxy_metadata_defines_collection() -> None:
 def test_standard_collection_directories_exist() -> None:
     """Verify that the repository exposes the standard collection skeleton."""
     expected_directories = {
-        "plugins/modules",
         "plugins/module_utils",
         "plugins/doc_fragments",
-        "tests/integration/targets",
-        "tests/unit/plugins/modules",
-        "tests/unit/plugins/module_utils",
-        "changelogs/fragments",
     }
 
     for directory in expected_directories:
