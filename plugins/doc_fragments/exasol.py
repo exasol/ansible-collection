@@ -53,10 +53,19 @@ options:
   validate_certs:
     description:
       - Whether pyexasol should validate the TLS certificate presented by Exasol.
+      - Public CA certificates and system-wide trust stores are used by default.
+      - Set O(ca_cert) when the Exasol certificate is signed by a private CA.
       - When O(certificate_fingerprint) is set, this option controls whether CA
         validation also runs before fingerprint validation.
     type: bool
     default: true
+  ca_cert:
+    description:
+      - Path to a CA certificate or certificate bundle used to validate the TLS
+        certificate presented by Exasol.
+      - This value is mapped to the websocket-client C(ca_certs) SSL option.
+      - This option is only used when O(validate_certs) is V(true).
+    type: path
   certificate_fingerprint:
     description:
       - Expected SHA-256 fingerprint of the TLS certificate presented by Exasol.

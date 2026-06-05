@@ -34,6 +34,7 @@ OPTIONAL_CONNECTION_PARAMETERS = (
     "login_user",
     "login_password",
     "fetch_size",
+    "ca_cert",
     "certificate_fingerprint",
 )
 SENSITIVE_CLIENT_KWARGS = {
@@ -109,8 +110,16 @@ def build_exasol_connect_kwargs(params: Mapping[str, Any]) -> dict[str, Any]:
     if resolved.get("fetch_size") is not None:
         connect_kwargs["fetch_size_bytes"] = resolved["fetch_size"]
 
-    if not resolved["validate_certs"] or resolved.get("certificate_fingerprint"):
+    ca_cert = resolved.get("ca_cert")
+
+    if (
+        not resolved["validate_certs"]
+        or resolved.get("certificate_fingerprint")
+        or ca_cert
+    ):
         websocket_sslopt = dict(client_kwargs.get("websocket_sslopt") or {})
+        if ca_cert and resolved["validate_certs"]:
+            websocket_sslopt["ca_certs"] = ca_cert
         websocket_sslopt["cert_reqs"] = (
             ssl.CERT_REQUIRED if resolved["validate_certs"] else ssl.CERT_NONE
         )

@@ -89,6 +89,101 @@ def test_build_exasol_connect_kwargs_keeps_ca_validation_with_fingerprint() -> N
     assert kwargs["websocket_sslopt"] == {"cert_reqs": ssl.CERT_REQUIRED}
 
 
+def test_build_exasol_connect_kwargs_keeps_default_ssl_validation() -> None:
+    """Verify validation without custom trust material uses pyexasol defaults."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_password": "secret",
+            "validate_certs": True,
+        }
+    )
+
+    assert "websocket_sslopt" not in kwargs
+
+
+def test_build_exasol_connect_kwargs_disables_ssl_validation_without_ca_cert() -> None:
+    """Verify validation can be disabled without providing CA certificates."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_password": "secret",
+            "validate_certs": False,
+        }
+    )
+
+    assert kwargs["websocket_sslopt"] == {"cert_reqs": ssl.CERT_NONE}
+
+
+def test_build_exasol_connect_kwargs_merges_ca_cert_ssl_options() -> None:
+    """Verify CA certificate handling preserves custom WebSocket SSL options."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_host": "db.example.com",
+            "login_user": "sys",
+            "login_password": "secret",
+            "ca_cert": "/etc/exasol/ca.pem",
+            "client_kwargs": {
+                "websocket_sslopt": {"check_hostname": True},
+            },
+        }
+    )
+
+    assert kwargs["dsn"] == "db.example.com:8563"
+    assert kwargs["websocket_sslopt"] == {
+        "ca_certs": "/etc/exasol/ca.pem",
+        "cert_reqs": ssl.CERT_REQUIRED,
+        "check_hostname": True,
+    }
+
+
+def test_build_exasol_connect_kwargs_uses_ca_cert_with_validation() -> None:
+    """Verify CA certificates are passed through when validation is enabled."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_password": "secret",
+            "validate_certs": True,
+            "ca_cert": "/etc/exasol/ca.pem",
+        }
+    )
+
+    assert kwargs["websocket_sslopt"] == {
+        "ca_certs": "/etc/exasol/ca.pem",
+        "cert_reqs": ssl.CERT_REQUIRED,
+    }
+
+
+def test_build_exasol_connect_kwargs_uses_ca_cert_with_default_validation() -> None:
+    """Verify certificate validation is enabled by default for CA certificates."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_password": "secret",
+            "ca_cert": "/etc/exasol/ca.pem",
+        }
+    )
+
+    assert kwargs["websocket_sslopt"] == {
+        "ca_certs": "/etc/exasol/ca.pem",
+        "cert_reqs": ssl.CERT_REQUIRED,
+    }
+
+
+def test_build_exasol_connect_kwargs_ignores_ca_cert_without_validation() -> None:
+    """Verify CA certificates are ignored when TLS validation is disabled."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_password": "secret",
+            "validate_certs": False,
+            "ca_cert": "/etc/exasol/ca.pem",
+        }
+    )
+
+    assert kwargs["websocket_sslopt"] == {"cert_reqs": ssl.CERT_NONE}
+
+
 def test_authentication_error_is_sanitized() -> None:
     """Verify failed authentication does not expose passwords or tokens."""
     params = {
@@ -208,4 +303,5 @@ def test_doc_fragment_exposes_connection_options() -> None:
 
     assert "login_host" in documentation
     assert "login_password" in documentation
+    assert "ca_cert" in documentation
     assert "exasol-ansible-modules" in documentation
