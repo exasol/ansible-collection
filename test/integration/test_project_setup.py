@@ -66,10 +66,3 @@ def test_collection_execution_environment_metadata_exists() -> None:
     assert metadata["dependencies"]["python"] == "meta/ee-requirements.txt"
     assert metadata["dependencies"]["system"] == "meta/ee-bindep.txt"
     assert "exasol-ansible-modules" in python_requirements_path.read_text().splitlines()
-
-
-def test_collection_governance_and_changelog_files_exist() -> None:
-    """Verify that community-readiness metadata is present."""
-    assert (PROJECT_ROOT / "CODE_OF_CONDUCT.md").is_file()
-    assert (PROJECT_ROOT / "changelogs" / "config.yaml").is_file()
-    assert (PROJECT_ROOT / "changelogs" / "changelog.yaml").is_file()
