@@ -1,0 +1,12 @@
+---
+- name: Verify Exasol connection variables are configured
+  ansible.builtin.assert:
+    that:
+      - exasol_host | length > 0
+      - exasol_port | int > 0
+      - exasol_user | length > 0
+      - exasol_password | length > 0
+    fail_msg: >-
+      Exasol integration tests require EXASOL_HOST, EXASOL_PORT, EXASOL_USER,
+      and EXASOL_PASSWORD environment variables or equivalent inventory vars.
+  no_log: true

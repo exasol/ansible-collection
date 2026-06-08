@@ -1,0 +1,13 @@
+---
+- name: Setup Exasol test environment
+  import_role:
+    name: setup_exasol
+  vars:
+    exasol_host: "localhost"
+    exasol_port: 8563
+    exasol_user: "SYS"
+    exasol_password: "exasol"
+
+- name: Smoke test collection execution
+  ansible.builtin.debug:
+    msg: smoke-ok

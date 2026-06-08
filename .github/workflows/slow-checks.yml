@@ -5,6 +5,10 @@ name: Slow-Checks
 on:
   workflow_call:
 
+env:
+  PYTHON_VERSION: "3.11"
+  POETRY_VERSION: "2.3.0"
+
 jobs:
   check-ansible-collection:
     name: Check Ansible Collection
@@ -20,8 +24,8 @@ jobs:
         id: set-up-python-and-poetry-environment
         uses: exasol/python-toolbox/.github/actions/python-environment@v8
         with:
-          python-version: "3.11"
-          poetry-version: "2.3.0"
+          python-version: ${{ env.PYTHON_VERSION }}
+          poetry-version: ${{ env.POETRY_VERSION }}
 
       - name: Build Collection
         id: build-collection
@@ -30,6 +34,12 @@ jobs:
       - name: Run Collection Sanity
         id: run-collection-sanity
         run: poetry run -- nox -s collection:sanity
+
+      - name: Run Collection Integration
+        run: poetry run nox -s collection:integration
+
+      - name: Run Pytest Integration Tests
+        run: poetry run pytest test/integration -v
 
   build-matrix:
     name: Build Matrix
@@ -59,7 +69,7 @@ jobs:
         uses: exasol/python-toolbox/.github/actions/python-environment@v8
         with:
           python-version: ${{ matrix.python-version }}
-          poetry-version: "2.3.0"
+          poetry-version: ${{ env.POETRY_VERSION }}
 
       - name: Run Integration Tests
         id: run-integration-tests

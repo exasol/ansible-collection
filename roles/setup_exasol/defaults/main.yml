@@ -1,0 +1,8 @@
+---
+exasol_host: "{{ lookup('ansible.builtin.env', 'EXASOL_HOST') }}"
+exasol_port: "{{ lookup('ansible.builtin.env', 'EXASOL_PORT') | default('8563', true) | int }}"
+exasol_user: "{{ lookup('ansible.builtin.env', 'EXASOL_USER') | default('SYS', true) }}"
+exasol_password: "{{ lookup('ansible.builtin.env', 'EXASOL_PASSWORD') }}"
+exasol_validate_certs: "{{ lookup('ansible.builtin.env', 'EXASOL_VALIDATE_CERTS') | default('false', true) | bool }}"
+exasol_certificate_fingerprint: "{{ lookup('ansible.builtin.env', 'EXASOL_CERTIFICATE_FINGERPRINT') | default('', true) }}"
+exasol_connection_timeout: "{{ lookup('ansible.builtin.env', 'EXASOL_CONNECTION_TIMEOUT') | default('30', true) | int }}"

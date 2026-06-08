@@ -63,6 +63,10 @@ python_files = [
     "itest_*.py",
     "test_*.py",
 ]
+markers = [
+    "integration: tests requiring external services, service containers, or Ansible runner workflows",
+    "slow: tests that may start Exasol or run full runner workflows",
+]
 
 [tool.coverage.report]
 # Switch to 15 after code has been added
@@ -95,6 +99,10 @@ extend-ignore = [
 ]
 extend-select = ["F401"]
 unfixable = []
+
+[tool.mypy]
+ignore_missing_imports = true
+explicit_package_bases = true
 
 [[tool.mypy.overrides]]
 module = [

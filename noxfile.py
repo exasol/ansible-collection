@@ -118,3 +118,23 @@ def collection_sanity(session: nox.Session) -> None:
                 sys.executable,
                 env=_ansible_env(tmp_path),
             )
+
+
+@nox.session(name="collection:integration", python=False)
+def collection_integration(session: nox.Session) -> None:
+    """Run ansible-test integration in a temporary collection namespace layout."""
+    with tempfile.TemporaryDirectory(
+        prefix="ansible-collection-integration-"
+    ) as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        collection_path = _prepare_ansible_test_collection_layout(tmp_path)
+
+        with session.chdir(collection_path):
+            session.run(
+                "ansible-test",
+                "integration",
+                "--python-interpreter",
+                sys.executable,
+                *session.posargs,
+                env=_ansible_env(tmp_path),
+            )
