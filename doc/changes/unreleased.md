@@ -14,5 +14,7 @@
 ## Refactorings
 
 * #2: Python Toolbox Compatible Project Bootstrap
+* #5: Ansible Runner Test Harness
+* #6: Exasol Backend Integration Smoke Test
 * #12: Align collection identity, metadata, and standard repository skeleton
 * #13: Implement shared Exasol module utilities and connection doc fragment

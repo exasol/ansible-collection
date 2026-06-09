@@ -31,6 +31,24 @@ def test_ansible_runner_raises_exception_for_failing_playbook(
         )
 
 
+@pytest.mark.integration
+def test_ansible_runner_returns_cached_facts(ansible_runner_workspace: Any) -> None:
+    """Verify set_fact results can be asserted from pytest after runner execution."""
+    playbook = _write_fact_playbook(ansible_runner_workspace.project_dir)
+
+    runner = Runner(
+        repositories=(),
+        work_dir=ansible_runner_workspace.private_data_dir,
+    )
+
+    facts = runner.run(
+        Playbook(playbook.name),
+        retrieve_facts_from="localhost",
+    )
+
+    assert facts["ansible_collection_runner_probe"] == {"status": "ok"}
+
+
 def _runner_failure_message(result: Any, events: list[dict[str, Any]]) -> str:
     failed_events = [
         event
@@ -65,5 +83,20 @@ def _write_failing_playbook(private_data_dir: Path) -> Path:
     - name: Force failure
       ansible.builtin.fail:
         msg: boom
+""")
+    return playbook
+
+
+def _write_fact_playbook(project_dir: Path) -> Path:
+    playbook = project_dir / "runner_facts.yml"
+    playbook.write_text("""---
+- hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Store runner probe fact
+      ansible.builtin.set_fact:
+        ansible_collection_runner_probe:
+          status: ok
+        cacheable: true
 """)
     return playbook

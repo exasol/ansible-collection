@@ -50,3 +50,18 @@ Keep the Python toolbox checks green while developing collection code:
    poetry run nox -s lint:code lint:typing lint:security
    poetry run nox -s test:unit test:integration
    poetry run nox -s docs:build
+
+Real Exasol Integration Tests
+-----------------------------
+
+The pytest-driven integration tests can start a real Exasol backend through
+``pytest-exasol-backend`` and execute Ansible playbooks through
+``exasol-ansible-runner-wrapper``.
+
+.. code-block:: bash
+
+   poetry run -- nox -s test:integration -- --backend=onprem --itde-db-version 2025.1.8
+
+Use ``--itde-db-version external`` together with the ``EXASOL_*`` environment
+variables when an already running database should be used instead of a managed
+ITDE container.
