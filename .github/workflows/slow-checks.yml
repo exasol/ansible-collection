@@ -6,41 +6,9 @@ on:
   workflow_call:
 
 env:
-  PYTHON_VERSION: "3.11"
   POETRY_VERSION: "2.3.0"
 
 jobs:
-  check-ansible-collection:
-    name: Check Ansible Collection
-    runs-on: "ubuntu-24.04"
-    permissions:
-      contents: read
-    steps:
-      - name: Check out Repository
-        id: check-out-repository
-        uses: actions/checkout@v6
-
-      - name: Set up Python & Poetry Environment
-        id: set-up-python-and-poetry-environment
-        uses: exasol/python-toolbox/.github/actions/python-environment@v8
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          poetry-version: ${{ env.POETRY_VERSION }}
-
-      - name: Build Collection
-        id: build-collection
-        run: poetry run -- nox -s collection:build
-
-      - name: Run Collection Sanity
-        id: run-collection-sanity
-        run: poetry run -- nox -s collection:sanity
-
-      - name: Run Collection Integration
-        run: poetry run nox -s collection:integration
-
-      - name: Run Pytest Integration Tests
-        run: poetry run pytest test/integration -v
-
   build-matrix:
     name: Build Matrix
     uses: ./.github/workflows/matrix-all.yml
@@ -70,6 +38,18 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           poetry-version: ${{ env.POETRY_VERSION }}
+
+      - name: Build Collection
+        id: build-collection
+        run: poetry run -- nox -s collection:build
+
+      - name: Run Collection Sanity
+        id: run-collection-sanity
+        run: poetry run -- nox -s collection:sanity
+
+      - name: Run Collection Integration
+        id: run-collection-integration
+        run: poetry run -- nox -s collection:integration
 
       - name: Run Integration Tests
         id: run-integration-tests
