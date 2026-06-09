@@ -22,6 +22,7 @@ nox.options.sessions = ["format:fix"]
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 COLLECTION_NAMESPACE = "exasol"
 COLLECTION_NAME = "exasol"
+ANSIBLE_TEST_PYTHON_VERSIONS = ("3.10", "3.11", "3.12")
 
 
 def _collection_build_ignore_patterns() -> tuple[str, ...]:
@@ -63,7 +64,19 @@ def _ansible_env(tmp_path: Path) -> dict[str, str]:
     return {
         "ANSIBLE_HOME": str(ansible_home),
         "ANSIBLE_LOCAL_TEMP": str(ansible_local_tmp),
+        "HOME": str(tmp_path),
     }
+
+
+def _skip_if_ansible_test_does_not_support_python(session: nox.Session) -> None:
+    """Skip ansible-test sessions on Python versions it cannot execute with."""
+    current_python = f"{sys.version_info.major}.{sys.version_info.minor}"
+    if current_python not in ANSIBLE_TEST_PYTHON_VERSIONS:
+        supported_versions = ", ".join(ANSIBLE_TEST_PYTHON_VERSIONS)
+        session.skip(
+            "ansible-test supports Python "
+            f"{supported_versions}; current interpreter is {current_python}."
+        )
 
 
 def _prepare_ansible_test_collection_layout(tmp_path: Path) -> Path:
@@ -106,6 +119,8 @@ def collection_build(session: nox.Session) -> None:
 @nox.session(name="collection:sanity", python=False)
 def collection_sanity(session: nox.Session) -> None:
     """Run ansible-test sanity in a temporary collection namespace layout."""
+    _skip_if_ansible_test_does_not_support_python(session)
+
     with tempfile.TemporaryDirectory(prefix="ansible-collection-sanity-") as tmp_dir:
         tmp_path = Path(tmp_dir)
         collection_path = _prepare_ansible_test_collection_layout(tmp_path)
@@ -123,6 +138,8 @@ def collection_sanity(session: nox.Session) -> None:
 @nox.session(name="collection:integration", python=False)
 def collection_integration(session: nox.Session) -> None:
     """Run ansible-test integration in a temporary collection namespace layout."""
+    _skip_if_ansible_test_does_not_support_python(session)
+
     with tempfile.TemporaryDirectory(
         prefix="ansible-collection-integration-"
     ) as tmp_dir:
