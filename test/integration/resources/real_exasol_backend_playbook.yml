@@ -1,0 +1,32 @@
+---
+- hosts: localhost
+  gather_facts: false
+  collections:
+    - exasol.exasol
+  tasks:
+    - name: Setup Exasol test environment
+      import_role:
+        name: exasol.exasol.setup_exasol
+      vars:
+        exasol_host: "{{ login_host }}"
+        exasol_port: "{{ login_port }}"
+        exasol_user: "{{ login_user }}"
+        exasol_password: "{{ login_password }}"
+        exasol_validate_certs: "{{ validate_certs }}"
+        exasol_certificate_fingerprint: >-
+          {{ certificate_fingerprint | default('') }}
+
+    - name: Execute real Exasol backend probe
+      ansible.builtin.command:
+        cmd: >-
+          {{ python_executable }}
+          {{ playbook_dir }}/real_exasol_backend_probe.py
+          {{ exasol_probe_params_file }}
+      register: exasol_backend_probe_command
+      changed_when: false
+
+    - name: Store real Exasol backend probe result
+      ansible.builtin.set_fact:
+        exasol_backend_probe: >-
+          {{ exasol_backend_probe_command.stdout | from_json }}
+        cacheable: true
