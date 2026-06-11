@@ -9,10 +9,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-RUNTIME_MODULES = (
-    "ansible_collections.exasol.exasol.exasol.ansible_modules.exasol_query",
-    "exasol.ansible_modules.exasol_query",
-)
+RUNTIME_MODULE = "exasol.ansible_modules.exasol_query"
 RUNTIME_MODULE_NAME = "_exasol_ansible_modules_exasol_query"
 
 
@@ -106,11 +103,10 @@ def to_json_safe(*args: Any, **kwargs: Any) -> Any:
 
 def _runtime() -> ModuleType:
     errors = []
-    for module_name in RUNTIME_MODULES:
-        try:
-            return importlib.import_module(module_name)
-        except ImportError as error:
-            errors.append(f"{module_name}: {error}")
+    try:
+        return importlib.import_module(RUNTIME_MODULE)
+    except ImportError as error:
+        errors.append(f"{RUNTIME_MODULE}: {error}")
 
     try:
         return _runtime_from_source_file()
