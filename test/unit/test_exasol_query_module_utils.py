@@ -1,4 +1,4 @@
-"""Tests for collection-native Exasol module helpers."""
+"""Tests for collection-native exasol_query module utility helpers."""
 
 from __future__ import annotations
 
