@@ -9,9 +9,17 @@
   ansible.builtin.set_fact:
     ansible_remote_tmp: "{{ exasol_query_mock_directory.path }}/ansible-tmp"
 
-- name: Install mock pyexasol module
+- name: Install shared pyexasol mock support module
   ansible.builtin.copy:
-    src: pyexasol.py
+    src: "{{ role_path }}/../setup_pyexasol_mock/files/pyexasol_mock_base.py"
+    dest: "{{ exasol_query_mock_directory.path }}/pyexasol_mock_base.py"
+    mode: "0600"
+
+- name: Install exasol_query mock pyexasol module
+  ansible.builtin.copy:
+    src: pyexasol_mock.py
+    # The module under test imports pyexasol, so the copied test double must
+    # keep this destination filename.
     dest: "{{ exasol_query_mock_directory.path }}/pyexasol.py"
     mode: "0600"
 
