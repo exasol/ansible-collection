@@ -11,7 +11,16 @@ import pytest
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
 
-PLAYBOOK_RESOURCE = Path(__file__).with_name("exasol_query_playbook.yml")
+from noxconfig import PROJECT_CONFIG
+
+PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
+PLAYBOOK_RESOURCE = (
+    PROJECT_ROOT
+    / "test"
+    / "integration"
+    / "exasol_query"
+    / "exasol_query_playbook.yml"
+)
 
 
 @pytest.mark.integration

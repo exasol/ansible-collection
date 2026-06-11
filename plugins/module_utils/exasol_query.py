@@ -5,7 +5,6 @@ from __future__ import annotations
 import importlib
 import importlib.util
 import sys
-from pathlib import Path
 from types import ModuleType
 from typing import Any
 
@@ -122,8 +121,14 @@ def _runtime_from_source_file() -> ModuleType:
     if RUNTIME_MODULE_NAME in sys.modules:
         return sys.modules[RUNTIME_MODULE_NAME]
 
-    collection_root = Path(__file__).resolve().parents[2]
-    runtime_path = collection_root / "exasol" / "ansible_modules" / "exasol_query.py"
+    from noxconfig import PROJECT_CONFIG
+
+    runtime_path = (
+        PROJECT_CONFIG.root_path.resolve()
+        / "exasol"
+        / "ansible_modules"
+        / "exasol_query.py"
+    )
     spec = importlib.util.spec_from_file_location(RUNTIME_MODULE_NAME, runtime_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot load runtime implementation from {runtime_path}")
