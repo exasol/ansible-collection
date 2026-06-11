@@ -22,7 +22,6 @@ nox.options.sessions = ["format:fix"]
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 COLLECTION_NAMESPACE = "exasol"
 COLLECTION_NAME = "exasol"
-ANSIBLE_TEST_PYTHON_VERSIONS = ("3.10", "3.11", "3.12")
 
 
 def _collection_build_ignore_patterns() -> tuple[str, ...]:
@@ -71,8 +70,8 @@ def _ansible_env(tmp_path: Path) -> dict[str, str]:
 def _skip_if_ansible_test_does_not_support_python(session: nox.Session) -> None:
     """Skip ansible-test sessions on Python versions it cannot execute with."""
     current_python = f"{sys.version_info.major}.{sys.version_info.minor}"
-    if current_python not in ANSIBLE_TEST_PYTHON_VERSIONS:
-        supported_versions = ", ".join(ANSIBLE_TEST_PYTHON_VERSIONS)
+    if current_python not in PROJECT_CONFIG.ansible_test_python_versions:
+        supported_versions = ", ".join(PROJECT_CONFIG.ansible_test_python_versions)
         session.skip(
             "ansible-test supports Python "
             f"{supported_versions}; current interpreter is {current_python}."

@@ -6,7 +6,7 @@ authors = [
     {name = "Mykhailo Skliar", email = "mykhailo.skliar@exasol.com"},
     {name = "Exasol AG", email = "opensource@exasol.com"},
 ]
-requires-python = ">=3.11,<4.0"
+requires-python = ">=3.11,<3.14"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -16,7 +16,6 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "pyexasol",
@@ -28,6 +27,7 @@ dev = [
     "exasol-ansible-runner-wrapper>=2,<3",
     "exasol-toolbox>=8.2.0,<9",
     "pytest>=9.0.3,<10.0.0",
+    "pytest-exasol-backend>=1.4,<2",
     "pyyaml>=6.0.3,<7.0.0",
 ]
 

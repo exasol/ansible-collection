@@ -53,7 +53,7 @@ jobs:
 
       - name: Run Integration Tests
         id: run-integration-tests
-        run: poetry run -- nox -s test:integration -- --coverage --db-version ${{ matrix.exasol-version }}
+        run: poetry run -- nox -s test:integration -- --coverage --db-version ${{ matrix.exasol-version }} --backend=onprem --itde-db-version ${{ matrix.exasol-version }}
 
       - name: Upload Artifacts
         id: upload-artifacts

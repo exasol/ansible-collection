@@ -8,7 +8,6 @@ import shutil
 import ssl
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import pytest
 import yaml
@@ -26,6 +25,7 @@ class AnsibleRunnerWorkspace:
 
     root: Path
     private_data_dir: Path
+    project_dir: Path
     collection_path: Path
     envvars: dict[str, str]
     inventory: str
@@ -106,10 +106,12 @@ def ansible_runner_workspace(tmp_path: Path) -> AnsibleRunnerWorkspace:
     collection_path = _prepare_collection_layout(collection_root)
     private_data_dir = tmp_path / "runner"
     project_dir = private_data_dir / "project"
+    env_dir = private_data_dir / "env"
     ansible_home = tmp_path / ".ansible"
     ansible_local_tmp = ansible_home / "tmp"
 
     project_dir.mkdir(parents=True)
+    env_dir.mkdir()
     ansible_local_tmp.mkdir(parents=True)
 
     inventory_path = private_data_dir / "inventory"
@@ -134,10 +136,12 @@ def ansible_runner_workspace(tmp_path: Path) -> AnsibleRunnerWorkspace:
         "ANSIBLE_HOME": str(ansible_home),
         "ANSIBLE_LOCAL_TEMP": str(ansible_local_tmp),
     }
+    (env_dir / "envvars").write_text(yaml.safe_dump(envvars))
 
     return AnsibleRunnerWorkspace(
         root=tmp_path,
         private_data_dir=private_data_dir,
+        project_dir=project_dir,
         collection_path=collection_path,
         envvars=envvars,
         inventory=str(inventory_path),
