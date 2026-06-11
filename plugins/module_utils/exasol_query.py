@@ -134,12 +134,7 @@ def _runtime_from_source_file() -> ModuleType:
 
 
 def _runtime_source_path() -> Path:
-    try:
-        from noxconfig import PROJECT_CONFIG
-    except ImportError:
-        collection_root = Path(__file__).resolve().parents[2]
-    else:
-        collection_root = PROJECT_CONFIG.root_path.resolve()
+    collection_root = Path(__file__).resolve().parents[2]
 
     return collection_root / "exasol" / "ansible_modules" / "exasol_query.py"
 

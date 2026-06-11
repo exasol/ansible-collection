@@ -2,17 +2,11 @@
 
 from __future__ import annotations
 
-import builtins
 import datetime as dt
 import json
 import ssl
-import sys
 from decimal import Decimal
 from pathlib import Path
-from types import (
-    ModuleType,
-    SimpleNamespace,
-)
 from typing import Any
 
 from plugins.module_utils import exasol_query
@@ -70,38 +64,13 @@ def test_connection_argument_spec_marks_secret_options_no_log() -> None:
     assert argument_spec["login_db"]["aliases"] == ["login_schema"]
 
 
-def test_runtime_source_path_falls_back_to_collection_root(
-    monkeypatch: Any,
-) -> None:
-    """Verify isolated ansible-test imports do not require noxconfig."""
-    real_import = builtins.__import__
-
-    def blocked_import(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "noxconfig":
-            raise ImportError("blocked for isolated ansible-test")
-        return real_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", blocked_import)
-
+def test_runtime_source_path_uses_collection_root() -> None:
+    """Verify source-layout fallback is derived from the module file path."""
     assert exasol_query._runtime_source_path() == (
         Path(exasol_query.__file__).resolve().parents[2]
         / "exasol"
         / "ansible_modules"
         / "exasol_query.py"
-    )
-
-
-def test_runtime_source_path_uses_project_config_root(
-    monkeypatch: Any,
-    tmp_path: Path,
-) -> None:
-    """Verify source-tree tests use the configured project root."""
-    noxconfig = ModuleType("noxconfig")
-    noxconfig.PROJECT_CONFIG = SimpleNamespace(root_path=tmp_path)
-    monkeypatch.setitem(sys.modules, "noxconfig", noxconfig)
-
-    assert exasol_query._runtime_source_path() == (
-        tmp_path.resolve() / "exasol" / "ansible_modules" / "exasol_query.py"
     )
 
 
