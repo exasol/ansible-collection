@@ -15,11 +15,7 @@ from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 PLAYBOOK_RESOURCE = (
-    PROJECT_ROOT
-    / "test"
-    / "integration"
-    / "exasol_query"
-    / "exasol_query_playbook.yml"
+    PROJECT_ROOT / "test" / "integration" / "exasol_query" / "exasol_query_playbook.yml"
 )
 
 

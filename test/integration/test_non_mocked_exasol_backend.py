@@ -17,7 +17,9 @@ from noxconfig import PROJECT_CONFIG
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 INTEGRATION_RESOURCES = PROJECT_ROOT / "test" / "integration" / "resources"
 PROBE_SCRIPT_RESOURCE = INTEGRATION_RESOURCES / "non_mocked_exasol_backend_probe.py"
-PROBE_PLAYBOOK_RESOURCE = INTEGRATION_RESOURCES / "non_mocked_exasol_backend_playbook.yml"
+PROBE_PLAYBOOK_RESOURCE = (
+    INTEGRATION_RESOURCES / "non_mocked_exasol_backend_playbook.yml"
+)
 
 
 @pytest.mark.integration
