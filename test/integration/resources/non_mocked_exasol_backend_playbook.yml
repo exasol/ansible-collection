@@ -16,16 +16,16 @@
         exasol_certificate_fingerprint: >-
           {{ certificate_fingerprint | default('') }}
 
-    - name: Execute real Exasol backend probe
+    - name: Execute non-mocked Exasol backend probe
       ansible.builtin.command:
         cmd: >-
           {{ python_executable }}
-          {{ playbook_dir }}/real_exasol_backend_probe.py
+          {{ playbook_dir }}/non_mocked_exasol_backend_probe.py
           {{ exasol_probe_params_file }}
       register: exasol_backend_probe_command
       changed_when: false
 
-    - name: Store real Exasol backend probe result
+    - name: Store non-mocked Exasol backend probe result
       ansible.builtin.set_fact:
         exasol_backend_probe: >-
           {{ exasol_backend_probe_command.stdout | from_json }}

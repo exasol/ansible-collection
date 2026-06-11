@@ -13,6 +13,16 @@ Install the project dependencies with Poetry:
 The development environment includes the Ansible CLI tools used by the
 collection build and sanity sessions.
 
+Python Versions
+---------------
+
+The runtime package supports Python 3.11 through 3.13, as declared by
+``requires-python = ">=3.11,<3.14"`` in ``pyproject.toml``. Python 3.14 is not
+supported yet because it is outside the tested project matrix and the Ansible
+and toolbox dependency stack has not been validated with it. When adding support
+for a new Python minor version, update ``pyproject.toml``, ``noxconfig.py``, and
+the CI matrices together.
+
 Collection Build
 ----------------
 
@@ -51,11 +61,12 @@ Keep the Python toolbox checks green while developing collection code:
    poetry run nox -s test:unit test:integration
    poetry run nox -s docs:build
 
-Real Exasol Integration Tests
------------------------------
+Non-Mocked Exasol Integration Tests
+-----------------------------------
 
-The pytest-driven integration tests can start a real Exasol backend through
-``pytest-exasol-backend`` and execute Ansible playbooks through
+The pytest-driven integration tests can start an actual Exasol database backend
+through ``pytest-exasol-backend`` instead of using the mocked ``pyexasol`` module
+from the Ansible collection target tests. They execute Ansible playbooks through
 ``exasol-ansible-runner-wrapper``.
 
 .. code-block:: bash

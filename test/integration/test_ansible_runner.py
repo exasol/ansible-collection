@@ -32,7 +32,9 @@ def test_ansible_runner_raises_exception_for_failing_playbook(
 
 
 @pytest.mark.integration
-def test_ansible_runner_returns_cached_facts(ansible_runner_workspace: Any) -> None:
+def test_ansible_runner_returns_facts_from_cacheable_task(
+    ansible_runner_workspace: Any,
+) -> None:
     """Verify set_fact results can be asserted from pytest after runner execution."""
     playbook = _write_fact_playbook(ansible_runner_workspace.project_dir)
 

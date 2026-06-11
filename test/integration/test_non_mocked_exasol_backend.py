@@ -1,4 +1,4 @@
-"""Real Exasol backend tests executed through the Ansible runner wrapper."""
+"""Non-mocked Exasol backend tests executed through the Ansible runner wrapper."""
 
 from __future__ import annotations
 
@@ -13,20 +13,20 @@ from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
 
 PROBE_SCRIPT_RESOURCE = Path(__file__).with_name("resources") / (
-    "real_exasol_backend_probe.py"
+    "non_mocked_exasol_backend_probe.py"
 )
 PROBE_PLAYBOOK_RESOURCE = Path(__file__).with_name("resources") / (
-    "real_exasol_backend_playbook.yml"
+    "non_mocked_exasol_backend_playbook.yml"
 )
 
 
 @pytest.mark.integration
 @pytest.mark.slow
-def test_ansible_runner_wrapper_executes_playbook_against_real_exasol(
+def test_ansible_runner_wrapper_executes_playbook_against_non_mocked_exasol(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Verify the runner wrapper can execute collection code against Exasol."""
+    """Verify runner-wrapper execution against a non-mocked Exasol backend."""
     schema_name = f"ANSIBLE_COLLECTION_ITEST_{uuid.uuid4().hex.upper()}"
     project_dir = ansible_runner_workspace.project_dir
     params_file = _write_probe_params(project_dir, exasol_login_vars, schema_name)
@@ -63,7 +63,7 @@ def _write_probe_params(
     login_vars: dict[str, object],
     schema_name: str,
 ) -> Path:
-    params_file = project_dir / "real_exasol_backend_params.json"
+    params_file = project_dir / "non_mocked_exasol_backend_params.json"
     params = {
         **login_vars,
         "test_schema": schema_name,
@@ -74,7 +74,7 @@ def _write_probe_params(
 
 
 def _write_probe_playbook(project_dir: Path) -> Path:
-    playbook = project_dir / "real_exasol_backend.yml"
+    playbook = project_dir / "non_mocked_exasol_backend.yml"
     playbook.write_text(
         PROBE_PLAYBOOK_RESOURCE.read_text(encoding="utf-8"),
         encoding="utf-8",
@@ -83,7 +83,7 @@ def _write_probe_playbook(project_dir: Path) -> Path:
 
 
 def _write_probe_script(project_dir: Path) -> Path:
-    script = project_dir / "real_exasol_backend_probe.py"
+    script = project_dir / "non_mocked_exasol_backend_probe.py"
     script.write_text(
         PROBE_SCRIPT_RESOURCE.read_text(encoding="utf-8"),
         encoding="utf-8",
