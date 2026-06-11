@@ -13,7 +13,7 @@ from exasol.ansible_modules import (
     exasol_query,
     exasol_user,
 )
-from plugins.doc_fragments.exasol import ModuleDocFragment
+from plugins.doc_fragments.exasol_query import ModuleDocFragment
 
 
 def test_build_exasol_connect_kwargs_maps_ansible_arguments_to_pyexasol() -> None:
@@ -47,12 +47,32 @@ def test_build_exasol_connect_kwargs_maps_ansible_arguments_to_pyexasol() -> Non
         "fetch_size_bytes": 1024,
         "compression": True,
         "encryption": True,
+        "fetch_dict": True,
         "websocket_sslopt": {
             "cert_reqs": ssl.CERT_NONE,
             "check_hostname": False,
         },
         "client_name": "ansible-test",
     }
+
+
+def test_connection_argument_spec_does_not_expose_encryption_option() -> None:
+    """Verify TLS cannot be disabled through the public module interface."""
+    assert "encryption" not in exasol_query.exasol_connection_argument_spec()
+
+
+def test_build_exasol_connect_kwargs_forces_tls() -> None:
+    """Verify legacy or client kwargs cannot disable TLS."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_password": "secret",
+            "encryption": False,
+            "client_kwargs": {"encryption": False},
+        }
+    )
+
+    assert kwargs["encryption"] is True
 
 
 def test_build_exasol_connect_kwargs_applies_defaults() -> None:
@@ -69,7 +89,8 @@ def test_build_exasol_connect_kwargs_applies_defaults() -> None:
     assert kwargs["autocommit"] is True
     assert kwargs["compression"] is False
     assert kwargs["encryption"] is True
-    assert "fetch_size_bytes" not in kwargs
+    assert kwargs["fetch_size_bytes"] == 5000
+    assert kwargs["fetch_dict"] is True
     assert "websocket_sslopt" not in kwargs
 
 
@@ -182,6 +203,137 @@ def test_build_exasol_connect_kwargs_ignores_ca_cert_without_validation() -> Non
     )
 
     assert kwargs["websocket_sslopt"] == {"cert_reqs": ssl.CERT_NONE}
+
+
+def test_normalize_query_list_rejects_invalid_query() -> None:
+    """Verify query parameters must be a string or list of strings."""
+    with pytest.raises(ValueError, match="query must be"):
+        exasol_query.normalize_query_list(["SELECT 1", 2])
+
+
+def test_prepare_query_handles_comments_quotes_and_parameter_types() -> None:
+    """Verify placeholder parsing ignores comments and quoted literals."""
+    query, query_params = exasol_query.prepare_query(
+        "\n"
+        "-- ? :ignored\n"
+        "/* ? :ignored */\n"
+        "SELECT \"?\" AS Q, '?' AS S, ? AS B, ? AS D, ? AS F, :name AS N",
+        positional_args=[True, Decimal("12.3"), 1.5],
+        named_args={"name": "Alice"},
+    )
+
+    assert query == (
+        "\n"
+        "-- ? :ignored\n"
+        "/* ? :ignored */\n"
+        "SELECT \"?\" AS Q, '?' AS S, {__pos_0!r} AS B, {__pos_1!d} AS D, "
+        "{__pos_2!f} AS F, {name} AS N"
+    )
+    assert query_params == {
+        "__pos_0": "TRUE",
+        "__pos_1": Decimal("12.3"),
+        "__pos_2": 1.5,
+        "name": "Alice",
+    }
+
+
+def test_prepare_query_rejects_missing_positional_argument() -> None:
+    """Verify each positional placeholder must have a value."""
+    with pytest.raises(ValueError, match="more positional placeholders"):
+        exasol_query.prepare_query("SELECT ? AS A")
+
+
+def test_prepare_query_rejects_extra_positional_argument() -> None:
+    """Verify unused positional values are rejected."""
+    with pytest.raises(ValueError, match="more values than query placeholders"):
+        exasol_query.prepare_query("SELECT 1 AS A", positional_args=[1])
+
+
+def test_first_sql_keyword_skips_comments_and_handles_empty_queries() -> None:
+    """Verify read-only detection starts after whitespace and comments."""
+    assert exasol_query.first_sql_keyword(" \n -- comment\n /* block */ SELECT 1") == (
+        "SELECT"
+    )
+    assert exasol_query.first_sql_keyword("  ;") == ""
+    assert exasol_query.first_sql_keyword("  ") == ""
+    assert exasol_query.is_read_only_query("VALUES 1") is True
+    assert exasol_query.is_read_only_query("WITH q AS (SELECT 1) SELECT * FROM q") is (
+        False
+    )
+    assert exasol_query.is_read_only_query("INSERT INTO T VALUES 1") is False
+
+
+def test_fetch_result_rows_uses_col_names_fallback() -> None:
+    """Verify tuple rows can use the pyexasol col_names attribute."""
+
+    class StatementWithoutColumnMethod:
+        result_type = "resultSet"
+        col_names = ["A", "B"]
+
+        def fetchall(self) -> list[tuple[int, str]]:
+            return [(1, "x")]
+
+    assert exasol_query.fetch_result_rows(StatementWithoutColumnMethod()) == [
+        {"A": 1, "B": "x"}
+    ]
+
+
+def test_statement_metadata_defaults_and_non_callable_rowcount() -> None:
+    """Verify statement metadata helpers handle pyexasol variants."""
+
+    class Statement:
+        rowcount = "3"
+
+    statement = Statement()
+
+    assert exasol_query.statement_rowcount(statement) == 3
+    assert exasol_query.statement_execution_time_ms(statement) == 0.0
+
+
+def test_sanitize_error_message_redacts_nested_sensitive_values() -> None:
+    """Verify nested secret values are redacted from client kwargs."""
+    message = exasol_query.sanitize_error_message(
+        RuntimeError("secret-one token-two public"),
+        {
+            "client_kwargs": {
+                "nested": [
+                    {"client_secret": "secret-one"},
+                ],
+                "token": ("token-two",),
+                "plain": "public",
+            }
+        },
+    )
+
+    assert message == "******** ******** public"
+
+
+def test_sanitize_error_message_redacts_overlapping_secrets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify shorter secret values cannot expose suffixes of longer secrets."""
+    monkeypatch.setattr(
+        exasol_query,
+        "_secret_values",
+        lambda _params: ["abc", "abcdef"],
+    )
+
+    message = exasol_query.sanitize_error_message(
+        RuntimeError("token abcdef password abc"),
+        {},
+    )
+
+    assert message == "token ******** password ********"
+
+
+def test_to_json_safe_converts_unknown_objects_to_strings() -> None:
+    """Verify unsupported values still become JSON-serializable."""
+
+    class CustomValue:
+        def __str__(self) -> str:
+            return "custom-value"
+
+    assert exasol_query.to_json_safe(CustomValue()) == "custom-value"
 
 
 def test_authentication_error_is_sanitized() -> None:
@@ -304,4 +456,5 @@ def test_doc_fragment_exposes_connection_options() -> None:
     assert "login_host" in documentation
     assert "login_password" in documentation
     assert "ca_cert" in documentation
+    assert "  encryption:" not in documentation
     assert "exasol-ansible-modules" in documentation

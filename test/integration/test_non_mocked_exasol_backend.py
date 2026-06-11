@@ -12,11 +12,13 @@ import pytest
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
 
-PROBE_SCRIPT_RESOURCE = Path(__file__).with_name("resources") / (
-    "non_mocked_exasol_backend_probe.py"
-)
-PROBE_PLAYBOOK_RESOURCE = Path(__file__).with_name("resources") / (
-    "non_mocked_exasol_backend_playbook.yml"
+from noxconfig import PROJECT_CONFIG
+
+PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
+INTEGRATION_RESOURCES = PROJECT_ROOT / "test" / "integration" / "resources"
+PROBE_SCRIPT_RESOURCE = INTEGRATION_RESOURCES / "non_mocked_exasol_backend_probe.py"
+PROBE_PLAYBOOK_RESOURCE = (
+    INTEGRATION_RESOURCES / "non_mocked_exasol_backend_playbook.yml"
 )
 
 

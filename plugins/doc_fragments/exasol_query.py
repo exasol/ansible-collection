@@ -27,13 +27,16 @@ options:
     description:
       - Password used to authenticate with Exasol.
     type: str
-    required: true
-  login_schema:
+  login_db:
     description:
       - Schema to open after connecting to Exasol.
       - This value is mapped to the pyexasol C(schema) connection argument.
+      - This collection keeps the familiar Ansible database-module option name
+        even though Exasol has schemas rather than per-connection databases.
     type: str
     default: ''
+    aliases:
+      - login_schema
   autocommit:
     description:
       - Whether pyexasol should enable autocommit for the connection.
@@ -44,6 +47,7 @@ options:
       - Maximum pyexasol fetch message size in bytes.
       - This value is mapped to the pyexasol C(fetch_size_bytes) argument.
     type: int
+    default: 5000
   compression:
     description:
       - Whether pyexasol should use zlib compression for WebSocket and HTTP

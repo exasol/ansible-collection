@@ -1,0 +1,281 @@
+---
+- name: Create mock pyexasol module directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: exasol-query-pyexasol
+  register: exasol_query_mock_directory
+
+- name: Configure writable Ansible remote temp directory
+  ansible.builtin.set_fact:
+    ansible_remote_tmp: "{{ exasol_query_mock_directory.path }}/ansible-tmp"
+
+- name: Install shared pyexasol mock support module
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../setup_pyexasol_mock/files/pyexasol_mock_base.py"
+    dest: "{{ exasol_query_mock_directory.path }}/pyexasol_mock_base.py"
+    mode: "0600"
+
+- name: Install exasol_query mock pyexasol module
+  ansible.builtin.copy:
+    src: pyexasol_mock.py
+    # The module under test imports pyexasol, so the copied test double must
+    # keep this destination filename.
+    dest: "{{ exasol_query_mock_directory.path }}/pyexasol.py"
+    mode: "0600"
+
+- name: Configure mocked exasol_query integration environment
+  ansible.builtin.set_fact:
+    exasol_query_mock_environment:
+      PYTHONPATH: "{{ exasol_query_mock_directory.path }}"
+
+- name: Run mocked exasol_query contract scenarios
+  block:
+    - name: Connection options map to pyexasol connect kwargs
+      exasol.exasol.exasol_query:
+        login_host: db.example.com
+        login_port: 8564
+        login_user: sys
+        login_password: secret
+        login_db: APP
+        autocommit: false
+        fetch_size: 8192
+        compression: true
+        validate_certs: false
+        certificate_fingerprint: ABCDEF
+        client_kwargs:
+          client_name: ansible-test
+          encryption: false
+          fetch_dict: false
+          websocket_sslopt:
+            check_hostname: false
+        query: SELECT MOCK_CONNECTION_KWARGS
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_connection
+
+    - name: Verify connection options
+      ansible.builtin.assert:
+        that:
+          - exasol_query_connection is not changed
+          - exasol_query_connection.query_result[0].KWARGS.dsn == "db.example.com/ABCDEF:8564"
+          - exasol_query_connection.query_result[0].KWARGS.user == "sys"
+          - exasol_query_connection.query_result[0].KWARGS.schema == "APP"
+          - exasol_query_connection.query_result[0].KWARGS.autocommit is false
+          - exasol_query_connection.query_result[0].KWARGS.fetch_size_bytes == 8192
+          - exasol_query_connection.query_result[0].KWARGS.compression is true
+          - exasol_query_connection.query_result[0].KWARGS.encryption is true
+          - exasol_query_connection.query_result[0].KWARGS.fetch_dict is true
+          - exasol_query_connection.query_result[0].KWARGS.client_name is defined
+          - exasol_query_connection.query_result[0].KWARGS.websocket_sslopt.check_hostname is false
+          - exasol_query_connection.query_result[0].KWARGS.websocket_sslopt.cert_reqs | string == "0"
+          - exasol_query_connection.query_result[0].PASSWORD_IS_SET is true
+
+    - name: Default connection options use design-doc defaults
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query: SELECT MOCK_CONNECTION_KWARGS
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_defaults
+
+    - name: Verify default connection options
+      ansible.builtin.assert:
+        that:
+          - exasol_query_defaults.query_result[0].KWARGS.dsn == "localhost:8563"
+          - exasol_query_defaults.query_result[0].KWARGS.schema == ""
+          - exasol_query_defaults.query_result[0].KWARGS.autocommit is true
+          - exasol_query_defaults.query_result[0].KWARGS.fetch_size_bytes == 5000
+          - exasol_query_defaults.query_result[0].KWARGS.compression is false
+          - exasol_query_defaults.query_result[0].KWARGS.encryption is true
+          - exasol_query_defaults.query_result[0].KWARGS.fetch_dict is true
+
+    - name: Single SELECT returns rows and does not change
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query: SELECT 1 AS A
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_select
+
+    - name: Verify single SELECT result
+      ansible.builtin.assert:
+        that:
+          - exasol_query_select is not changed
+          - 'exasol_query_select.query_result == [{"A": 1}]'
+          - 'exasol_query_select.query_all_results == [[{"A": 1}]]'
+          - exasol_query_select.executed_queries == ["SELECT 1 AS A"]
+          - exasol_query_select.rowcount == [1]
+          - exasol_query_select.execution_time_ms == [1.0]
+
+    - name: List of statements returns ordered result shape
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query:
+          - SELECT 1 AS A
+          - CREATE SCHEMA T
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_batch
+
+    - name: Verify list statement result shape
+      ansible.builtin.assert:
+        that:
+          - exasol_query_batch is changed
+          - exasol_query_batch.query_result == []
+          - 'exasol_query_batch.query_all_results == [[{"A": 1}], []]'
+          - exasol_query_batch.executed_queries == ["SELECT 1 AS A", "CREATE SCHEMA T"]
+          - exasol_query_batch.rowcount == [1, 0]
+          - exasol_query_batch.execution_time_ms == [1.0, 2.0]
+
+    - name: Positional and named args bind correctly
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query: SELECT ? AS A, :n AS B, '?' AS LITERAL, true::boolean AS FLAG
+        positional_args:
+          - 42
+        named_args:
+          n: 7
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_args
+
+    - name: Verify positional and named args result
+      ansible.builtin.assert:
+        that:
+          - exasol_query_args is not changed
+          - exasol_query_args.query_result[0].A == 42
+          - exasol_query_args.query_result[0].B == 7
+          - exasol_query_args.query_result[0].LITERAL == "?"
+          - exasol_query_args.query_result[0].FLAG == "true::boolean"
+
+    - name: JSON conversion handles Exasol-like values
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query: SELECT MOCK_JSON_VALUES
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_json_values
+
+    - name: Verify JSON-safe values
+      ansible.builtin.assert:
+        that:
+          - exasol_query_json_values.query_result[0].AMOUNT == "1.5"
+          - exasol_query_json_values.query_result[0].CREATED_ON == "2026-01-02"
+          - exasol_query_json_values.query_result[0].PAYLOAD == "AQI="
+
+    - name: Tuple rows are returned as dictionaries
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query: SELECT MOCK_TUPLE_ROW
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_tuple_row
+
+    - name: Verify tuple row result
+      ansible.builtin.assert:
+        that:
+          - 'exasol_query_tuple_row.query_result == [{"A": 42, "NOTE": "answer"}]'
+
+    - name: SELECT succeeds in check mode and does not change
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query: SELECT 1 AS A
+      check_mode: true
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_check_mode_select
+
+    - name: Verify check mode SELECT result
+      ansible.builtin.assert:
+        that:
+          - exasol_query_check_mode_select is not changed
+          - 'exasol_query_check_mode_select.query_result == [{"A": 1}]'
+
+    - name: DDL in check mode reports change without execution
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query: CREATE SCHEMA T
+      check_mode: true
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_check_mode_ddl
+
+    - name: Verify check mode DDL result
+      ansible.builtin.assert:
+        that:
+          - exasol_query_check_mode_ddl is changed
+          - exasol_query_check_mode_ddl.query_result == []
+          - exasol_query_check_mode_ddl.query_all_results == []
+          - exasol_query_check_mode_ddl.rowcount == []
+          - exasol_query_check_mode_ddl.execution_time_ms == []
+
+    - name: WITH in check mode reports change without execution
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query: WITH q AS (SELECT 1 AS A) SELECT * FROM q
+      check_mode: true
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_check_mode_with
+
+    - name: Verify check mode WITH result
+      ansible.builtin.assert:
+        that:
+          - exasol_query_check_mode_with is changed
+          - exasol_query_check_mode_with.query_result == []
+          - exasol_query_check_mode_with.query_all_results == []
+          - >-
+            exasol_query_check_mode_with.executed_queries
+            == ["WITH q AS (SELECT 1 AS A) SELECT * FROM q"]
+          - exasol_query_check_mode_with.rowcount == []
+          - exasol_query_check_mode_with.execution_time_ms == []
+
+    - name: Bad credentials fail without leaking secrets
+      exasol.exasol.exasol_query:
+        login_user: sys
+        login_password: bad-secret
+        query: SELECT 1 AS A
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_bad_credentials
+      ignore_errors: true
+
+    - name: Verify bad credential error is sanitized
+      ansible.builtin.assert:
+        that:
+          - exasol_query_bad_credentials is failed
+          - "'authenticate' in exasol_query_bad_credentials.msg"
+          - "'bad-secret' not in exasol_query_bad_credentials.msg"
+
+    - name: Execution errors redact known secret values
+      exasol.exasol.exasol_query:
+        login_user: sys
+        login_password: swordfish
+        query: SELECT MOCK_RAISE_SECRET
+        named_args:
+          api_token: token-value
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_secret_error
+      ignore_errors: true
+
+    - name: Verify execution error redaction
+      ansible.builtin.assert:
+        that:
+          - exasol_query_secret_error is failed
+          - "'swordfish' not in exasol_query_secret_error.msg"
+          - "'token-value' not in exasol_query_secret_error.msg"
+
+    - name: Execution errors redact overlapping known secret values
+      exasol.exasol.exasol_query:
+        login_user: sys
+        login_password: unrelated
+        query: SELECT MOCK_RAISE_OVERLAPPING_SECRET
+        named_args:
+          api_token: abcdef
+          api_secret: abc
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_overlapping_secret_error
+      ignore_errors: true
+
+    - name: Verify overlapping secret redaction
+      ansible.builtin.assert:
+        that:
+          - exasol_query_overlapping_secret_error is failed
+          - "'abcdef' not in exasol_query_overlapping_secret_error.msg"
+          - "'abc' not in exasol_query_overlapping_secret_error.msg"
+          - "'def' not in exasol_query_overlapping_secret_error.msg"
+
+  always:
+    - name: Remove mock pyexasol module directory
+      ansible.builtin.file:
+        path: "{{ exasol_query_mock_directory.path }}"
+        state: absent
