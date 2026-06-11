@@ -71,11 +71,7 @@ def main(params_file: str) -> None:
 
 
 def _connection_parameters(params: dict[str, Any]) -> dict[str, Any]:
-    return {
-        name: params[name]
-        for name in CONNECTION_PARAMETER_NAMES
-        if name in params
-    }
+    return {name: params[name] for name in CONNECTION_PARAMETER_NAMES if name in params}
 
 
 if __name__ == "__main__":
