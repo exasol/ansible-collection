@@ -416,4 +416,4 @@ def test_doc_fragment_exposes_connection_options() -> None:
     assert "login_host" in documentation
     assert "login_password" in documentation
     assert "ca_cert" in documentation
-    assert "pyexasol" in documentation
+    assert "exasol-ansible-modules" in documentation

@@ -36,7 +36,7 @@ options:
       - The values are escaped with pyexasol's SQL formatter.
     type: dict
 requirements:
-  - pyexasol
+  - exasol-ansible-modules
 """
 
 EXAMPLES = r"""
