@@ -38,6 +38,7 @@ STATEMENT_HANDLERS = {
 
 QUERY_ERRORS = {
     "MOCK_RAISE_SECRET": "query failed with password swordfish and token token-value",
+    "MOCK_RAISE_OVERLAPPING_SECRET": ("query failed with token abcdef and secret abc"),
 }
 
 

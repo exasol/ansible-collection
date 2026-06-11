@@ -200,6 +200,26 @@
           - exasol_query_check_mode_ddl.rowcount == []
           - exasol_query_check_mode_ddl.execution_time_ms == []
 
+    - name: WITH in check mode reports change without execution
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query: WITH q AS (SELECT 1 AS A) SELECT * FROM q
+      check_mode: true
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_check_mode_with
+
+    - name: Verify check mode WITH result
+      ansible.builtin.assert:
+        that:
+          - exasol_query_check_mode_with is changed
+          - exasol_query_check_mode_with.query_result == []
+          - exasol_query_check_mode_with.query_all_results == []
+          - >-
+            exasol_query_check_mode_with.executed_queries
+            == ["WITH q AS (SELECT 1 AS A) SELECT * FROM q"]
+          - exasol_query_check_mode_with.rowcount == []
+          - exasol_query_check_mode_with.execution_time_ms == []
+
     - name: Bad credentials fail without leaking secrets
       exasol.exasol.exasol_query:
         login_user: sys
@@ -233,6 +253,26 @@
           - exasol_query_secret_error is failed
           - "'swordfish' not in exasol_query_secret_error.msg"
           - "'token-value' not in exasol_query_secret_error.msg"
+
+    - name: Execution errors redact overlapping known secret values
+      exasol.exasol.exasol_query:
+        login_user: sys
+        login_password: unrelated
+        query: SELECT MOCK_RAISE_OVERLAPPING_SECRET
+        named_args:
+          api_token: abcdef
+          api_secret: abc
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_overlapping_secret_error
+      ignore_errors: true
+
+    - name: Verify overlapping secret redaction
+      ansible.builtin.assert:
+        that:
+          - exasol_query_overlapping_secret_error is failed
+          - "'abcdef' not in exasol_query_overlapping_secret_error.msg"
+          - "'abc' not in exasol_query_overlapping_secret_error.msg"
+          - "'def' not in exasol_query_overlapping_secret_error.msg"
 
   always:
     - name: Remove mock pyexasol module directory
