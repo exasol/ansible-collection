@@ -74,7 +74,7 @@ error sanitization without requiring a running Exasol database.
    poetry run -- nox -s collection:integration -- exasol_query
 
 Non-Mocked Exasol Integration Tests
------------------------------
+-----------------------------------
 
 The pytest-driven integration tests can start an actual Exasol database backend
 through ``pytest-exasol-backend`` instead of using the mocked ``pyexasol`` module
