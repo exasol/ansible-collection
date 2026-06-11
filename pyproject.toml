@@ -26,7 +26,7 @@ dependencies = [
 dev = [
     "ansible>=10.7,<11",
     "exasol-ansible-runner-wrapper>=2,<3",
-    "exasol-toolbox>=8,<9",
+    "exasol-toolbox>=8.2.0,<9",
     "pytest>=9.0.3,<10.0.0",
     "pyyaml>=6.0.3,<7.0.0",
 ]
@@ -43,7 +43,7 @@ include = [
     "galaxy.yml",
 ]
 
-[poetry.urls]
+[project.urls]
 repository = "https://github.com/exasol/ansible-collection"
 homepage = "https://github.com/exasol/ansible-collection"
 
