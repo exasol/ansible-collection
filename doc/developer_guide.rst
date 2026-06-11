@@ -61,8 +61,20 @@ Keep the Python toolbox checks green while developing collection code:
    poetry run nox -s test:unit test:integration
    poetry run nox -s docs:build
 
+Collection Integration Tests
+----------------------------
+
+The standard Ansible integration target for ``exasol_query`` is a mocked
+contract test. It runs through ``ansible-test integration`` and verifies the
+module interface, result shape, argument handling, check mode behavior, and
+error sanitization without requiring a running Exasol database.
+
+.. code-block:: bash
+
+   poetry run -- nox -s collection:integration -- exasol_query
+
 Non-Mocked Exasol Integration Tests
------------------------------------
+-----------------------------
 
 The pytest-driven integration tests can start an actual Exasol database backend
 through ``pytest-exasol-backend`` instead of using the mocked ``pyexasol`` module

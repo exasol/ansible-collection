@@ -10,6 +10,7 @@
 
 * #3: Add Ansible collection skeleton
 * #4: Add Ansible collection CI build and sanity checks
+* #14: Add exasol_query for direct SQL execution from playbooks
 
 ## Refactorings
 

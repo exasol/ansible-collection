@@ -1,0 +1,209 @@
+"""Tests for collection-native Exasol module helpers."""
+
+from __future__ import annotations
+
+import datetime as dt
+import json
+import ssl
+from decimal import Decimal
+from typing import Any
+
+from plugins.module_utils import exasol_query
+
+
+class FakeStatement:
+    """Small pyexasol statement stand-in for helper-level tests."""
+
+    def __init__(
+        self,
+        rows: list[Any] | None = None,
+        result_type: str = "resultSet",
+        rowcount: int = 0,
+        execution_time: float = 0.0,
+        column_names: list[str] | None = None,
+    ) -> None:
+        self._rows = rows or []
+        self.result_type = result_type
+        self._rowcount = rowcount
+        self.execution_time = execution_time
+        self.col_names = column_names or []
+
+    def fetchall(self) -> list[Any]:
+        return self._rows
+
+    def rowcount(self) -> int:
+        return self._rowcount
+
+    def column_names(self) -> list[str]:
+        return self.col_names
+
+
+class FakeConnection:
+    """Small pyexasol connection stand-in for helper-level tests."""
+
+    def __init__(self, statements: list[FakeStatement]) -> None:
+        self.statements = statements
+        self.executed: list[tuple[str, dict[str, Any] | None]] = []
+
+    def execute(
+        self,
+        query: str,
+        query_params: dict[str, Any] | None = None,
+    ) -> FakeStatement:
+        self.executed.append((query, query_params))
+        return self.statements.pop(0)
+
+
+def test_connection_argument_spec_marks_secret_options_no_log() -> None:
+    """Verify the shared Ansible argument spec protects secret parameters."""
+    argument_spec = exasol_query.exasol_connection_argument_spec()
+
+    assert argument_spec["login_password"]["no_log"] is True
+    assert argument_spec["client_kwargs"]["no_log"] is True
+    assert argument_spec["login_db"]["aliases"] == ["login_schema"]
+
+
+def test_build_connect_kwargs_maps_design_doc_parameters_to_pyexasol() -> None:
+    """Verify collection connection arguments map to pyexasol keyword arguments."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_host": "db.example.com",
+            "login_port": 8564,
+            "login_user": "sys",
+            "login_password": "secret",
+            "login_db": "APP",
+            "autocommit": False,
+            "fetch_size": 8192,
+            "compression": True,
+            "encryption": False,
+            "validate_certs": False,
+            "certificate_fingerprint": "ABCDEF",
+            "client_kwargs": {
+                "client_name": "ansible-test",
+                "fetch_dict": False,
+                "websocket_sslopt": {"check_hostname": False},
+            },
+        }
+    )
+
+    assert kwargs == {
+        "dsn": "db.example.com/ABCDEF:8564",
+        "user": "sys",
+        "password": "secret",
+        "schema": "APP",
+        "autocommit": False,
+        "fetch_size_bytes": 8192,
+        "compression": True,
+        "encryption": False,
+        "fetch_dict": True,
+        "websocket_sslopt": {
+            "cert_reqs": ssl.CERT_NONE,
+            "check_hostname": False,
+        },
+        "client_name": "ansible-test",
+    }
+
+
+def test_build_connect_kwargs_applies_design_doc_defaults() -> None:
+    """Verify default connection handling, including TLS and fetch dictionaries."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_password": "secret",
+        }
+    )
+
+    assert kwargs["dsn"] == "localhost:8563"
+    assert kwargs["schema"] == ""
+    assert kwargs["autocommit"] is True
+    assert kwargs["fetch_size_bytes"] == 5000
+    assert kwargs["compression"] is False
+    assert kwargs["encryption"] is True
+    assert kwargs["fetch_dict"] is True
+
+
+def test_prepare_query_translates_positional_and_named_args() -> None:
+    """Verify Ansible-style placeholders are translated for pyexasol."""
+    query, query_params = exasol_query.prepare_query(
+        "SELECT ? AS A, :n AS B, '?' AS LITERAL, true::boolean AS FLAG",
+        positional_args=[42],
+        named_args={"n": 7},
+    )
+
+    assert query == (
+        "SELECT {__pos_0!d} AS A, {n!d} AS B, '?' AS LITERAL, " "true::boolean AS FLAG"
+    )
+    assert query_params == {"__pos_0": 42, "n": 7}
+
+
+def test_execute_queries_returns_design_doc_result_shape() -> None:
+    """Verify query execution returns the collection's public result contract."""
+    connection = FakeConnection(
+        [
+            FakeStatement(
+                rows=[{"A": Decimal("1.5"), "CREATED_ON": dt.date(2026, 1, 2)}],
+                rowcount=1,
+                execution_time=0.001,
+            ),
+            FakeStatement(
+                rows=[],
+                result_type="rowCount",
+                rowcount=0,
+                execution_time=0.002,
+            ),
+        ]
+    )
+
+    result = exasol_query.execute_queries(
+        connection,
+        ["SELECT 1 AS A", "CREATE SCHEMA T"],
+    )
+
+    json.dumps(result)
+
+    assert result == {
+        "changed": True,
+        "query_result": [],
+        "query_all_results": [
+            [{"A": "1.5", "CREATED_ON": "2026-01-02"}],
+            [],
+        ],
+        "executed_queries": ["SELECT 1 AS A", "CREATE SCHEMA T"],
+        "rowcount": [1, 0],
+        "execution_time_ms": [1.0, 2.0],
+    }
+    assert connection.executed == [
+        ("SELECT 1 AS A", None),
+        ("CREATE SCHEMA T", None),
+    ]
+
+
+def test_tuple_rows_are_returned_as_dictionaries() -> None:
+    """Verify tuple rows are mapped with statement column metadata."""
+    connection = FakeConnection(
+        [
+            FakeStatement(
+                rows=[(42, "answer")],
+                rowcount=1,
+                column_names=["A", "NOTE"],
+            ),
+        ]
+    )
+
+    result = exasol_query.execute_queries(connection, "SELECT 42 AS A")
+
+    assert result["changed"] is False
+    assert result["query_result"] == [{"A": 42, "NOTE": "answer"}]
+
+
+def test_error_sanitization_redacts_login_password_and_sensitive_named_args() -> None:
+    """Verify failures do not leak known secret values."""
+    message = exasol_query.sanitize_error_message(
+        RuntimeError("bad password swordfish and value token-value"),
+        {
+            "login_password": "swordfish",
+            "named_args": {"api_token": "token-value"},
+        },
+    )
+
+    assert message == "bad password ******** and value ********"
