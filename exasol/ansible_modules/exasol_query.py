@@ -22,7 +22,6 @@ DEFAULT_LOGIN_DB = ""
 DEFAULT_AUTOCOMMIT = True
 DEFAULT_FETCH_SIZE = 5000
 DEFAULT_COMPRESSION = False
-DEFAULT_ENCRYPTION = True
 DEFAULT_VALIDATE_CERTS = True
 REDACTED = "********"
 
@@ -33,7 +32,6 @@ CONNECTION_DEFAULTS: dict[str, Any] = {
     "autocommit": DEFAULT_AUTOCOMMIT,
     "fetch_size": DEFAULT_FETCH_SIZE,
     "compression": DEFAULT_COMPRESSION,
-    "encryption": DEFAULT_ENCRYPTION,
     "validate_certs": DEFAULT_VALIDATE_CERTS,
     "client_kwargs": {},
 }
@@ -68,7 +66,6 @@ READ_ONLY_SQL_KEYWORDS = frozenset(
         "SELECT",
         "SHOW",
         "VALUES",
-        "WITH",
     }
 )
 
@@ -96,7 +93,6 @@ def exasol_connection_argument_spec() -> dict[str, dict[str, Any]]:
         "autocommit": {"type": "bool", "default": DEFAULT_AUTOCOMMIT},
         "fetch_size": {"type": "int", "default": DEFAULT_FETCH_SIZE},
         "compression": {"type": "bool", "default": DEFAULT_COMPRESSION},
-        "encryption": {"type": "bool", "default": DEFAULT_ENCRYPTION},
         "validate_certs": {"type": "bool", "default": DEFAULT_VALIDATE_CERTS},
         "ca_cert": {"type": "path"},
         "certificate_fingerprint": {"type": "str"},
@@ -148,7 +144,7 @@ def build_exasol_connect_kwargs(params: Mapping[str, Any]) -> dict[str, Any]:
         "autocommit": resolved["autocommit"],
         "fetch_size_bytes": resolved["fetch_size"],
         "compression": resolved["compression"],
-        "encryption": resolved["encryption"],
+        "encryption": True,
         "fetch_dict": True,
     }
 
@@ -196,7 +192,7 @@ def sanitize_error_message(error: Any, params: Mapping[str, Any]) -> str:
     """Redact known secret values from an error string."""
     message = str(error)
 
-    for secret in _secret_values(params):
+    for secret in sorted(_secret_values(params), key=len, reverse=True):
         message = message.replace(secret, REDACTED)
 
     return message

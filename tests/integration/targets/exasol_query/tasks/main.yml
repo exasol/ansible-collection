@@ -40,11 +40,11 @@
         autocommit: false
         fetch_size: 8192
         compression: true
-        encryption: false
         validate_certs: false
         certificate_fingerprint: ABCDEF
         client_kwargs:
           client_name: ansible-test
+          encryption: false
           fetch_dict: false
           websocket_sslopt:
             check_hostname: false
@@ -62,7 +62,7 @@
           - exasol_query_connection.query_result[0].KWARGS.autocommit is false
           - exasol_query_connection.query_result[0].KWARGS.fetch_size_bytes == 8192
           - exasol_query_connection.query_result[0].KWARGS.compression is true
-          - exasol_query_connection.query_result[0].KWARGS.encryption is false
+          - exasol_query_connection.query_result[0].KWARGS.encryption is true
           - exasol_query_connection.query_result[0].KWARGS.fetch_dict is true
           - exasol_query_connection.query_result[0].KWARGS.client_name is defined
           - exasol_query_connection.query_result[0].KWARGS.websocket_sslopt.check_hostname is false

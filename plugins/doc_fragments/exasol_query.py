@@ -54,11 +54,6 @@ options:
         transport.
     type: bool
     default: false
-  encryption:
-    description:
-      - Whether pyexasol should use TLS for the Exasol connection.
-    type: bool
-    default: true
   validate_certs:
     description:
       - Whether pyexasol should validate the TLS certificate presented by Exasol.

@@ -119,33 +119,15 @@ execution_time_ms:
 from typing import Any
 
 from ansible.module_utils.basic import AnsibleModule
-
-try:
-    from ansible_collections.exasol.exasol.plugins.module_utils.exasol_query import (
-        build_exasol_connect_kwargs,
-        exasol_connection_argument_spec,
-        execute_queries,
-        is_read_only_query,
-        normalize_query_list,
-        normalized_exasol_error_message,
-        sanitize_error_message,
-    )
-except ImportError:
-    from plugins.module_utils.exasol_query import (
-        build_exasol_connect_kwargs,
-        exasol_connection_argument_spec,
-        execute_queries,
-        is_read_only_query,
-        normalize_query_list,
-        normalized_exasol_error_message,
-        sanitize_error_message,
-    )
+from ansible_collections.exasol.exasol.plugins.module_utils import (
+    exasol_query as exasol_query_utils,
+)
 
 
 def main() -> None:
     """Run the Ansible module."""
     argument_spec = {
-        **exasol_connection_argument_spec(),
+        **exasol_query_utils.exasol_connection_argument_spec(),
         "query": {"type": "raw", "required": True},
         "positional_args": {"type": "list", "elements": "raw"},
         "named_args": {"type": "dict"},
@@ -159,8 +141,10 @@ def main() -> None:
     query = params["query"]
 
     try:
-        queries = normalize_query_list(query)
-        if module.check_mode and not all(is_read_only_query(item) for item in queries):
+        queries = exasol_query_utils.normalize_query_list(query)
+        if module.check_mode and not all(
+            exasol_query_utils.is_read_only_query(item) for item in queries
+        ):
             module.exit_json(
                 changed=True,
                 query_result=[],
@@ -172,10 +156,10 @@ def main() -> None:
 
         result = run_query(params)
     except ValueError as error:
-        module.fail_json(msg=sanitize_error_message(error, params))
+        module.fail_json(msg=exasol_query_utils.sanitize_error_message(error, params))
     except Exception as error:  # noqa: BLE001 - Ansible modules report all failures.
         module.fail_json(
-            msg=normalized_exasol_error_message(
+            msg=exasol_query_utils.normalized_exasol_error_message(
                 error,
                 params=params,
                 operation="Exasol query",
@@ -195,10 +179,12 @@ def run_query(params: dict[str, Any]) -> dict[str, Any]:
             "Install it in the Python environment that runs Ansible modules."
         ) from error
 
-    connection = pyexasol.connect(**build_exasol_connect_kwargs(params))
+    connection = pyexasol.connect(
+        **exasol_query_utils.build_exasol_connect_kwargs(params)
+    )
 
     try:
-        return execute_queries(
+        return exasol_query_utils.execute_queries(
             connection,
             params["query"],
             positional_args=params.get("positional_args"),

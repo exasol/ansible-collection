@@ -75,11 +75,11 @@ def test_build_connect_kwargs_maps_design_doc_parameters_to_pyexasol() -> None:
             "autocommit": False,
             "fetch_size": 8192,
             "compression": True,
-            "encryption": False,
             "validate_certs": False,
             "certificate_fingerprint": "ABCDEF",
             "client_kwargs": {
                 "client_name": "ansible-test",
+                "encryption": False,
                 "fetch_dict": False,
                 "websocket_sslopt": {"check_hostname": False},
             },
@@ -94,7 +94,7 @@ def test_build_connect_kwargs_maps_design_doc_parameters_to_pyexasol() -> None:
         "autocommit": False,
         "fetch_size_bytes": 8192,
         "compression": True,
-        "encryption": False,
+        "encryption": True,
         "fetch_dict": True,
         "websocket_sslopt": {
             "cert_reqs": ssl.CERT_NONE,
@@ -207,3 +207,16 @@ def test_error_sanitization_redacts_login_password_and_sensitive_named_args() ->
     )
 
     assert message == "bad password ******** and value ********"
+
+
+def test_error_sanitization_redacts_overlapping_secrets() -> None:
+    """Verify overlapping secret values are fully redacted."""
+    message = exasol_query.sanitize_error_message(
+        RuntimeError("token abcdef password abc"),
+        {
+            "login_password": "abc",
+            "named_args": {"api_token": "abcdef"},
+        },
+    )
+
+    assert message == "token ******** password ********"

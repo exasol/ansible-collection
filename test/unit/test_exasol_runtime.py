@@ -56,6 +56,25 @@ def test_build_exasol_connect_kwargs_maps_ansible_arguments_to_pyexasol() -> Non
     }
 
 
+def test_connection_argument_spec_does_not_expose_encryption_option() -> None:
+    """Verify TLS cannot be disabled through the public module interface."""
+    assert "encryption" not in exasol_query.exasol_connection_argument_spec()
+
+
+def test_build_exasol_connect_kwargs_forces_tls() -> None:
+    """Verify legacy or client kwargs cannot disable TLS."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_password": "secret",
+            "encryption": False,
+            "client_kwargs": {"encryption": False},
+        }
+    )
+
+    assert kwargs["encryption"] is True
+
+
 def test_build_exasol_connect_kwargs_applies_defaults() -> None:
     """Verify default connection handling, including mandatory TLS."""
     kwargs = exasol_query.build_exasol_connect_kwargs(
@@ -238,6 +257,9 @@ def test_first_sql_keyword_skips_comments_and_handles_empty_queries() -> None:
     assert exasol_query.first_sql_keyword("  ;") == ""
     assert exasol_query.first_sql_keyword("  ") == ""
     assert exasol_query.is_read_only_query("VALUES 1") is True
+    assert exasol_query.is_read_only_query("WITH q AS (SELECT 1) SELECT * FROM q") is (
+        False
+    )
     assert exasol_query.is_read_only_query("INSERT INTO T VALUES 1") is False
 
 
@@ -284,6 +306,19 @@ def test_sanitize_error_message_redacts_nested_sensitive_values() -> None:
     )
 
     assert message == "******** ******** public"
+
+
+def test_sanitize_error_message_redacts_overlapping_secrets() -> None:
+    """Verify shorter secret values cannot expose suffixes of longer secrets."""
+    message = exasol_query.sanitize_error_message(
+        RuntimeError("token abcdef password abc"),
+        {
+            "login_password": "abc",
+            "client_kwargs": {"api_token": "abcdef"},
+        },
+    )
+
+    assert message == "token ******** password ********"
 
 
 def test_to_json_safe_converts_unknown_objects_to_strings() -> None:
@@ -416,4 +451,5 @@ def test_doc_fragment_exposes_connection_options() -> None:
     assert "login_host" in documentation
     assert "login_password" in documentation
     assert "ca_cert" in documentation
+    assert "  encryption:" not in documentation
     assert "exasol-ansible-modules" in documentation
