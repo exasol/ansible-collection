@@ -46,11 +46,6 @@ def fetch_result_rows(*args: Any, **kwargs: Any) -> list[Any]:
     return _runtime().fetch_result_rows(*args, **kwargs)
 
 
-def first_sql_keyword(*args: Any, **kwargs: Any) -> str:
-    """Delegate to the exasol_query runtime implementation."""
-    return _runtime().first_sql_keyword(*args, **kwargs)
-
-
 def is_authentication_error(*args: Any, **kwargs: Any) -> bool:
     """Delegate to the exasol_query runtime implementation."""
     return _runtime().is_authentication_error(*args, **kwargs)
@@ -146,7 +141,6 @@ __all__ = [
     "execute_queries",
     "exasol_connection_argument_spec",
     "fetch_result_rows",
-    "first_sql_keyword",
     "is_authentication_error",
     "is_read_only_query",
     "normalize_query_list",

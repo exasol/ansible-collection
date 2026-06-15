@@ -249,16 +249,24 @@ def test_prepare_query_rejects_extra_positional_argument() -> None:
         exasol_query.prepare_query("SELECT 1 AS A", positional_args=[1])
 
 
-def test_first_sql_keyword_skips_comments_and_handles_empty_queries() -> None:
-    """Verify read-only detection starts after whitespace and comments."""
-    assert exasol_query.first_sql_keyword(" \n -- comment\n /* block */ SELECT 1") == (
-        "SELECT"
+def test_is_read_only_query_uses_sqlglot_parser() -> None:
+    """Verify read-only detection delegates SQL parsing to sqlglot."""
+    assert (
+        exasol_query.is_read_only_query(" \n -- comment\n /* block */ SELECT 1") is True
     )
-    assert exasol_query.first_sql_keyword("  ;") == ""
-    assert exasol_query.first_sql_keyword("  ") == ""
+    assert exasol_query.is_read_only_query("  ;") is False
+    assert exasol_query.is_read_only_query("  ") is False
     assert exasol_query.is_read_only_query("VALUES 1") is True
-    assert exasol_query.is_read_only_query("WITH q AS (SELECT 1) SELECT * FROM q") is (
-        False
+    assert exasol_query.is_read_only_query("SHOW TABLES") is True
+    assert exasol_query.is_read_only_query("EXPLAIN SELECT 1") is True
+    assert (
+        exasol_query.is_read_only_query("WITH q AS (SELECT 1) SELECT * FROM q") is True
+    )
+    assert (
+        exasol_query.is_read_only_query(
+            "WITH q AS (SELECT 1) INSERT INTO T SELECT * FROM q"
+        )
+        is False
     )
     assert exasol_query.is_read_only_query("INSERT INTO T VALUES 1") is False
 

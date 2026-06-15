@@ -6,7 +6,6 @@ import base64
 import copy
 import datetime as dt
 import math
-import re
 import ssl
 from collections.abc import (
     Iterable,
@@ -15,6 +14,17 @@ from collections.abc import (
 )
 from decimal import Decimal
 from typing import Any
+
+import sqlglot
+from sqlglot import exp
+from sqlglot.errors import (
+    ParseError,
+    TokenError,
+)
+from sqlglot.tokens import (
+    Token,
+    TokenType,
+)
 
 DEFAULT_LOGIN_HOST = "localhost"
 DEFAULT_LOGIN_PORT = 8563
@@ -59,7 +69,8 @@ SENSITIVE_CLIENT_KWARG_MARKERS = (
     "secret",
     "token",
 )
-READ_ONLY_SQL_KEYWORDS = frozenset(
+SQLGLOT_DIALECT = "exasol"
+READ_ONLY_LEADING_KEYWORDS = frozenset(
     {
         "DESCRIBE",
         "EXPLAIN",
@@ -68,6 +79,12 @@ READ_ONLY_SQL_KEYWORDS = frozenset(
         "VALUES",
     }
 )
+READ_ONLY_SQLGLOT_COMMANDS = frozenset({"DESCRIBE", "EXPLAIN", "SHOW", "VALUES"})
+READ_ONLY_SQLGLOT_EXPRESSIONS = (
+    exp.Describe,
+    exp.Query,
+    exp.Values,
+)
 
 _AUTHENTICATION_MARKERS = (
     "auth",
@@ -75,7 +92,6 @@ _AUTHENTICATION_MARKERS = (
     "login",
     "password",
 )
-_NAMED_ARG_PATTERN = re.compile(r"[A-Za-z_]\w*", re.ASCII)
 
 
 def exasol_connection_argument_spec() -> dict[str, dict[str, Any]]:
@@ -253,18 +269,41 @@ def prepare_query(
     query_params: dict[str, Any] = {}
     positional_index = 0
     rewritten = []
-    index = 0
+    rewrite_index = 0
+    tokens = _sqlglot_tokens(query)
+    token_index = 0
 
-    while index < len(query):
-        segment, index, positional_index = _prepare_query_segment(
-            query=query,
-            index=index,
-            positional_values=positional_values,
-            positional_index=positional_index,
-            named_values=named_values,
-            query_params=query_params,
-        )
-        rewritten.append(segment)
+    while token_index < len(tokens):
+        token = tokens[token_index]
+        replacement = None
+        replacement_end = token.end + 1
+        next_token_index = token_index + 1
+
+        if token.token_type == TokenType.PLACEHOLDER and token.text == "?":
+            replacement, positional_index = _prepare_positional_placeholder(
+                positional_values,
+                positional_index,
+                query_params,
+            )
+        else:
+            named_placeholder = _prepare_named_placeholder(
+                query,
+                tokens,
+                token_index,
+                named_values,
+                query_params,
+            )
+            if named_placeholder is not None:
+                replacement, replacement_end, next_token_index = named_placeholder
+
+        if replacement is not None:
+            rewritten.append(query[rewrite_index : token.start])
+            rewritten.append(replacement)
+            rewrite_index = replacement_end
+
+        token_index = next_token_index
+
+    rewritten.append(query[rewrite_index:])
 
     if positional_index < len(positional_values):
         raise ValueError(
@@ -281,65 +320,15 @@ def prepare_query(
     return "".join(rewritten), query_params
 
 
-def _prepare_query_segment(
-    query: str,
-    index: int,
-    positional_values: Sequence[Any],
-    positional_index: int,
-    named_values: Mapping[str, Any],
-    query_params: dict[str, Any],
-) -> tuple[str, int, int]:
-    protected_segment_end = _protected_segment_end(query, index)
-    if protected_segment_end is not None:
-        return (
-            query[index:protected_segment_end],
-            protected_segment_end,
-            positional_index,
-        )
-
-    character = query[index]
-    if character == "?":
-        return _prepare_positional_placeholder(
-            index,
-            positional_values,
-            positional_index,
-            query_params,
-        )
-
-    if character == ":":
-        named_placeholder = _prepare_named_placeholder(
-            query,
-            index,
-            named_values,
-            query_params,
-        )
-        if named_placeholder is not None:
-            segment, next_index = named_placeholder
-            return segment, next_index, positional_index
-
-    return character, index + 1, positional_index
-
-
-def _protected_segment_end(query: str, index: int) -> int | None:
-    if query.startswith("--", index):
-        return _find_line_comment_end(query, index)
-
-    if query.startswith("/*", index):
-        return _find_block_comment_end(query, index)
-
-    character = query[index]
-    if character in ("'", '"'):
-        return _find_quoted_string_end(query, index, quote=character)
-
-    return None
+def _sqlglot_tokens(query: str) -> list[Token]:
+    return sqlglot.Tokenizer(dialect=SQLGLOT_DIALECT).tokenize(query)
 
 
 def _prepare_positional_placeholder(
-    index: int,
     positional_values: Sequence[Any],
     positional_index: int,
     query_params: dict[str, Any],
-) -> tuple[str, int, int]:
+) -> tuple[str, int]:
     if positional_index >= len(positional_values):
         raise ValueError(
             "query contains more positional placeholders than positional_args values."
@@ -348,29 +337,32 @@ def _prepare_positional_placeholder(
     name = f"__pos_{positional_index}"
     value = positional_values[positional_index]
     query_params[name] = _query_param_value(value)
-    return _pyexasol_placeholder(name, value), index + 1, positional_index + 1
+    return _pyexasol_placeholder(name, value), positional_index + 1
 
 
 def _prepare_named_placeholder(
     query: str,
-    index: int,
+    tokens: Sequence[Token],
+    token_index: int,
     named_values: Mapping[str, Any],
     query_params: dict[str, Any],
-) -> tuple[str, int] | None:
-    if _is_double_colon(query, index):
+) -> tuple[str, int, int] | None:
+    token = tokens[token_index]
+    next_token_index = token_index + 1
+    if token.token_type != TokenType.COLON or next_token_index >= len(tokens):
         return None
 
-    match = _NAMED_ARG_PATTERN.match(query, index + 1)
-    if not match:
+    next_token = tokens[next_token_index]
+    if next_token.start != token.end + 1:
         return None
 
-    name = match.group(0)
-    if name not in named_values:
+    name = query[next_token.start : next_token.end + 1]
+    if name != next_token.text or not name.isidentifier() or name not in named_values:
         return None
 
     value = named_values[name]
     query_params[name] = _query_param_value(value)
-    return _pyexasol_placeholder(name, value), match.end()
+    return _pyexasol_placeholder(name, value), next_token.end + 1, token_index + 2
 
 
 def fetch_result_rows(statement: Any) -> list[Any]:
@@ -403,36 +395,56 @@ def statement_execution_time_ms(statement: Any) -> float:
 
 
 def is_read_only_query(query: str) -> bool:
-    """Return whether a SQL statement is conservatively considered read-only."""
-    keyword = first_sql_keyword(query)
+    """Return whether a SQL statement is conservatively read-only using SQLGlot AST."""
+    try:
+        parsed = sqlglot.parse(query, read=SQLGLOT_DIALECT)
 
-    return keyword in READ_ONLY_SQL_KEYWORDS
+        if not parsed:
+            return False
+
+        return all(
+            expr is not None and _is_read_only_expression(expr) for expr in parsed
+        )
+
+    except (ParseError, TokenError):
+        return _is_read_only_by_token(query)
 
 
-def first_sql_keyword(query: str) -> str:
-    """Return the first SQL keyword after leading whitespace and comments."""
-    index = 0
+def _is_read_only_expression(expression: exp.Expr) -> bool:
+    # DML / DDL
+    if isinstance(
+        expression,
+        (
+            exp.Insert,
+            exp.Update,
+            exp.Delete,
+            exp.Merge,
+            exp.Create,
+            exp.Drop,
+            exp.Alter,
+        ),
+    ):
+        return False
 
-    while index < len(query):
-        if query[index].isspace():
-            index += 1
-            continue
+    # Exasol SELECT INTO (IMPORTANT)
+    if isinstance(expression, exp.Select) and expression.args.get("into") is not None:
+        return False
 
-        if query.startswith("--", index):
-            index = _find_line_comment_end(query, index)
-            continue
+    return True
 
-        if query.startswith("/*", index):
-            index = _find_block_comment_end(query, index)
-            continue
 
-        match = re.match(r"[A-Za-z]+", query[index:])
-        if match:
-            return match.group(0).upper()
+def _is_read_only_by_token(query: str) -> bool:
+    first_token = _first_sqlglot_token(query)
 
-        return ""
+    if not first_token:
+        return False
 
-    return ""
+    return first_token.text.upper() in READ_ONLY_LEADING_KEYWORDS
+
+
+def _first_sqlglot_token(query: str) -> Token | None:
+    tokens = _sqlglot_tokens(query)
+    return tokens[0] if tokens else None
 
 
 def to_json_safe(value: Any) -> Any:
@@ -551,41 +563,3 @@ def _query_param_value(value: Any) -> Any:
         return "TRUE" if value else "FALSE"
 
     return value
-
-
-def _find_line_comment_end(query: str, index: int) -> int:
-    next_newline = query.find("\n", index)
-
-    return len(query) if next_newline == -1 else next_newline
-
-
-def _find_block_comment_end(query: str, index: int) -> int:
-    comment_end = query.find("*/", index + 2)
-
-    return len(query) if comment_end == -1 else comment_end + 2
-
-
-def _find_quoted_string_end(query: str, index: int, quote: str) -> int:
-    index += 1
-
-    while index < len(query):
-        if query[index] != quote:
-            index += 1
-            continue
-
-        if index + 1 < len(query) and query[index + 1] == quote:
-            index += 2
-            continue
-
-        return index + 1
-
-    return len(query)
-
-
-def _is_double_colon(query: str, index: int) -> bool:
-    return (
-        index + 1 < len(query)
-        and query[index + 1] == ":"
-        or index > 0
-        and query[index - 1] == ":"
-    )

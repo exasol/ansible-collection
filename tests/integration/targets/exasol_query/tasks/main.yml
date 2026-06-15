@@ -200,7 +200,7 @@
           - exasol_query_check_mode_ddl.rowcount == []
           - exasol_query_check_mode_ddl.execution_time_ms == []
 
-    - name: WITH in check mode reports change without execution
+    - name: WITH SELECT succeeds in check mode and does not change
       exasol.exasol.exasol_query:
         login_user: sys
         query: WITH q AS (SELECT 1 AS A) SELECT * FROM q
@@ -211,14 +211,14 @@
     - name: Verify check mode WITH result
       ansible.builtin.assert:
         that:
-          - exasol_query_check_mode_with is changed
-          - exasol_query_check_mode_with.query_result == []
-          - exasol_query_check_mode_with.query_all_results == []
+          - exasol_query_check_mode_with is not changed
+          - 'exasol_query_check_mode_with.query_result == [{"A": 1}]'
+          - 'exasol_query_check_mode_with.query_all_results == [[{"A": 1}]]'
           - >-
             exasol_query_check_mode_with.executed_queries
             == ["WITH q AS (SELECT 1 AS A) SELECT * FROM q"]
-          - exasol_query_check_mode_with.rowcount == []
-          - exasol_query_check_mode_with.execution_time_ms == []
+          - exasol_query_check_mode_with.rowcount == [1]
+          - exasol_query_check_mode_with.execution_time_ms == [1.0]
 
     - name: Bad credentials fail without leaking secrets
       exasol.exasol.exasol_query:

@@ -16,7 +16,7 @@ def connect_with_handlers(
     connect_kwargs: dict[str, Any],
     statement_handlers: Mapping[str, StatementHandler],
     query_errors: Mapping[str, str] | None = None,
-) -> "MockConnection":
+) -> MockConnection:
     """Return a mock Exasol connection configured with statement handlers."""
     if connect_kwargs.get("password") == "bad-secret":
         raise RuntimeError("authentication failed for password bad-secret")
@@ -47,7 +47,7 @@ class MockConnection:
         self,
         query: str,
         query_params: dict[str, Any] | None = None,
-    ) -> "MockStatement":
+    ) -> MockStatement:
         """Execute a mock SQL statement."""
         self.execution_count += 1
         normalized_query = normalize_query(query)

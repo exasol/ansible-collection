@@ -34,6 +34,9 @@ STATEMENT_HANDLERS = {
     "SELECT 1 AS A": lambda _connection, _query, _params: (
         result_statement(rows=[{"A": 1}])
     ),
+    "WITH Q AS (SELECT 1 AS A) SELECT * FROM Q": lambda _connection, _query, _params: (
+        result_statement(rows=[{"A": 1}])
+    ),
 }
 
 QUERY_ERRORS = {
@@ -42,7 +45,7 @@ QUERY_ERRORS = {
 }
 
 
-def connect(**kwargs: Any) -> "MockConnection":
+def connect(**kwargs: Any) -> MockConnection:
     """Return an exasol_query-specific mock Exasol connection."""
     return connect_with_handlers(
         connect_kwargs=kwargs,
