@@ -241,6 +241,17 @@ def test_normalize_query_list_rejects_invalid_query() -> None:
         exasol_query.normalize_query_list(["SELECT 1", 2])
 
 
+def test_last_available_query_result_returns_last_statement_rows() -> None:
+    """Verify the public query_result mirrors the last executed statement."""
+    assert exasol_query.last_available_query_result([]) == []
+    assert exasol_query.last_available_query_result(
+        [
+            [{"FIRST": 1}],
+            [{"LAST": 2}],
+        ]
+    ) == [{"LAST": 2}]
+
+
 def test_prepare_query_handles_comments_quotes_and_parameter_types() -> None:
     """Verify placeholder parsing ignores comments and quoted literals."""
     query, query_params = exasol_query.prepare_query(
@@ -269,14 +280,26 @@ def test_prepare_query_handles_comments_quotes_and_parameter_types() -> None:
 
 def test_prepare_query_rejects_missing_positional_argument() -> None:
     """Verify each positional placeholder must have a value."""
-    with pytest.raises(ValueError, match="more positional placeholders"):
+    with pytest.raises(ValueError) as error_info:
         exasol_query.prepare_query("SELECT ? AS A")
+
+    message = str(error_info.value)
+    assert "positional_args does not match" in message
+    assert "query contains 1 '?' placeholder(s)" in message
+    assert "positional_args contains 0 value(s)" in message
+    assert "Add a value for each '?'" in message
 
 
 def test_prepare_query_rejects_extra_positional_argument() -> None:
     """Verify unused positional values are rejected."""
-    with pytest.raises(ValueError, match="more values than query placeholders"):
+    with pytest.raises(ValueError) as error_info:
         exasol_query.prepare_query("SELECT 1 AS A", positional_args=[1])
+
+    message = str(error_info.value)
+    assert "positional_args does not match" in message
+    assert "query contains 0 '?' placeholder(s)" in message
+    assert "positional_args contains 1 value(s)" in message
+    assert "remove the extra positional_args entries" in message
 
 
 def test_is_read_only_query_uses_sqlglot_parser() -> None:
@@ -292,13 +315,17 @@ def test_is_read_only_query_uses_sqlglot_parser() -> None:
     assert (
         exasol_query.is_read_only_query("WITH q AS (SELECT 1) SELECT * FROM q") is True
     )
+    assert exasol_query.is_read_only_query("SELECT 1 INTO T") is False
     assert (
         exasol_query.is_read_only_query(
             "WITH q AS (SELECT 1) INSERT INTO T SELECT * FROM q"
         )
         is False
     )
+    assert exasol_query.is_read_only_query("GRANT SELECT ON T TO U") is False
     assert exasol_query.is_read_only_query("INSERT INTO T VALUES 1") is False
+    assert exasol_query.is_read_only_query("TRUNCATE TABLE T") is False
+    assert exasol_query.is_read_only_query("CALL F()") is False
 
 
 def test_fetch_result_rows_uses_col_names_fallback() -> None:
@@ -316,11 +343,12 @@ def test_fetch_result_rows_uses_col_names_fallback() -> None:
     ]
 
 
-def test_statement_metadata_defaults_and_non_callable_rowcount() -> None:
-    """Verify statement metadata helpers handle pyexasol variants."""
+def test_statement_metadata_reads_pyexasol_rowcount_method() -> None:
+    """Verify statement metadata helpers use pyexasol's rowcount method."""
 
     class Statement:
-        rowcount = "3"
+        def rowcount(self) -> int:
+            return 3
 
     statement = Statement()
 

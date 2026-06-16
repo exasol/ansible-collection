@@ -130,7 +130,9 @@ def rowcount_statement(
 def public_connect_kwargs(connect_kwargs: dict[str, Any]) -> dict[str, Any]:
     """Return connect kwargs safe to expose in module results."""
     public_kwargs = copy.deepcopy(connect_kwargs)
+    public_kwargs.pop("access_token", None)
     public_kwargs.pop("password", None)
+    public_kwargs.pop("refresh_token", None)
     return public_kwargs
 
 

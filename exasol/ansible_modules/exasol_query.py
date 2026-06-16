@@ -42,7 +42,12 @@ class _ResultStatement(Protocol):
     result_type: str
 
     def fetchall(self) -> Sequence[object]:
-        raise NotImplementedError
+        """Return all rows from the statement."""
+        ...
+
+    def rowcount(self) -> int:
+        """Return selected or affected row count."""
+        ...
 
 
 class _ExasolConnection(Protocol):
@@ -51,7 +56,8 @@ class _ExasolConnection(Protocol):
         query: str,
         query_params: Mapping[str, object] | None = None,
     ) -> _ResultStatement:
-        raise NotImplementedError
+        """Execute SQL and return a statement object."""
+        ...
 
 
 class _SqlglotToken(Protocol):
@@ -63,16 +69,25 @@ class _SqlglotToken(Protocol):
 
 class _SqlglotTokenizer(Protocol):
     def tokenize(self, query: str) -> list[_SqlglotToken]:
-        raise NotImplementedError
+        """Tokenize SQL text."""
+        ...
 
 
 class _SqlglotTokenizerFactory(Protocol):
     def __call__(self, *, dialect: str) -> _SqlglotTokenizer:
-        raise NotImplementedError
+        """Create a tokenizer for a SQL dialect."""
+        ...
 
 
 class _SqlglotExpression(Protocol):
     args: Mapping[str, object]
+
+    def find_all(
+        self,
+        *expression_types: type["_SqlglotExpression"],
+    ) -> Iterable["_SqlglotExpression"]:
+        """Find matching expressions in the parsed SQL tree."""
+        ...
 
 
 class _SqlglotModule(Protocol):
@@ -84,7 +99,8 @@ class _SqlglotModule(Protocol):
         *,
         read: str,
     ) -> list[_SqlglotExpression | None]:
-        raise NotImplementedError
+        """Parse SQL text into expressions."""
+        ...
 
 
 class _SqlglotTokenType(Protocol):
@@ -93,14 +109,11 @@ class _SqlglotTokenType(Protocol):
 
 
 class _SqlglotExpressionTypes(Protocol):
-    Insert: type[_SqlglotExpression]
-    Update: type[_SqlglotExpression]
-    Delete: type[_SqlglotExpression]
-    Merge: type[_SqlglotExpression]
-    Create: type[_SqlglotExpression]
-    Drop: type[_SqlglotExpression]
-    Alter: type[_SqlglotExpression]
+    Command: type[_SqlglotExpression]
+    Describe: type[_SqlglotExpression]
+    Query: type[_SqlglotExpression]
     Select: type[_SqlglotExpression]
+    Values: type[_SqlglotExpression]
 
 
 DEFAULT_LOGIN_HOST = "localhost"
@@ -156,6 +169,7 @@ READ_ONLY_LEADING_KEYWORDS = frozenset(
         "VALUES",
     }
 )
+READ_ONLY_SQLGLOT_COMMANDS = frozenset({"EXPLAIN", "SHOW"})
 
 _AUTHENTICATION_MARKERS = (
     "auth",
@@ -197,6 +211,8 @@ def connection_parameters_with_defaults(
         if name in params:
             resolved[name] = params[name]
 
+    # Keep the familiar Ansible database-module option name even though Exasol
+    # opens schemas rather than per-connection databases.
     if "login_schema" in params and "login_db" not in params:
         resolved["login_db"] = params["login_schema"]
 
@@ -315,9 +331,9 @@ def execute_queries(
 ) -> ExasolQueryResult:
     """Execute one or more Exasol statements and return Ansible result values."""
     queries = normalize_query_list(query)
-    all_results = []
-    rowcounts = []
-    execution_time_ms = []
+    all_results: list[list[JsonValue]] = []
+    rowcounts: list[int] = []
+    execution_time_ms: list[float] = []
 
     for statement in queries:
         prepared_statement, query_params = prepare_query(
@@ -332,12 +348,19 @@ def execute_queries(
 
     return {
         "changed": any(not is_read_only_query(statement) for statement in queries),
-        "query_result": all_results[-1] if all_results else [],
+        "query_result": last_available_query_result(all_results),
         "query_all_results": all_results,
         "executed_queries": queries,
         "rowcount": rowcounts,
         "execution_time_ms": execution_time_ms,
     }
+
+
+def last_available_query_result(
+    all_results: Sequence[list[JsonValue]],
+) -> list[JsonValue]:
+    """Return rows from the last executed statement, if any."""
+    return all_results[-1] if all_results else []
 
 
 def prepare_query(
@@ -391,7 +414,10 @@ def prepare_query(
 
     if positional_index < len(positional_values):
         raise ValueError(
-            "positional_args contains more values than query placeholders."
+            _positional_args_mismatch_message(
+                placeholders=positional_index,
+                values=len(positional_values),
+            )
         )
 
     query_params.update(
@@ -460,13 +486,25 @@ def _prepare_positional_placeholder(
 ) -> tuple[str, int]:
     if positional_index >= len(positional_values):
         raise ValueError(
-            "query contains more positional placeholders than positional_args values."
+            _positional_args_mismatch_message(
+                placeholders=positional_index + 1,
+                values=len(positional_values),
+            )
         )
 
     name = f"__pos_{positional_index}"
     value = positional_values[positional_index]
     query_params[name] = _query_param_value(value)
     return _pyexasol_placeholder(name, value), positional_index + 1
+
+
+def _positional_args_mismatch_message(placeholders: int, values: int) -> str:
+    return (
+        "positional_args does not match the SQL positional placeholders: "
+        f"the query contains {placeholders} '?' placeholder(s), but "
+        f"positional_args contains {values} value(s). Add a value for each '?' "
+        "placeholder or remove the extra positional_args entries."
+    )
 
 
 def _prepare_named_placeholder(
@@ -514,12 +552,7 @@ def fetch_result_rows(statement: _ResultStatement) -> list[JsonValue]:
 
 def statement_rowcount(statement: object) -> int:
     """Return a pyexasol statement rowcount as an integer."""
-    rowcount = getattr(statement, "rowcount", 0)
-
-    if callable(rowcount):
-        rowcount = rowcount()
-
-    return int(rowcount)
+    return int(cast(_ResultStatement, statement).rowcount())
 
 
 def statement_execution_time_ms(statement: object) -> float:
@@ -549,26 +582,27 @@ def _is_read_only_expression(
     expression: _SqlglotExpression,
     exp: _SqlglotExpressionTypes,
 ) -> bool:
-    # DML / DDL
-    if isinstance(
-        expression,
-        (
-            exp.Insert,
-            exp.Update,
-            exp.Delete,
-            exp.Merge,
-            exp.Create,
-            exp.Drop,
-            exp.Alter,
-        ),
-    ):
+    if _contains_select_into(expression, exp):
         return False
 
-    # Exasol SELECT INTO (IMPORTANT)
-    if isinstance(expression, exp.Select) and expression.args.get("into") is not None:
-        return False
+    if isinstance(expression, exp.Command):
+        return _sqlglot_command_name(expression) in READ_ONLY_SQLGLOT_COMMANDS
 
-    return True
+    return isinstance(expression, (exp.Describe, exp.Query, exp.Values))
+
+
+def _contains_select_into(
+    expression: _SqlglotExpression,
+    exp: _SqlglotExpressionTypes,
+) -> bool:
+    return any(
+        select.args.get("into") is not None
+        for select in expression.find_all(exp.Select)
+    )
+
+
+def _sqlglot_command_name(expression: _SqlglotExpression) -> str:
+    return str(expression.args.get("this", "")).upper()
 
 
 def _is_read_only_by_token(query: str) -> bool:

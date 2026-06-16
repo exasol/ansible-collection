@@ -68,6 +68,27 @@
           - exasol_query_connection.query_result[0].KWARGS.websocket_sslopt.check_hostname is false
           - exasol_query_connection.query_result[0].KWARGS.websocket_sslopt.cert_reqs | string == "0"
           - exasol_query_connection.query_result[0].PASSWORD_IS_SET is true
+          - exasol_query_connection.query_result[0].ACCESS_TOKEN_IS_SET is false
+          - exasol_query_connection.query_result[0].REFRESH_TOKEN_IS_SET is false
+
+    - name: Token authentication can omit login_password
+      exasol.exasol.exasol_query:
+        login_user: sys
+        client_kwargs:
+          access_token: token-secret
+        query: SELECT MOCK_CONNECTION_KWARGS
+      environment: "{{ exasol_query_mock_environment }}"
+      register: exasol_query_token_auth
+
+    - name: Verify token authentication connection options
+      ansible.builtin.assert:
+        that:
+          - exasol_query_token_auth is not changed
+          - exasol_query_token_auth.query_result[0].KWARGS.user == "sys"
+          - exasol_query_token_auth.query_result[0].PASSWORD_IS_SET is false
+          - exasol_query_token_auth.query_result[0].ACCESS_TOKEN_IS_SET is true
+          - exasol_query_token_auth.query_result[0].REFRESH_TOKEN_IS_SET is false
+          - exasol_query_token_auth.query_result[0].KWARGS.access_token is not defined
 
     - name: Default connection options use design-doc defaults
       exasol.exasol.exasol_query:
@@ -199,6 +220,30 @@
           - exasol_query_check_mode_ddl.query_all_results == []
           - exasol_query_check_mode_ddl.rowcount == []
           - exasol_query_check_mode_ddl.execution_time_ms == []
+
+    - name: Parsed write-like statements in check mode do not execute
+      exasol.exasol.exasol_query:
+        login_user: sys
+        query: "{{ item }}"
+      check_mode: true
+      environment: "{{ exasol_query_mock_environment }}"
+      loop:
+        - SELECT 1 INTO T
+        - GRANT SELECT ON T TO U
+        - TRUNCATE TABLE T
+        - CALL F()
+      register: exasol_query_check_mode_write_like
+
+    - name: Verify parsed write-like check mode result
+      ansible.builtin.assert:
+        that:
+          - item.changed is true
+          - item.query_result == []
+          - item.query_all_results == []
+          - item.executed_queries == [item.item]
+          - item.rowcount == []
+          - item.execution_time_ms == []
+      loop: "{{ exasol_query_check_mode_write_like.results }}"
 
     - name: WITH SELECT succeeds in check mode and does not change
       exasol.exasol.exasol_query:

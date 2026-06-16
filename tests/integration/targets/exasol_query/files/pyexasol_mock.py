@@ -59,7 +59,11 @@ def connection_kwargs_statement(connection: MockConnection) -> MockStatement:
         rows=[
             {
                 "KWARGS": public_connect_kwargs(connection.connect_kwargs),
+                "ACCESS_TOKEN_IS_SET": connection.connect_kwargs.get("access_token")
+                is not None,
                 "PASSWORD_IS_SET": connection.connect_kwargs.get("password")
+                is not None,
+                "REFRESH_TOKEN_IS_SET": connection.connect_kwargs.get("refresh_token")
                 is not None,
             }
         ],
