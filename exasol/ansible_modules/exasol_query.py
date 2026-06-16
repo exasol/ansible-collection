@@ -43,11 +43,9 @@ class _ResultStatement(Protocol):
 
     def fetchall(self) -> Sequence[object]:
         """Return all rows from the statement."""
-        ...
 
     def rowcount(self) -> int:
         """Return selected or affected row count."""
-        ...
 
 
 class _ExasolConnection(Protocol):
@@ -57,7 +55,6 @@ class _ExasolConnection(Protocol):
         query_params: Mapping[str, object] | None = None,
     ) -> _ResultStatement:
         """Execute SQL and return a statement object."""
-        ...
 
 
 class _SqlglotToken(Protocol):
@@ -70,13 +67,11 @@ class _SqlglotToken(Protocol):
 class _SqlglotTokenizer(Protocol):
     def tokenize(self, query: str) -> list[_SqlglotToken]:
         """Tokenize SQL text."""
-        ...
 
 
 class _SqlglotTokenizerFactory(Protocol):
     def __call__(self, *, dialect: str) -> _SqlglotTokenizer:
         """Create a tokenizer for a SQL dialect."""
-        ...
 
 
 class _SqlglotExpression(Protocol):
@@ -87,7 +82,6 @@ class _SqlglotExpression(Protocol):
         *expression_types: type["_SqlglotExpression"],
     ) -> Iterable["_SqlglotExpression"]:
         """Find matching expressions in the parsed SQL tree."""
-        ...
 
 
 class _SqlglotModule(Protocol):
@@ -100,7 +94,6 @@ class _SqlglotModule(Protocol):
         read: str,
     ) -> list[_SqlglotExpression | None]:
         """Parse SQL text into expressions."""
-        ...
 
 
 class _SqlglotTokenType(Protocol):
