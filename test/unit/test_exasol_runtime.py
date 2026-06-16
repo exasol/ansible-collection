@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import builtins
 import datetime as dt
+import importlib.util
 import json
 import ssl
 from decimal import Decimal
+from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -14,6 +18,32 @@ from exasol.ansible_modules import (
     exasol_user,
 )
 from plugins.doc_fragments.exasol_query import ModuleDocFragment
+
+
+def test_runtime_argument_spec_import_does_not_require_sqlglot(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify sanity-test argument spec introspection does not need SQL parsing deps."""
+    runtime_path = Path(exasol_query.__file__).resolve()
+    original_import = builtins.__import__
+
+    def import_without_sqlglot(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "sqlglot" or name.startswith("sqlglot."):
+            raise ImportError("blocked sqlglot import")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", import_without_sqlglot)
+    spec = importlib.util.spec_from_file_location(
+        "_exasol_query_without_sqlglot",
+        runtime_path,
+    )
+
+    assert spec is not None
+    assert spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    assert module.exasol_connection_argument_spec()["login_password"]["no_log"] is True
 
 
 def test_build_exasol_connect_kwargs_maps_ansible_arguments_to_pyexasol() -> None:
