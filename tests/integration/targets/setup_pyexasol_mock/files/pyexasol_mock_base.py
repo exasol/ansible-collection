@@ -15,11 +15,14 @@ StatementHandler = Callable[["MockConnection", str, dict[str, Any]], "MockStatem
 def connect_with_handlers(
     connect_kwargs: dict[str, Any],
     statement_handlers: Mapping[str, StatementHandler],
+    authentication_errors: Mapping[str, str] | None = None,
     query_errors: Mapping[str, str] | None = None,
 ) -> MockConnection:
     """Return a mock Exasol connection configured with statement handlers."""
-    if connect_kwargs.get("password") == "bad-secret":
-        raise RuntimeError("authentication failed for password bad-secret")
+    authentication_errors = authentication_errors or {}
+    password = connect_kwargs.get("password")
+    if isinstance(password, str) and password in authentication_errors:
+        raise RuntimeError(authentication_errors[password])
 
     return MockConnection(
         connect_kwargs=connect_kwargs,

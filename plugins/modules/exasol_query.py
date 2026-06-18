@@ -142,18 +142,7 @@ def main() -> None:
 
     try:
         queries = exasol_query_utils.normalize_query_list(query)
-        if module.check_mode and not all(
-            exasol_query_utils.is_read_only_query(item) for item in queries
-        ):
-            module.exit_json(
-                changed=True,
-                query_result=[],
-                query_all_results=[],
-                executed_queries=queries,
-                rowcount=[],
-                execution_time_ms=[],
-            )
-
+        exit_if_check_mode_would_change(module, queries)
         result = run_query(params)
     except ValueError as error:
         module.fail_json(msg=exasol_query_utils.sanitize_error_message(error, params))
@@ -169,6 +158,23 @@ def main() -> None:
     module.exit_json(**result)
 
 
+def exit_if_check_mode_would_change(module: AnsibleModule, queries: list[str]) -> None:
+    """Exit early when check mode predicts a write without executing it."""
+    if not module.check_mode or all(
+        exasol_query_utils.is_read_only_query(item) for item in queries
+    ):
+        return
+
+    module.exit_json(
+        changed=True,
+        query_result=[],
+        query_all_results=[],
+        executed_queries=queries,
+        rowcount=[],
+        execution_time_ms=[],
+    )
+
+
 def run_query(params: dict[str, Any]) -> dict[str, Any]:
     """Connect to Exasol, execute query parameters, and close the connection."""
     try:
@@ -176,7 +182,8 @@ def run_query(params: dict[str, Any]) -> dict[str, Any]:
     except ImportError as error:
         raise RuntimeError(
             "pyexasol is required to use exasol_query. "
-            "Install it in the Python environment that runs Ansible modules."
+            "Install it in the Python environment that runs Ansible modules, "
+            "for example with `python -m pip install exasol-ansible-modules`."
         ) from error
 
     connection = pyexasol.connect(

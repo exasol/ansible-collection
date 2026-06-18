@@ -74,6 +74,19 @@ def test_runtime_source_path_uses_collection_root() -> None:
     )
 
 
+def test_build_exasol_dsn_includes_certificate_fingerprint() -> None:
+    """Verify certificate fingerprints are encoded in the pyexasol DSN."""
+    dsn = exasol_query.build_exasol_dsn(
+        {
+            "login_host": "db.example.com",
+            "login_port": 8564,
+            "certificate_fingerprint": "ABCDEF",
+        }
+    )
+
+    assert dsn == "db.example.com/ABCDEF:8564"
+
+
 def test_build_connect_kwargs_maps_design_doc_parameters_to_pyexasol() -> None:
     """Verify collection connection arguments map to pyexasol keyword arguments."""
     kwargs = exasol_query.build_exasol_connect_kwargs(
@@ -194,17 +207,17 @@ def test_tuple_rows_are_returned_as_dictionaries() -> None:
     connection = FakeConnection(
         [
             FakeStatement(
-                rows=[(42, "answer")],
+                rows=[(73, "tuple-row")],
                 rowcount=1,
-                column_names=["A", "NOTE"],
+                column_names=["ID", "LABEL"],
             ),
         ]
     )
 
-    result = exasol_query.execute_queries(connection, "SELECT 42 AS A")
+    result = exasol_query.execute_queries(connection, "SELECT 73 AS ID")
 
     assert result["changed"] is False
-    assert result["query_result"] == [{"A": 42, "NOTE": "answer"}]
+    assert result["query_result"] == [{"ID": 73, "LABEL": "tuple-row"}]
 
 
 def test_error_sanitization_redacts_login_password_and_sensitive_named_args() -> None:

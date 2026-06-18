@@ -51,11 +51,11 @@ def test_exasol_query_module_executes_against_exasol(
     assert facts["exasol_query_backend_probe"] == {
         "schema": schema_name,
         "metadata_version_available": True,
-        "single_select": "1",
-        "batch_row_count": "1",
+        "single_select": "11",
+        "batch_row_count": "2",
         "positional_value": "42",
         "named_value": "7",
-        "check_mode_select": "1",
+        "check_mode_select": "13",
         "check_mode_schema_count": "0",
         "bad_credentials_sanitized": True,
     }

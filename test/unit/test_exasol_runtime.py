@@ -235,10 +235,11 @@ def test_build_exasol_connect_kwargs_ignores_ca_cert_without_validation() -> Non
     assert kwargs["websocket_sslopt"] == {"cert_reqs": ssl.CERT_NONE}
 
 
-def test_normalize_query_list_rejects_invalid_query() -> None:
+@pytest.mark.parametrize("query", [2, ["SELECT 1", 2]])
+def test_normalize_query_list_rejects_invalid_query(query: object) -> None:
     """Verify query parameters must be a string or list of strings."""
     with pytest.raises(ValueError, match="query must be"):
-        exasol_query.normalize_query_list(["SELECT 1", 2])
+        exasol_query.normalize_query_list(query)
 
 
 def test_last_available_query_result_returns_last_statement_rows() -> None:
@@ -258,7 +259,8 @@ def test_prepare_query_handles_comments_quotes_and_parameter_types() -> None:
         "\n"
         "-- ? :ignored\n"
         "/* ? :ignored */\n"
-        "SELECT \"?\" AS Q, '?' AS S, ? AS B, ? AS D, ? AS F, :name AS N",
+        "SELECT \"?\" AS Q, '?' AS S, ? AS B, -- ? :inline_ignored\n"
+        "? AS D, ? AS F, :name AS N",
         positional_args=[True, Decimal("12.3"), 1.5],
         named_args={"name": "Alice"},
     )
@@ -267,8 +269,8 @@ def test_prepare_query_handles_comments_quotes_and_parameter_types() -> None:
         "\n"
         "-- ? :ignored\n"
         "/* ? :ignored */\n"
-        "SELECT \"?\" AS Q, '?' AS S, {__pos_0!r} AS B, {__pos_1!d} AS D, "
-        "{__pos_2!f} AS F, {name} AS N"
+        "SELECT \"?\" AS Q, '?' AS S, {__pos_0!r} AS B, -- ? :inline_ignored\n"
+        "{__pos_1!d} AS D, {__pos_2!f} AS F, {name} AS N"
     )
     assert query_params == {
         "__pos_0": "TRUE",
@@ -302,8 +304,33 @@ def test_prepare_query_rejects_extra_positional_argument() -> None:
     assert "remove the extra positional_args entries" in message
 
 
-def test_is_read_only_query_uses_sqlglot_parser() -> None:
-    """Verify read-only detection delegates SQL parsing to sqlglot."""
+def test_prepare_query_rejects_missing_named_argument() -> None:
+    """Verify each named placeholder must have a value."""
+    with pytest.raises(ValueError) as error_info:
+        exasol_query.prepare_query("SELECT :missing_value AS A")
+
+    message = str(error_info.value)
+    assert "named_args does not match" in message
+    assert "query contains named placeholder ':missing_value'" in message
+    assert "named_args does not contain a value" in message
+
+
+def test_prepare_query_rejects_extra_named_argument() -> None:
+    """Verify unused named values are rejected."""
+    with pytest.raises(ValueError) as error_info:
+        exasol_query.prepare_query(
+            "SELECT :used_value AS A",
+            named_args={"used_value": 17, "unused_value": 19},
+        )
+
+    message = str(error_info.value)
+    assert "named_args contains unused value(s)" in message
+    assert "unused_value" in message
+    assert "remove the extra named_args entries" in message
+
+
+def test_is_read_only_query_classifies_common_sql_statements() -> None:
+    """Verify read-only detection handles common Exasol SQL statement types."""
     assert (
         exasol_query.is_read_only_query(" \n -- comment\n /* block */ SELECT 1") is True
     )
@@ -312,6 +339,8 @@ def test_is_read_only_query_uses_sqlglot_parser() -> None:
     assert exasol_query.is_read_only_query("VALUES 1") is True
     assert exasol_query.is_read_only_query("SHOW TABLES") is True
     assert exasol_query.is_read_only_query("EXPLAIN SELECT 1") is True
+    assert exasol_query.is_read_only_query("DESCRIBE TABLE T") is True
+    assert exasol_query.is_read_only_query("DESC TABLE T") is False
     assert (
         exasol_query.is_read_only_query("WITH q AS (SELECT 1) SELECT * FROM q") is True
     )
@@ -326,6 +355,28 @@ def test_is_read_only_query_uses_sqlglot_parser() -> None:
     assert exasol_query.is_read_only_query("INSERT INTO T VALUES 1") is False
     assert exasol_query.is_read_only_query("TRUNCATE TABLE T") is False
     assert exasol_query.is_read_only_query("CALL F()") is False
+
+
+def test_is_read_only_query_parse_error_fallback_is_conservative_for_select(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify parser failures do not classify SELECT statements as read-only."""
+
+    class ParserFailure(Exception):
+        pass
+
+    class Parser:
+        def parse(self, _query: str, *, read: str) -> list[object]:
+            raise ParserFailure()
+
+    monkeypatch.setattr(
+        exasol_query,
+        "_sqlglot_parser_runtime",
+        lambda: (Parser(), object(), (ParserFailure,)),
+    )
+
+    assert exasol_query.is_read_only_query("SELECT 1") is False
+    assert exasol_query.is_read_only_query("SHOW TABLES") is True
 
 
 def test_fetch_result_rows_uses_col_names_fallback() -> None:
@@ -344,7 +395,7 @@ def test_fetch_result_rows_uses_col_names_fallback() -> None:
 
 
 def test_statement_metadata_reads_pyexasol_rowcount_method() -> None:
-    """Verify statement metadata helpers use pyexasol's rowcount method."""
+    """Verify statement row count metadata uses pyexasol's rowcount method."""
 
     class Statement:
         def rowcount(self) -> int:
@@ -353,6 +404,16 @@ def test_statement_metadata_reads_pyexasol_rowcount_method() -> None:
     statement = Statement()
 
     assert exasol_query.statement_rowcount(statement) == 3
+
+
+def test_statement_execution_time_defaults_to_zero() -> None:
+    """Verify missing pyexasol execution time metadata defaults to zero."""
+
+    class Statement:
+        pass
+
+    statement = Statement()
+
     assert exasol_query.statement_execution_time_ms(statement) == 0.0
 
 

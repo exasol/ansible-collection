@@ -44,12 +44,17 @@ QUERY_ERRORS = {
     "MOCK_RAISE_OVERLAPPING_SECRET": ("query failed with token abcdef and secret abc"),
 }
 
+AUTHENTICATION_ERRORS = {
+    "bad-secret": "authentication failed for password bad-secret",
+}
+
 
 def connect(**kwargs: Any) -> MockConnection:
     """Return an exasol_query-specific mock Exasol connection."""
     return connect_with_handlers(
         connect_kwargs=kwargs,
         statement_handlers=STATEMENT_HANDLERS,
+        authentication_errors=AUTHENTICATION_ERRORS,
         query_errors=QUERY_ERRORS,
     )
 

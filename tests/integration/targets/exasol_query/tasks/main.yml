@@ -285,7 +285,7 @@
       exasol.exasol.exasol_query:
         login_user: sys
         login_password: swordfish
-        query: SELECT MOCK_RAISE_SECRET
+        query: SELECT MOCK_RAISE_SECRET AS ERROR_PROBE, :api_token AS TOKEN
         named_args:
           api_token: token-value
       environment: "{{ exasol_query_mock_environment }}"
@@ -303,7 +303,10 @@
       exasol.exasol.exasol_query:
         login_user: sys
         login_password: unrelated
-        query: SELECT MOCK_RAISE_OVERLAPPING_SECRET
+        query: >-
+          SELECT MOCK_RAISE_OVERLAPPING_SECRET AS ERROR_PROBE,
+          :api_token AS TOKEN,
+          :api_secret AS SECRET
         named_args:
           api_token: abcdef
           api_secret: abc

@@ -157,12 +157,10 @@ READ_ONLY_LEADING_KEYWORDS = frozenset(
     {
         "DESCRIBE",
         "EXPLAIN",
-        "SELECT",
         "SHOW",
         "VALUES",
     }
 )
-READ_ONLY_SQLGLOT_COMMANDS = frozenset({"EXPLAIN", "SHOW"})
 
 _AUTHENTICATION_MARKERS = (
     "auth",
@@ -365,6 +363,7 @@ def prepare_query(
     positional_values = list(positional_args or [])
     named_values = dict(named_args or {})
     query_params: QueryParameters = {}
+    named_placeholders: set[str] = set()
     positional_index = 0
     rewritten = []
     rewrite_index = 0
@@ -391,6 +390,7 @@ def prepare_query(
                 token_index,
                 named_values,
                 query_params,
+                named_placeholders,
                 token_type,
             )
             if named_placeholder is not None:
@@ -413,13 +413,8 @@ def prepare_query(
             )
         )
 
-    query_params.update(
-        {
-            name: _query_param_value(value)
-            for name, value in named_values.items()
-            if name not in query_params
-        }
-    )
+    _raise_for_unused_named_args(named_values, named_placeholders)
+
     return "".join(rewritten), query_params
 
 
@@ -506,6 +501,7 @@ def _prepare_named_placeholder(
     token_index: int,
     named_values: Mapping[str, object],
     query_params: QueryParameters,
+    named_placeholders: set[str],
     token_type: _SqlglotTokenType,
 ) -> tuple[str, int, int] | None:
     token = tokens[token_index]
@@ -518,12 +514,39 @@ def _prepare_named_placeholder(
         return None
 
     name = query[next_token.start : next_token.end + 1]
-    if name != next_token.text or not name.isidentifier() or name not in named_values:
+    if name != next_token.text or not name.isidentifier():
         return None
+
+    if name not in named_values:
+        raise ValueError(_missing_named_arg_message(name))
 
     value = named_values[name]
     query_params[name] = _query_param_value(value)
+    named_placeholders.add(name)
     return _pyexasol_placeholder(name, value), next_token.end + 1, token_index + 2
+
+
+def _missing_named_arg_message(name: str) -> str:
+    return (
+        "named_args does not match the SQL named placeholders: the query contains "
+        f"named placeholder ':{name}', but named_args does not contain a value "
+        "for it. Add a value for each ':name' placeholder."
+    )
+
+
+def _raise_for_unused_named_args(
+    named_values: Mapping[str, object],
+    named_placeholders: set[str],
+) -> None:
+    unused_names = sorted(set(named_values) - named_placeholders)
+    if not unused_names:
+        return
+
+    raise ValueError(
+        "named_args contains unused value(s): "
+        f"{', '.join(unused_names)}; remove the extra named_args entries or add "
+        "matching ':name' placeholders."
+    )
 
 
 def fetch_result_rows(statement: _ResultStatement) -> list[JsonValue]:
@@ -559,12 +582,14 @@ def is_read_only_query(query: str) -> bool:
 
     try:
         parsed = sqlglot.parse(query, read=SQLGLOT_DIALECT)
+        leading_keywords = _statement_leading_keywords(query)
 
-        if not parsed:
+        if not parsed or len(parsed) != len(leading_keywords):
             return False
 
         return all(
-            expr is not None and _is_read_only_expression(expr, exp) for expr in parsed
+            expr is not None and _is_read_only_expression(expr, exp, leading_keyword)
+            for expr, leading_keyword in zip(parsed, leading_keywords)
         )
 
     except parse_errors:
@@ -574,14 +599,21 @@ def is_read_only_query(query: str) -> bool:
 def _is_read_only_expression(
     expression: _SqlglotExpression,
     exp: _SqlglotExpressionTypes,
+    leading_keyword: str,
 ) -> bool:
     if _contains_select_into(expression, exp):
         return False
 
     if isinstance(expression, exp.Command):
-        return _sqlglot_command_name(expression) in READ_ONLY_SQLGLOT_COMMANDS
+        return leading_keyword in READ_ONLY_LEADING_KEYWORDS
 
-    return isinstance(expression, (exp.Describe, exp.Query, exp.Values))
+    if isinstance(expression, exp.Describe):
+        return leading_keyword == "DESCRIBE"
+
+    if isinstance(expression, exp.Values):
+        return leading_keyword == "VALUES"
+
+    return isinstance(expression, exp.Query)
 
 
 def _contains_select_into(
@@ -594,10 +626,6 @@ def _contains_select_into(
     )
 
 
-def _sqlglot_command_name(expression: _SqlglotExpression) -> str:
-    return str(expression.args.get("this", "")).upper()
-
-
 def _is_read_only_by_token(query: str) -> bool:
     first_token = _first_sqlglot_token(query)
 
@@ -605,6 +633,22 @@ def _is_read_only_by_token(query: str) -> bool:
         return False
 
     return first_token.text.upper() in READ_ONLY_LEADING_KEYWORDS
+
+
+def _statement_leading_keywords(query: str) -> list[str]:
+    keywords = []
+    start_of_statement = True
+
+    for token in _sqlglot_tokens(query):
+        if token.text == ";":
+            start_of_statement = True
+            continue
+
+        if start_of_statement:
+            keywords.append(token.text.upper())
+            start_of_statement = False
+
+    return keywords
 
 
 def _first_sqlglot_token(query: str) -> _SqlglotToken | None:
