@@ -4396,6 +4396,23 @@ standalone = ["Sphinx (>=5)"]
 test = ["pytest"]
 
 [[package]]
+name = "sqlglot"
+version = "30.11.0"
+description = "An easily customizable SQL parser and transpiler"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "sqlglot-30.11.0-py3-none-any.whl", hash = "sha256:cffdee57d1f2f5472dc9f13087e618cf795841172b7d5ef78b63a051a52d2710"},
+    {file = "sqlglot-30.11.0.tar.gz", hash = "sha256:1a23c6e2adb41da61fda46b1848d2fa26341d447fc0f0cd5ca21160362100991"},
+]
+
+[package.extras]
+c = ["sqlglotc (==30.11.0) ; python_version >= \"3.10\""]
+dev = ["duckdb (>=0.6)", "mypy ; python_version < \"3.10\"", "pandas", "pandas-stubs", "pdoc", "pre-commit", "pyperf", "python-dateutil", "pytz", "ruff (==0.15.6)", "setuptools_scm", "sqlglot-mypy (>=2.1.0.post2) ; python_version >= \"3.10\"", "types-python-dateutil", "types-pytz", "typing_extensions"]
+rs = ["sqlglotc (==30.11.0) ; python_version >= \"3.10\"", "sqlglotrs (==0.13.0)"]
+
+[[package]]
 name = "standard-imghdr"
 version = "3.10.14"
 description = "Standard library imghdr redistribution. \"dead battery\"."
@@ -4929,4 +4946,4 @@ type = ["pytest-mypy (>=1.0.1) ; platform_python_implementation != \"PyPy\""]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "8745539e363f1300f84f3abc7e5e401d24afe4d598328e625e4f32de81183a04"
+content-hash = "bdf810db17af78f805bfdb26d1cfef93a82076fc866f530b96af2cd84f0468c3"

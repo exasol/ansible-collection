@@ -1,0 +1,5 @@
+---
+- name: Shared pyexasol mock files are available
+  ansible.builtin.debug:
+    msg: Shared pyexasol mock files are available.
+  changed_when: false

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -47,18 +48,25 @@ def main(params_file: str) -> None:
             "(ID DECIMAL(18, 0), NOTE VARCHAR(200))"
         )
         connection.execute(f"INSERT INTO {quoted_table} VALUES (1, 'runner-wrapper')")
-        row = connection.execute(
-            f"SELECT COUNT(*), MIN(NOTE) FROM {quoted_table}"
-        ).fetchone()
-        selected_value = connection.execute("SELECT 42").fetchone()[0]
+        summary_query = (
+            f"SELECT COUNT(*) AS ROW_COUNT, MIN(NOTE) AS NOTE FROM {quoted_table}"
+        )
+        row = connection.execute(summary_query).fetchone()
+        selected_row = connection.execute("SELECT 42 AS SELECTED_VALUE").fetchone()
         print(
             json.dumps(
                 to_json_safe(
                     {
                         "schema": schema_name,
-                        "row_count": row[0],
-                        "note": row[1],
-                        "selected_value": selected_value,
+                        "row_count": int(_row_value(row, "ROW_COUNT", 0)),
+                        "note": _row_value(row, "NOTE", 1),
+                        "selected_value": int(
+                            _row_value(
+                                selected_row,
+                                "SELECTED_VALUE",
+                                0,
+                            )
+                        ),
                     }
                 )
             )
@@ -72,6 +80,13 @@ def main(params_file: str) -> None:
 
 def _connection_parameters(params: dict[str, Any]) -> dict[str, Any]:
     return {name: params[name] for name in CONNECTION_PARAMETER_NAMES if name in params}
+
+
+def _row_value(row: Any, key: str, index: int) -> Any:
+    if isinstance(row, Mapping):
+        return row[key]
+
+    return row[index]
 
 
 if __name__ == "__main__":
