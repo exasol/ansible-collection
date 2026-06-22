@@ -12,6 +12,7 @@
 * #4: Add Ansible collection CI build and sanity checks
 * #14: Add exasol_query for direct SQL execution from playbooks
 * #22: Add exasol_query for direct SQL execution from playbooks - Part 2
+* #32: Add exasol_user module
 
 ## Refactorings
 

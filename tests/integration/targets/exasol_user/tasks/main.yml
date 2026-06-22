@@ -1,0 +1,271 @@
+---
+- name: Create mock pyexasol module directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: exasol-user-pyexasol
+  register: exasol_user_mock_directory
+
+- name: Configure writable Ansible remote temp directory
+  ansible.builtin.set_fact:
+    ansible_remote_tmp: "{{ exasol_user_mock_directory.path }}/ansible-tmp"
+
+- name: Install shared pyexasol mock support module
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../setup_pyexasol_mock/files/pyexasol_mock_base.py"
+    dest: "{{ exasol_user_mock_directory.path }}/pyexasol_mock_base.py"
+    mode: "0600"
+
+- name: Install exasol_user mock pyexasol module
+  ansible.builtin.copy:
+    src: pyexasol_mock.py
+    dest: "{{ exasol_user_mock_directory.path }}/pyexasol.py"
+    mode: "0600"
+
+- name: Configure mocked exasol_user integration environment
+  ansible.builtin.set_fact:
+    exasol_user_mock_environment:
+      PYTHONPATH: "{{ exasol_user_mock_directory.path }}"
+      EXASOL_USER_MOCK_STATE: "{{ exasol_user_mock_directory.path }}/state.json"
+
+- name: Run mocked exasol_user contract scenarios
+  block:
+    - name: Create missing user
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: app_user
+        password: h12_Xhz
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_create
+
+    - name: Verify missing user creation result
+      ansible.builtin.assert:
+        that:
+          - exasol_user_create is changed
+          - exasol_user_create.user == "APP_USER"
+          - exasol_user_create.state == "present"
+          - exasol_user_create.exists is true
+          - >-
+            exasol_user_create.executed_queries
+            == [
+              'CREATE USER "APP_USER" IDENTIFIED BY "********"',
+              'GRANT CREATE SESSION TO "APP_USER"'
+            ]
+          - "'h12_Xhz' not in (exasol_user_create | to_json)"
+
+    - name: Existing user with on_create password policy is unchanged
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: app_user
+        password: h12_Xhz
+        update_password: on_create
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_existing
+
+    - name: Verify existing user idempotence
+      ansible.builtin.assert:
+        that:
+          - exasol_user_existing is not changed
+          - exasol_user_existing.user == "APP_USER"
+          - exasol_user_existing.exists is true
+          - exasol_user_existing.executed_queries == []
+
+    - name: Change existing user to LDAP authentication
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: app_user
+        authentication_method: ldap
+        ldap_dn: cn=app_user,dc=authorization,dc=exasol,dc=com
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_ldap
+
+    - name: Verify LDAP authentication change result
+      ansible.builtin.assert:
+        that:
+          - exasol_user_ldap is changed
+          - exasol_user_ldap.exists is true
+          - exasol_user_ldap.executed_queries == expected_ldap_query
+          - "'cn=app_user' not in (exasol_user_ldap | to_json)"
+      vars:
+        expected_ldap_query:
+          - ALTER USER "APP_USER" IDENTIFIED AT LDAP AS '********'
+
+    - name: Check mode predicts LDAP authentication change without executing it
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: app_user
+        authentication_method: ldap
+        ldap_dn: cn=app_user_changed,dc=authorization,dc=exasol,dc=com
+      check_mode: true
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_check_ldap
+
+    - name: Verify check mode LDAP update prediction
+      ansible.builtin.assert:
+        that:
+          - exasol_user_check_ldap is changed
+          - exasol_user_check_ldap.exists is true
+          - exasol_user_check_ldap.executed_queries == expected_ldap_query
+          - "'cn=app_user_changed' not in (exasol_user_check_ldap | to_json)"
+      vars:
+        expected_ldap_query:
+          - ALTER USER "APP_USER" IDENTIFIED AT LDAP AS '********'
+
+    - name: Rotate existing user password when requested
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: app_user
+        password: n3w_Xhz
+        update_password: always
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_rotate
+
+    - name: Verify password rotation result
+      ansible.builtin.assert:
+        that:
+          - exasol_user_rotate is changed
+          - exasol_user_rotate.exists is true
+          - >-
+            exasol_user_rotate.executed_queries
+            == ['ALTER USER "APP_USER" IDENTIFIED BY "********"']
+          - "'n3w_Xhz' not in (exasol_user_rotate | to_json)"
+
+    - name: Check mode predicts user creation without executing it
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: check_user
+        password: ch3ck_Xhz
+      check_mode: true
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_check_create
+
+    - name: Verify check mode create prediction
+      ansible.builtin.assert:
+        that:
+          - exasol_user_check_create is changed
+          - exasol_user_check_create.user == "CHECK_USER"
+          - exasol_user_check_create.exists is true
+          - >-
+            exasol_user_check_create.executed_queries
+            == [
+              'CREATE USER "CHECK_USER" IDENTIFIED BY "********"',
+              'GRANT CREATE SESSION TO "CHECK_USER"'
+            ]
+          - "'ch3ck_Xhz' not in (exasol_user_check_create | to_json)"
+
+    - name: Verify check mode did not create the user
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: check_user
+        state: absent
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_check_absent
+
+    - name: Assert check mode create was not executed
+      ansible.builtin.assert:
+        that:
+          - exasol_user_check_absent is not changed
+          - exasol_user_check_absent.exists is false
+          - exasol_user_check_absent.executed_queries == []
+
+    - name: Check mode predicts user drop without executing it
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: app_user
+        state: absent
+        cascade: true
+      check_mode: true
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_check_drop
+
+    - name: Verify check mode drop prediction
+      ansible.builtin.assert:
+        that:
+          - exasol_user_check_drop is changed
+          - exasol_user_check_drop.exists is false
+          - exasol_user_check_drop.executed_queries == ['DROP USER "APP_USER" CASCADE']
+
+    - name: Drop existing user with cascade
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: app_user
+        state: absent
+        cascade: true
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_drop
+
+    - name: Verify existing user drop result
+      ansible.builtin.assert:
+        that:
+          - exasol_user_drop is changed
+          - exasol_user_drop.user == "APP_USER"
+          - exasol_user_drop.state == "absent"
+          - exasol_user_drop.exists is false
+          - exasol_user_drop.executed_queries == ['DROP USER "APP_USER" CASCADE']
+
+    - name: Dropping a missing user is unchanged
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: app_user
+        state: absent
+        cascade: true
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_drop_missing
+
+    - name: Verify missing user drop idempotence
+      ansible.builtin.assert:
+        that:
+          - exasol_user_drop_missing is not changed
+          - exasol_user_drop_missing.exists is false
+          - exasol_user_drop_missing.executed_queries == []
+
+    - name: Missing password for create fails clearly
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: missing_password_user
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_missing_password
+      ignore_errors: true
+
+    - name: Verify missing password failure
+      ansible.builtin.assert:
+        that:
+          - exasol_user_missing_password is failed
+          - "'password is required to create' in exasol_user_missing_password.msg"
+
+    - name: Invalid user names fail before SQL generation
+      exasol.exasol.exasol_user:
+        login_user: sys
+        name: bad-user
+        state: absent
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_invalid_name
+      ignore_errors: true
+
+    - name: Verify invalid user name failure
+      ansible.builtin.assert:
+        that:
+          - exasol_user_invalid_name is failed
+          - "'valid regular identifier' in exasol_user_invalid_name.msg"
+
+    - name: Bad credentials fail without leaking secrets
+      exasol.exasol.exasol_user:
+        login_user: sys
+        login_password: bad-secret
+        name: app_user
+        state: absent
+      environment: "{{ exasol_user_mock_environment }}"
+      register: exasol_user_bad_credentials
+      ignore_errors: true
+
+    - name: Verify bad credential error is sanitized
+      ansible.builtin.assert:
+        that:
+          - exasol_user_bad_credentials is failed
+          - "'authenticate' in exasol_user_bad_credentials.msg"
+          - "'bad-secret' not in exasol_user_bad_credentials.msg"
+
+  always:
+    - name: Remove mock pyexasol module directory
+      ansible.builtin.file:
+        path: "{{ exasol_user_mock_directory.path }}"
+        state: absent
