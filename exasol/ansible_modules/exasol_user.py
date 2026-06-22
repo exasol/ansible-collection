@@ -5,12 +5,17 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from types import ModuleType
 
-from exasol.ansible_modules.common import (
-    choice_string,
-    required_string,
-    sibling_query_runtime,
+from plugins.module_utils.common_identifier_validation import (
+    quote_identifier,
+    validate_user_name,
+)
+from plugins.module_utils.common_param_validation import (
+    validate_choice_param,
+    validate_required_param,
+)
+from plugins.module_utils.common_runtime_import import (
+    query_runtime,
 )
 
 MAX_IDENTIFIER_LENGTH = 128
@@ -49,75 +54,13 @@ class UserMetadata:
     ldap_dn: str | None = None
 
 
-def validate_schema_name(name: str) -> str:
-    """Validate an Exasol schema identifier."""
-    return validate_identifier(name, identifier_type="schema")
-
-
-def validate_user_name(name: str) -> str:
-    """Validate an Exasol user identifier."""
-    return validate_identifier(name, identifier_type="user")
-
-
-def validate_role_name(name: str) -> str:
-    """Validate an Exasol role identifier."""
-    return validate_identifier(name, identifier_type="role")
-
-
-def validate_object_name(name: str, allow_qualified: bool = True) -> str:
-    """Validate an Exasol object identifier, optionally schema-qualified."""
-    return validate_identifier(
-        name,
-        identifier_type="object",
-        allow_qualified=allow_qualified,
-    )
-
-
-def validate_identifier(
-    name: str,
-    identifier_type: str = "identifier",
-    allow_qualified: bool = False,
-) -> str:
-    """Validate a conservative Exasol regular identifier.
-
-    Exasol supports more Unicode identifier characters than this helper accepts.
-    Module parameters use this conservative subset to keep generated SQL
-    predictable and avoid accidental dynamic-SQL injection.
-    """
-    if not isinstance(name, str):
-        raise ValueError(f"Exasol {identifier_type} name must be a string.")
-
-    parts = name.split(".") if allow_qualified else [name]
-    if not parts or any(part == "" for part in parts):
-        raise ValueError(f"Exasol {identifier_type} name must not be empty.")
-
-    if allow_qualified and len(parts) > 2:
-        raise ValueError(
-            f"Exasol {identifier_type} name must use at most schema.object "
-            "qualification."
-        )
-
-    for part in parts:
-        _validate_identifier_part(part, identifier_type=identifier_type)
-
-    return name
-
-
-def quote_identifier(name: str, allow_qualified: bool = False) -> str:
-    """Validate and quote an Exasol regular identifier using normal uppercase."""
-    validate_identifier(name, allow_qualified=allow_qualified)
-    parts = name.split(".") if allow_qualified else [name]
-
-    return ".".join(f'"{part.upper()}"' for part in parts)
-
-
 def ensure_user(
     connection: object,
     params: Mapping[str, object],
     check_mode: bool = False,
 ) -> dict[str, object]:
     """Ensure an Exasol user is present or absent."""
-    user_name = _normalized_user_name(required_string(params, "name"))
+    user_name = _normalized_user_name(validate_required_param(params, "name"))
     state = _state(params)
     metadata = _user_metadata(connection, user_name)
     statements = _planned_user_statements(
@@ -127,7 +70,7 @@ def ensure_user(
     )
 
     if statements and not check_mode:
-        _query_runtime().execute_queries(
+        query_runtime().execute_queries(
             connection,
             [statement.actual for statement in statements],
         )
@@ -143,7 +86,7 @@ def ensure_user(
 
 def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
     """Redact Exasol connection and user secrets from an error string."""
-    return _query_runtime().sanitize_error_message(
+    return query_runtime().sanitize_error_message(
         error,
         _params_with_user_secrets(params),
     )
@@ -155,25 +98,11 @@ def normalized_exasol_error_message(
     operation: str = "Exasol user management",
 ) -> str:
     """Return a sanitized user-facing Exasol user-management failure message."""
-    return _query_runtime().normalized_exasol_error_message(
+    return query_runtime().normalized_exasol_error_message(
         error,
         params=_params_with_user_secrets(params),
         operation=operation,
     )
-
-
-def _validate_identifier_part(part: str, identifier_type: str) -> None:
-    if len(part) > MAX_IDENTIFIER_LENGTH:
-        raise ValueError(
-            f"Exasol {identifier_type} identifier parts must not exceed "
-            f"{MAX_IDENTIFIER_LENGTH} characters."
-        )
-
-    if not _REGULAR_IDENTIFIER_PATTERN.match(part):
-        raise ValueError(
-            f"Exasol {identifier_type} name '{part}' is not a valid regular "
-            "identifier."
-        )
 
 
 def _normalized_user_name(name: str) -> str:
@@ -181,7 +110,7 @@ def _normalized_user_name(name: str) -> str:
 
 
 def _user_metadata(connection: object, name: str) -> UserMetadata | None:
-    result = _query_runtime().execute_queries(
+    result = query_runtime().execute_queries(
         connection,
         USER_METADATA_QUERY,
         named_args={"user_name": _normalized_user_name(name)},
@@ -191,8 +120,6 @@ def _user_metadata(connection: object, name: str) -> UserMetadata | None:
         return None
 
     row = rows[0]
-    if not isinstance(row, Mapping):
-        raise ValueError("Exasol user metadata query returned an unexpected row.")
 
     return UserMetadata(
         name=str(row["USER_NAME"]).upper(),
@@ -374,17 +301,16 @@ def _quote_sql_string_literal(value: str) -> str:
 
 
 def _state(params: Mapping[str, object]) -> str:
-    return choice_string(params, "state", DEFAULT_STATE, STATES)
+    return validate_choice_param(params, "state", DEFAULT_STATE, STATES)
 
 
 def _update_password(params: Mapping[str, object]) -> str:
-    update_password = params.get("update_password", DEFAULT_UPDATE_MODE)
-
-    if not isinstance(update_password, str) or update_password not in UPDATE_MODES:
-        choices = ", ".join(sorted(UPDATE_MODES))
-        raise ValueError(f"update_password must be one of: {choices}.")
-
-    return update_password
+    return validate_choice_param(
+        params,
+        "update_password",
+        DEFAULT_UPDATE_MODE,
+        UPDATE_MODES,
+    )
 
 
 def _authentication_method(params: Mapping[str, object]) -> str:
@@ -393,14 +319,17 @@ def _authentication_method(params: Mapping[str, object]) -> str:
     if authentication_method is None:
         return "ldap" if params.get("ldap_dn") else "password"
 
-    if (
-        not isinstance(authentication_method, str)
-        or authentication_method not in AUTHENTICATION_METHODS
-    ):
-        choices = ", ".join(sorted(AUTHENTICATION_METHODS))
-        raise ValueError(f"authentication_method must be one of: {choices}.")
+    if not isinstance(authentication_method, str):
+        raise TypeError(
+            f"authentication_method must be a string, got {type(authentication_method).__name__}"
+        )
 
-    return authentication_method
+    return validate_choice_param(
+        params,
+        "authentication_method",
+        default=authentication_method,
+        choices=AUTHENTICATION_METHODS,
+    )
 
 
 def _required_password(params: Mapping[str, object], action: str) -> str:
@@ -450,7 +379,3 @@ def _params_with_user_secrets(params: Mapping[str, object]) -> dict[str, object]
 
 def _escaped_password_identifier(password: str) -> str:
     return password.replace('"', '""')
-
-
-def _query_runtime() -> ModuleType:
-    return sibling_query_runtime(__file__)

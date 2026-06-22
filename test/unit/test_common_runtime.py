@@ -14,7 +14,7 @@ from exasol.ansible_modules import common
 def test_choice_string_accepts_valid_values() -> None:
     """Verify choice string options are returned after validation."""
     assert (
-        common.choice_string(
+        common.validate_choice_param(
             {"state": "absent"},
             "state",
             "present",
@@ -27,14 +27,15 @@ def test_choice_string_accepts_valid_values() -> None:
 def test_choice_string_uses_default_value() -> None:
     """Verify missing choice string options use the provided default."""
     assert (
-        common.choice_string({}, "state", "present", {"present", "absent"}) == "present"
+        common.validate_choice_param({}, "state", "present", {"present", "absent"})
+        == "present"
     )
 
 
 def test_choice_string_rejects_invalid_values() -> None:
     """Verify invalid choice values fail with an actionable message."""
     with pytest.raises(ValueError, match="state must be one of"):
-        common.choice_string(
+        common.validate_choice_param(
             {"state": "invalid"},
             "state",
             "present",
@@ -44,14 +45,14 @@ def test_choice_string_rejects_invalid_values() -> None:
 
 def test_required_string_accepts_non_empty_string() -> None:
     """Verify required string options are returned after validation."""
-    assert common.required_string({"name": "app_user"}, "name") == "app_user"
+    assert common.validate_required_param({"name": "app_user"}, "name") == "app_user"
 
 
 @pytest.mark.parametrize("value", [None, "", object()])
 def test_required_string_rejects_invalid_values(value: object) -> None:
     """Verify required string options must be non-empty strings."""
     with pytest.raises(ValueError, match="name must be a non-empty string"):
-        common.required_string({"name": value}, "name")
+        common.validate_required_param({"name": value}, "name")
 
 
 def test_load_runtime_module_falls_back_to_source_file(

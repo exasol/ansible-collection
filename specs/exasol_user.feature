@@ -18,8 +18,20 @@ Feature: exasol-user specification
     And user "ALICE" can run query "SELECT 17 AS A" with password "Initial_Secret_42"
     And the module result does not contain "Initial_Secret_42"
 
-  @exasol-user-present-idempotent
-  Scenario: Present user is idempotent
+
+  @exasol-user-create-user-password-authentication
+  Scenario: Create user with password authentication
+    Given an Exasol database is reachable at localhost
+    And user "ALICE" does not exist in EXA_DBA_USERS
+    When exasol_user runs with:
+      | name  | authentication_method | password          | state   |
+      | ALICE | password              | Initial_Secret_42 | present |
+    Then changed is true
+    And EXA_DBA_USERS contains one row where USER_NAME equals "ALICE"
+    And the module result does not contain "Initial_Secret_42"
+
+  @exasol-user-apply-unchanged
+  Scenario: Applying identical user state results in no changes
     Given an Exasol database is reachable at localhost
     And user "ALICE" already exists after exasol_user created it with password "Initial_Secret_42"
     When exasol_user runs again with:
@@ -44,6 +56,7 @@ Feature: exasol-user specification
     And EXA_DBA_USERS.DISTINGUISHED_NAME for "ALICE" equals "cn=alice,dc=authorization,dc=exasol,dc=com"
     And the module result does not contain "cn=alice,dc=authorization,dc=exasol,dc=com"
 
+
   @exasol-user-rotate-password
   Scenario: Rotate password
     Given an Exasol database is reachable at localhost
@@ -58,6 +71,7 @@ Feature: exasol-user specification
       | ALTER USER "ALICE" IDENTIFIED BY "********" |
     And user "ALICE" can run query "SELECT 19 AS A" with password "Rotated_Secret_42"
     And the module result does not contain "Rotated_Secret_42"
+    And the module result does not contain "Initial_Secret_42"
 
   @exasol-user-check-mode-create
   Scenario: Check mode predicts create
@@ -128,35 +142,3 @@ Feature: exasol-user specification
     Then changed is false
     And exists is false
     And executed_queries equals []
-
-  @exasol-user-create-user-password-authentication
-  Scenario: Create user with password authentication
-    Given an Exasol database is reachable at localhost
-    And user "ALICE" does not exist in EXA_DBA_USERS
-    When exasol_user runs with:
-      | name  | authentication_method | password          | state   |
-      | ALICE | password              | Initial_Secret_42 | present |
-    Then changed is true
-    And EXA_DBA_USERS contains one row where USER_NAME equals "ALICE"
-    And the module result does not contain "Initial_Secret_42"
-
-  @exasol-user-idempotent-rerun-same-parameters
-  Scenario: Idempotent re-run with same parameters
-    Given an Exasol database is reachable at localhost
-    And user "ALICE" exists after exasol_user created it with authentication_method "password" and password "Initial_Secret_42"
-    When exasol_user runs again with:
-      | name  | authentication_method | password          | state   |
-      | ALICE | password              | Initial_Secret_42 | present |
-    Then changed is false
-    And executed_queries equals []
-
-  @exasol-user-change-auth-method-to-ldap
-  Scenario: Change auth method to LDAP
-    Given an Exasol database is reachable at localhost
-    And user "ALICE" exists with password authentication and password "Initial_Secret_42"
-    When exasol_user runs with:
-      | name  | authentication_method | ldap_dn                                      |
-      | ALICE | ldap                  | cn=alice,dc=authorization,dc=exasol,dc=com |
-    Then changed is true
-    And EXA_DBA_USERS.DISTINGUISHED_NAME for "ALICE" equals "cn=alice,dc=authorization,dc=exasol,dc=com"
-    And the module result does not contain "cn=alice,dc=authorization,dc=exasol,dc=com"

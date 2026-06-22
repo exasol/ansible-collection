@@ -85,6 +85,21 @@
                   - exasol_user_login_initial is not changed
                   - exasol_user_login_initial.query_result[0].A | string == "17"
 
+            - name: AND the created user appears in EXA_DBA_USERS
+              exasol.exasol.exasol_query:
+                query: >-
+                  SELECT COUNT(*) AS USER_COUNT
+                  FROM EXA_DBA_USERS
+                  WHERE USER_NAME = :user_name
+                named_args:
+                  user_name: "{{ test_user }}"
+              register: exasol_user_password_metadata
+
+            - name: Assert password-authenticated user metadata
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_password_metadata.query_result[0].USER_COUNT | string == "1"
+
             - name: Store scenario result
               ansible.builtin.set_fact:
                 acceptance_result:
@@ -94,12 +109,13 @@
                   user: "{{ test_user }}"
                   login_value: "{{ exasol_user_login_initial.query_result[0].A | string }}"
                   executed_query_count: "{{ exasol_user_create.executed_queries | length }}"
+                  user_count: "{{ exasol_user_password_metadata.query_result[0].USER_COUNT | string }}"
                   result_json: "{{ exasol_user_create | to_json }}"
                 cacheable: true
 
-        - name: Present user is idempotent
+        - name: Applying identical user state results in no changes
           vars:
-            acceptance_current_scenario_id: exasol-user-present-idempotent
+            acceptance_current_scenario_id: exasol-user-apply-unchanged
           when: >-
             (acceptance_scenario_id | default(''))
             in ['', acceptance_current_scenario_id]
@@ -196,7 +212,7 @@
             (acceptance_scenario_id | default(''))
             in ['', acceptance_current_scenario_id]
           block:
-            - name: Given a disposable Exasol user already exists
+            - name: Given a user exists with password authentication and initial password
               exasol.exasol.exasol_user:
                 name: "{{ test_user }}"
                 password: "{{ test_user_password }}"
@@ -217,6 +233,11 @@
                   - >-
                     exasol_user_rotate.executed_queries[0]
                     == 'ALTER USER "' ~ test_user ~ '" IDENTIFIED BY "********"'
+
+            - name: Then neither old nor new password is exposed in module output
+              ansible.builtin.assert:
+                that:
+                  - test_user_password not in (exasol_user_rotate | to_json)
                   - test_user_rotated_password not in (exasol_user_rotate | to_json)
 
             - name: Then the user can authenticate with the new password
@@ -224,13 +245,26 @@
                 login_user: "{{ test_user }}"
                 login_password: "{{ test_user_rotated_password }}"
                 query: SELECT 19 AS A
-              register: exasol_user_login_rotated
+              register: exasol_user_login_new
 
-            - name: Assert rotated user authentication
+            - name: Assert new password works
               ansible.builtin.assert:
                 that:
-                  - exasol_user_login_rotated is not changed
-                  - exasol_user_login_rotated.query_result[0].A | string == "19"
+                  - exasol_user_login_new is not changed
+                  - exasol_user_login_new.query_result[0].A | string == "19"
+
+            - name: Then the user cannot authenticate with the old password
+              exasol.exasol.exasol_query:
+                login_user: "{{ test_user }}"
+                login_password: "{{ test_user_password }}"
+                query: SELECT 19 AS A
+              register: exasol_user_login_old
+              failed_when: false
+
+            - name: Assert old password is rejected
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_login_old is failed
 
             - name: Store scenario result
               ansible.builtin.set_fact:
@@ -238,7 +272,7 @@
                   scenario_id: "{{ acceptance_current_scenario_id }}"
                   changed: true
                   exists: true
-                  login_value: "{{ exasol_user_login_rotated.query_result[0].A | string }}"
+                  login_value: "{{ exasol_user_login_new.query_result[0].A | string }}"
                   result_json: "{{ exasol_user_rotate | to_json }}"
                 cacheable: true
 
@@ -496,146 +530,6 @@
                   changed: false
                   exists: false
                   executed_query_count: 0
-                cacheable: true
-
-        - name: Create user with password authentication
-          vars:
-            acceptance_current_scenario_id: exasol-user-create-user-password-authentication
-          when: >-
-            (acceptance_scenario_id | default(''))
-            in ['', acceptance_current_scenario_id]
-          block:
-            - name: GIVEN a user alice does not exist
-              exasol.exasol.exasol_user:
-                name: "{{ test_user }}"
-                state: absent
-                cascade: true
-
-            - name: WHEN exasol_user runs with password authentication and state present
-              exasol.exasol.exasol_user:
-                name: "{{ test_user }}"
-                authentication_method: password
-                password: "{{ test_user_password }}"
-                state: present
-              register: design_doc_user_password
-
-            - name: THEN changed is true
-              ansible.builtin.assert:
-                that:
-                  - design_doc_user_password is changed
-                  - test_user_password not in (design_doc_user_password | to_json)
-
-            - name: AND alice appears in EXA_DBA_USERS
-              exasol.exasol.exasol_query:
-                query: >-
-                  SELECT COUNT(*) AS USER_COUNT
-                  FROM EXA_DBA_USERS
-                  WHERE USER_NAME = :user_name
-                named_args:
-                  user_name: "{{ test_user }}"
-              register: design_doc_user_password_metadata
-
-            - name: Assert password-authenticated user metadata
-              ansible.builtin.assert:
-                that:
-                  - design_doc_user_password_metadata.query_result[0].USER_COUNT | string == "1"
-
-            - name: Store scenario result
-              ansible.builtin.set_fact:
-                acceptance_result:
-                  scenario_id: "{{ acceptance_current_scenario_id }}"
-                  changed: true
-                  user_count: "{{ design_doc_user_password_metadata.query_result[0].USER_COUNT | string }}"
-                  result_json: "{{ design_doc_user_password | to_json }}"
-                cacheable: true
-
-        - name: Idempotent re-run with same parameters
-          vars:
-            acceptance_current_scenario_id: exasol-user-idempotent-rerun-same-parameters
-          when: >-
-            (acceptance_scenario_id | default(''))
-            in ['', acceptance_current_scenario_id]
-          block:
-            - name: GIVEN user alice exists with the same password and auth method
-              exasol.exasol.exasol_user:
-                name: "{{ test_user }}"
-                authentication_method: password
-                password: "{{ test_user_password }}"
-                state: present
-
-            - name: WHEN exasol_user runs with the same arguments
-              exasol.exasol.exasol_user:
-                name: "{{ test_user }}"
-                authentication_method: password
-                password: "{{ test_user_password }}"
-                state: present
-              register: design_doc_user_idempotent
-
-            - name: THEN changed is false
-              ansible.builtin.assert:
-                that:
-                  - design_doc_user_idempotent is not changed
-                  - design_doc_user_idempotent.executed_queries == []
-
-            - name: Store scenario result
-              ansible.builtin.set_fact:
-                acceptance_result:
-                  scenario_id: "{{ acceptance_current_scenario_id }}"
-                  changed: false
-                  executed_query_count: "{{ design_doc_user_idempotent.executed_queries | length }}"
-                cacheable: true
-
-        - name: Change auth method to LDAP
-          vars:
-            acceptance_current_scenario_id: exasol-user-change-auth-method-to-ldap
-          when:
-            - >-
-              (acceptance_scenario_id | default(''))
-              in ['', acceptance_current_scenario_id]
-            - exasol_backend_supports_ldap | default(false) | bool
-          block:
-            - name: GIVEN user alice exists with password authentication
-              exasol.exasol.exasol_user:
-                name: "{{ test_user }}"
-                authentication_method: password
-                password: "{{ test_user_password }}"
-                state: present
-
-            - name: WHEN exasol_user runs with LDAP auth and LDAP DN
-              exasol.exasol.exasol_user:
-                name: "{{ test_user }}"
-                authentication_method: ldap
-                ldap_dn: "{{ test_user_ldap_dn }}"
-              register: design_doc_user_ldap
-
-            - name: THEN changed is true
-              ansible.builtin.assert:
-                that:
-                  - design_doc_user_ldap is changed
-                  - test_user_ldap_dn not in (design_doc_user_ldap | to_json)
-
-            - name: AND alice auth method in EXA_DBA_USERS is LDAP
-              exasol.exasol.exasol_query:
-                query: >-
-                  SELECT DISTINGUISHED_NAME
-                  FROM EXA_DBA_USERS
-                  WHERE USER_NAME = :user_name
-                named_args:
-                  user_name: "{{ test_user }}"
-              register: design_doc_user_ldap_metadata
-
-            - name: Assert LDAP user metadata
-              ansible.builtin.assert:
-                that:
-                  - design_doc_user_ldap_metadata.query_result[0].DISTINGUISHED_NAME == test_user_ldap_dn
-
-            - name: Store scenario result
-              ansible.builtin.set_fact:
-                acceptance_result:
-                  scenario_id: "{{ acceptance_current_scenario_id }}"
-                  changed: true
-                  ldap_dn: "{{ design_doc_user_ldap_metadata.query_result[0].DISTINGUISHED_NAME }}"
-                  result_json: "{{ design_doc_user_ldap | to_json }}"
                 cacheable: true
 
         - name: Store exasol_user backend probe result

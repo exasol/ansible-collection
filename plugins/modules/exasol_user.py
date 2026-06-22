@@ -9,8 +9,15 @@ module: exasol_user
 short_description: Manage Exasol database users
 description:
   - Creates, updates, and drops Exasol database users using pyexasol.
-  - User names are restricted to conservative regular identifiers and are
-    normalized to Exasol's case-insensitive uppercase form.
+  - User names are restricted to conservative SQL identifiers
+    (letters, digits, underscore) and are normalized to Exasol's
+    case-insensitive uppercase form for idempotent operations.
+  - This restriction ensures predictable Ansible idempotency and avoids
+    ambiguity between quoted and unquoted Exasol identifiers.
+  - Quoted or special-character user names are not supported by this module
+    in order to maintain consistent behavior across environments.
+  - This restriction may be revised in the future; see
+      https://github.com/exasol/ansible-collection/issues/38
   - Passwords are quoted for Exasol's C(IDENTIFIED BY) syntax and are never
     returned in module results.
   - LDAP-authenticated users use Exasol's C(IDENTIFIED AT LDAP AS) syntax.
@@ -50,7 +57,9 @@ options:
     type: str
   state:
     description:
-      - Whether the user should exist.
+        - Desired state of the Exasol user.
+        - V(present) creates the user if it does not exist and applies any requested updates.
+        - V(absent) removes the user if it exists.
     type: str
     choices:
       - present
@@ -124,6 +133,14 @@ RETURN = r"""
 user:
   description:
     - Normalized Exasol user name.
+    - The value is converted to Exasol's canonical form, which means it is
+      uppercased and used in a consistent format for idempotent operations.
+      This ensures that different input forms (e.g. mixed or lowercase) are
+      treated as the same database user.
+    - Quoted or special-character user names are not supported by this module
+      in order to maintain consistent behavior across environments.
+    - This behavior may be revised in the future; see
+      https://github.com/exasol/ansible-collection/issues/38
   returned: always
   type: str
   sample: APP_USER
@@ -142,7 +159,7 @@ exists:
   sample: true
 executed_queries:
   description:
-    - Secret-redacted SQL statements executed by the module.
+    - SQL statements that were executed by the module. Result redacts all secrets.
     - In check mode, this contains the statements that would be executed.
   returned: always
   type: list

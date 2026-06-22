@@ -57,7 +57,7 @@ def test_exasol_user_present_idempotent(
     result = when_module_scenario_runs(
         context,
         MODULE_NAME,
-        "exasol-user-present-idempotent",
+        "exasol-user-apply-unchanged",
     )
 
     then_result_matches(
@@ -255,84 +255,6 @@ def test_exasol_user_drop_missing_user(
             "executed_query_count": 0,
         },
     )
-
-
-@pytest.mark.integration
-@pytest.mark.slow
-def test_exasol_user_create_user_password_authentication(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
-) -> None:
-    """Scenario: Create user with password authentication."""
-    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
-
-    result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        "exasol-user-create-user-password-authentication",
-    )
-
-    then_result_matches(
-        _without_result_json(result),
-        {
-            "changed": True,
-            "user_count": "1",
-        },
-    )
-    then_secret_is_not_exposed(result, context.test_user_password)
-
-
-@pytest.mark.integration
-@pytest.mark.slow
-def test_exasol_user_idempotent_rerun_same_parameters(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
-) -> None:
-    """Scenario: Idempotent re-run with same parameters."""
-    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
-
-    result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        "exasol-user-idempotent-rerun-same-parameters",
-    )
-
-    then_result_matches(
-        result,
-        {
-            "changed": False,
-            "executed_query_count": "0",
-        },
-    )
-
-
-@pytest.mark.integration
-@pytest.mark.slow
-def test_exasol_user_change_auth_method_to_ldap(
-    request: pytest.FixtureRequest,
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
-) -> None:
-    """Scenario: Change auth method to LDAP."""
-    if not _backend_supports_ldap(request):
-        pytest.skip("Exasol SaaS does not support LDAP-authenticated database users")
-
-    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
-
-    result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        "exasol-user-change-auth-method-to-ldap",
-    )
-
-    then_result_matches(
-        _without_result_json(result),
-        {
-            "changed": True,
-            "ldap_dn": context.test_user_ldap_dn,
-        },
-    )
-    then_secret_is_not_exposed(result, context.test_user_ldap_dn)
 
 
 def _without_result_json(result: dict[str, Any]) -> dict[str, Any]:
