@@ -110,6 +110,7 @@ def acceptance_playbook_resource(module_name: str) -> Path:
         PROJECT_ROOT
         / "test"
         / "integration"
+        / "acceptance"
         / module_name
         / f"{module_name}_playbook.yml"
     )

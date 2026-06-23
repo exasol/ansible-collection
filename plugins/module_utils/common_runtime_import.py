@@ -56,7 +56,11 @@ def source_runtime_spec_and_loader(
     spec = importlib.util.spec_from_file_location(source_module_name, str(source_path))
 
     if spec is None or spec.loader is None:
-        raise ImportError(f"Cannot load {description} from {source_path}")
+        raise ImportError(
+            f"Cannot load {description} from {source_path}. "
+            "Ensure the collection was installed with its runtime source files "
+            "and the path is readable."
+        )
 
     return spec, spec.loader
 

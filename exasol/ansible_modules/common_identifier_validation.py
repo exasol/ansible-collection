@@ -7,7 +7,7 @@ import re
 MAX_IDENTIFIER_LENGTH = 128
 
 _REGULAR_IDENTIFIER_PATTERN = re.compile(
-    r"^[A-Za-z]\w*$",
+    r"^[A-Za-z]\w{0,127}$",
     re.ASCII,
 )
 
@@ -33,8 +33,8 @@ def validate_identifier(
 
     if allow_qualified and len(parts) > 2:
         raise ValueError(
-            f"Exasol {identifier_type} name must use at most "
-            "schema.object qualification."
+            f"Exasol {identifier_type} identifier must either be "
+            "'<object-name>' or '<schema-name>.<object-name>'."
         )
 
     for part in parts:

@@ -8,16 +8,22 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from acceptance_common.acceptance_test_common import (
+    copy_acceptance_common_tasks,
+)
 
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
 from noxconfig import PROJECT_CONFIG
 
-from ..acceptance_common.acceptance_test_common import copy_acceptance_common_tasks
-
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 PLAYBOOK_RESOURCE = (
-    PROJECT_ROOT / "test" / "integration" / "exasol_query" / "exasol_query_playbook.yml"
+    PROJECT_ROOT
+    / "test"
+    / "integration"
+    / "acceptance"
+    / "exasol_query"
+    / "exasol_query_playbook.yml"
 )
 
 

@@ -18,13 +18,13 @@ Each scenario ID must be present in three places:
 ## Scenario Synchronization Contract
 
 A synchronization test,
-`test/integration/test_acceptance_scenario_contract.py`, verifies that every
+`test/unit/test_acceptance_scenario_contract.py`, verifies that every
 scenario ID exists in all three locations.
 
 This prevents specification drift between:
 
 - Written specifications in `specs` folder
-- Executable Acceptance Tests in `test/integration` folder
+- Executable Acceptance Tests in `test/integration/acceptance` folder
 
 ## Acceptance Test Execution Model
 

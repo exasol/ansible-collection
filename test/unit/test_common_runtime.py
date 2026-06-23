@@ -152,6 +152,7 @@ def test_runtime_from_source_file_loads_query_runtime() -> None:
         )
 
         assert runtime.__name__ == QUERY_RUNTIME_MODULE_NAME
+        assert Path(runtime.__file__).resolve() == RUNTIME_DIR / "exasol_query.py"
         assert hasattr(runtime, "execute_queries")
     finally:
         sys.modules.pop(QUERY_RUNTIME_MODULE_NAME, None)
@@ -170,12 +171,19 @@ def test_source_runtime_spec_loader_failure_is_actionable(
         lambda *_args, **_kwargs: None,
     )
 
-    with pytest.raises(ImportError, match="Cannot load query runtime"):
+    with pytest.raises(ImportError) as exc_info:
         source_runtime_spec_and_loader(
             QUERY_RUNTIME_MODULE_NAME,
             Path("exasol_query.py"),
             "query runtime implementation",
         )
+
+    message = str(exc_info.value)
+    assert "Cannot load query runtime implementation from exasol_query.py" in message
+    assert (
+        "Ensure the collection was installed with its runtime source files" in message
+    )
+    assert "path is readable" in message
 
 
 def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
@@ -209,6 +217,12 @@ def test_identifier_validation_helpers_reject_invalid_schema_names(name: str) ->
     """Verify invalid identifiers are rejected before dynamic SQL generation."""
     with pytest.raises(ValueError):
         validate_schema_name(name)
+
+
+def test_validate_identifier_rejects_names_not_matching_regular_pattern() -> None:
+    """Verify identifiers must match the conservative regular identifier pattern."""
+    with pytest.raises(ValueError, match="not a valid regular identifier"):
+        validate_schema_name("APP-SCHEMA")
 
 
 def test_object_identifier_validation_rejects_too_many_parts() -> None:

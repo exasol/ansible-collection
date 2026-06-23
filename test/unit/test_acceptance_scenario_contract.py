@@ -12,6 +12,8 @@ import pytest
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ACCEPTANCE_ROOT = PROJECT_ROOT / "test" / "integration" / "acceptance"
+SPEC_ROOT = PROJECT_ROOT / "specs"
 SCENARIO_ID_PATTERN = re.compile(r"^[a-z0-9-]+$")
 
 
@@ -23,23 +25,35 @@ class Scenario:
     name: str
 
 
+def _acceptance_contract_files() -> list[object]:
+    params: list[object] = []
+    for module_dir in sorted(
+        path for path in ACCEPTANCE_ROOT.iterdir() if path.is_dir()
+    ):
+        module_name = module_dir.name
+        spec_file = SPEC_ROOT / f"{module_name}.feature"
+        playbook_file = module_dir / f"{module_name}_playbook.yml"
+        acceptance_file = module_dir / f"test_acceptance_{module_name}.py"
+        if not (
+            spec_file.exists() and playbook_file.exists() and acceptance_file.exists()
+        ):
+            continue
+
+        params.append(
+            pytest.param(
+                spec_file,
+                playbook_file,
+                acceptance_file,
+                id=module_name,
+            )
+        )
+
+    return params
+
+
 @pytest.mark.parametrize(
     ("spec_file", "playbook_file", "acceptance_file"),
-    [
-        (
-            PROJECT_ROOT / "specs" / "exasol_user.feature",
-            PROJECT_ROOT
-            / "test"
-            / "integration"
-            / "exasol_user"
-            / "exasol_user_playbook.yml",
-            PROJECT_ROOT
-            / "test"
-            / "integration"
-            / "exasol_user"
-            / "test_acceptance_exasol_user.py",
-        ),
-    ],
+    _acceptance_contract_files(),
 )
 def test_spec_scenarios_match_playbook_scenarios(
     spec_file: Path,
@@ -53,6 +67,13 @@ def test_spec_scenarios_match_playbook_scenarios(
     assert scenarios == _acceptance_scenarios(acceptance_file)
     _assert_scenario_ids_declared_once(playbook_file, scenarios)
     _assert_scenario_ids_declared_once(acceptance_file, scenarios)
+
+
+def test_acceptance_root_contains_only_module_directories() -> None:
+    """Verify acceptance modules are grouped in per-module subdirectories."""
+    direct_files = [path for path in ACCEPTANCE_ROOT.iterdir() if path.is_file()]
+
+    assert direct_files == []
 
 
 def _spec_scenarios(path: Path) -> list[Scenario]:

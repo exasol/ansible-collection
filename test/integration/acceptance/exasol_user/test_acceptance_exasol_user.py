@@ -6,8 +6,7 @@ import os
 from typing import Any
 
 import pytest
-
-from ..acceptance_common.acceptance_test_common import (
+from acceptance_common.acceptance_test_common import (
     given_acceptance_context,
     then_result_matches,
     then_secret_is_not_exposed,
