@@ -1,4 +1,4 @@
-"""Shared Exasol query, connection, result, and error helpers."""
+"""Shared Exasol connection, execution, result, and error helpers."""
 
 from __future__ import annotations
 
@@ -30,8 +30,6 @@ _ExasolConnection: TypeAlias = Any
 _SqlglotToken: TypeAlias = Any
 _SqlglotModule: TypeAlias = Any
 _SqlglotTokenType: TypeAlias = Any
-_SqlglotExpression: TypeAlias = Any
-_SqlglotExpressionTypes: TypeAlias = Any
 
 
 class ExasolQueryResult(TypedDict):
@@ -99,15 +97,6 @@ SENSITIVE_CLIENT_KWARG_MARKERS = (
     "token",
 )
 SQLGLOT_DIALECT = "exasol"
-READ_ONLY_LEADING_KEYWORDS = frozenset(
-    {
-        "DESCRIBE",
-        "EXPLAIN",
-        "SHOW",
-        "VALUES",
-    }
-)
-
 _AUTHENTICATION_MARKERS = (
     "auth",
     "credential",
@@ -285,7 +274,7 @@ def execute_queries(
         execution_time_ms.append(statement_execution_time_ms(cursor))
 
     return {
-        "changed": any(not is_read_only_query(statement) for statement in queries),
+        "changed": False,
         "query_result": last_available_query_result(all_results),
         "query_all_results": all_results,
         "executed_queries": queries,
@@ -310,8 +299,8 @@ def prepare_query(
     positional_values = list(positional_args or [])
     named_values = dict(named_args or {})
     parts = _new_query_rewrite_parts()
-    tokens = _sqlglot_tokens(query)
-    token_type = _sqlglot_token_type()
+    tokens = sqlglot_tokens(query)
+    token_type = sqlglot_token_type()
     token_index = 0
 
     while token_index < len(tokens):
@@ -374,49 +363,42 @@ def _new_query_rewrite_parts() -> _QueryRewriteParts:
     }
 
 
-def _sqlglot_tokens(query: str) -> list[_SqlglotToken]:
-    sqlglot = _import_sqlglot_module("sqlglot")
+def sqlglot_tokens(query: str) -> list[_SqlglotToken]:
+    """Tokenize SQL text using the shared Exasol SQLGlot dialect."""
+    sqlglot = import_sqlglot_module("sqlglot")
     return (
         cast(_SqlglotModule, sqlglot).Tokenizer(dialect=SQLGLOT_DIALECT).tokenize(query)
     )
 
 
-def _sqlglot_token_type() -> _SqlglotTokenType:
-    tokens = _import_sqlglot_module("sqlglot.tokens")
+def sqlglot_token_type() -> _SqlglotTokenType:
+    """Return SQLGlot token type constants."""
+    tokens = import_sqlglot_module("sqlglot.tokens")
     return cast(_SqlglotTokenType, getattr(tokens, "TokenType"))
 
 
-def _sqlglot_parser_runtime() -> tuple[
-    _SqlglotModule,
-    _SqlglotExpressionTypes,
-    tuple[type[Exception], ...],
-]:
-    sqlglot = _import_sqlglot_module("sqlglot")
-    exp = _import_sqlglot_module("sqlglot.expressions")
-    errors = _import_sqlglot_module("sqlglot.errors")
-
-    return (
-        cast(_SqlglotModule, sqlglot),
-        cast(_SqlglotExpressionTypes, exp),
-        (
-            cast(type[Exception], getattr(errors, "ParseError")),
-            cast(type[Exception], getattr(errors, "TokenError")),
-        ),
-    )
-
-
-def _import_sqlglot_module(name: str) -> object:
+def import_sqlglot_module(name: str) -> object:
+    """Import a SQLGlot module and normalize missing-dependency failures."""
     try:
         return __import__(name, fromlist=[""])
     except ImportError as error:
-        raise _missing_sqlglot_error() from error
+        raise missing_sqlglot_error() from error
 
 
-def _missing_sqlglot_error() -> RuntimeError:
+def missing_sqlglot_error() -> RuntimeError:
+    """Return the shared missing-SQLGlot runtime error."""
     return RuntimeError(
         "sqlglot is required to parse Exasol queries. "
         "Install exasol-ansible-modules with its runtime dependencies."
     )
+
+
+def _sqlglot_tokens(query: str) -> list[_SqlglotToken]:
+    return sqlglot_tokens(query)
+
+
+def _sqlglot_token_type() -> _SqlglotTokenType:
+    return sqlglot_token_type()
 
 
 def _prepare_positional_placeholder(
@@ -532,86 +514,6 @@ def statement_rowcount(statement: object) -> int:
 def statement_execution_time_ms(statement: object) -> float:
     """Return pyexasol statement execution time in milliseconds."""
     return float(getattr(statement, "execution_time", 0) or 0) * 1000
-
-
-def is_read_only_query(query: str) -> bool:
-    """Return whether a SQL statement is conservatively read-only using SQLGlot AST."""
-    sqlglot, exp, parse_errors = _sqlglot_parser_runtime()
-
-    try:
-        parsed = sqlglot.parse(query, read=SQLGLOT_DIALECT)
-        leading_keywords = _statement_leading_keywords(query)
-
-        if not parsed or len(parsed) != len(leading_keywords):
-            return False
-
-        return all(
-            expr is not None and _is_read_only_expression(expr, exp, leading_keyword)
-            for expr, leading_keyword in zip(parsed, leading_keywords)
-        )
-
-    except parse_errors:
-        return _is_read_only_by_token(query)
-
-
-def _is_read_only_expression(
-    expression: _SqlglotExpression,
-    exp: _SqlglotExpressionTypes,
-    leading_keyword: str,
-) -> bool:
-    if _contains_select_into(expression, exp):
-        return False
-
-    if isinstance(expression, exp.Command):
-        return leading_keyword in READ_ONLY_LEADING_KEYWORDS
-
-    if isinstance(expression, exp.Describe):
-        return leading_keyword == "DESCRIBE"
-
-    if isinstance(expression, exp.Values):
-        return leading_keyword == "VALUES"
-
-    return isinstance(expression, exp.Query)
-
-
-def _contains_select_into(
-    expression: _SqlglotExpression,
-    exp: _SqlglotExpressionTypes,
-) -> bool:
-    return any(
-        select.args.get("into") is not None
-        for select in expression.find_all(exp.Select)
-    )
-
-
-def _is_read_only_by_token(query: str) -> bool:
-    first_token = _first_sqlglot_token(query)
-
-    if not first_token:
-        return False
-
-    return first_token.text.upper() in READ_ONLY_LEADING_KEYWORDS
-
-
-def _statement_leading_keywords(query: str) -> list[str]:
-    keywords = []
-    start_of_statement = True
-
-    for token in _sqlglot_tokens(query):
-        if token.text == ";":
-            start_of_statement = True
-            continue
-
-        if start_of_statement:
-            keywords.append(token.text.upper())
-            start_of_statement = False
-
-    return keywords
-
-
-def _first_sqlglot_token(query: str) -> _SqlglotToken | None:
-    tokens = _sqlglot_tokens(query)
-    return tokens[0] if tokens else None
 
 
 def to_json_safe(value: object) -> JsonValue:

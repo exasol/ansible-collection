@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
+import sys
+from importlib.machinery import ModuleSpec
 from pathlib import Path
 from types import ModuleType
 from typing import Any
-
-try:
-    from ansible_collections.exasol.exasol.plugins.module_utils.common_runtime_import import (
-        load_runtime_module,
-    )
-except ImportError:
-    from plugins.module_utils.common_runtime_import import (
-        load_runtime_module,
-    )
 
 RUNTIME_MODULE = "exasol.ansible_modules.exasol_query"
 RUNTIME_MODULE_NAME = "_exasol_ansible_modules_exasol_query"
@@ -103,12 +98,52 @@ def to_json_safe(*args: Any, **kwargs: Any) -> Any:
 
 
 def _runtime() -> ModuleType:
-    return load_runtime_module(
-        module_name=RUNTIME_MODULE,
-        source_module_name=RUNTIME_MODULE_NAME,
-        source_path=_runtime_source_path(),
-        description="query runtime implementation",
+    errors = []
+    # Happy path. For example: this repo was installed into the active Python env
+    # with `pip install -e .`, so `exasol.ansible_modules.exasol_query` imports.
+    try:
+        return importlib.import_module(RUNTIME_MODULE)
+    except ImportError as error:
+        errors.append(f"{RUNTIME_MODULE}: {error}")
+
+    # Fallback scenario: Ansible is executing the collection from a checkout or
+    # collection install, so load the same runtime from the source tree instead.
+    try:
+        return _runtime_from_source_file()
+    except ImportError as error:
+        errors.append(str(error))
+
+    raise ImportError(
+        "Unable to import exasol_query runtime implementation. " + "; ".join(errors)
     )
+
+
+def _runtime_from_source_file() -> ModuleType:
+    cached_runtime = _cached_source_runtime()
+    if cached_runtime is not None:
+        return cached_runtime
+
+    spec, loader = _source_runtime_spec_and_loader(_runtime_source_path())
+    return _load_source_runtime(spec, loader)
+
+
+def _cached_source_runtime() -> ModuleType | None:
+    return sys.modules.get(RUNTIME_MODULE_NAME)
+
+
+def _source_runtime_spec_and_loader(runtime_path: Path) -> tuple[ModuleSpec, Any]:
+    spec = importlib.util.spec_from_file_location(RUNTIME_MODULE_NAME, runtime_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load runtime implementation from {runtime_path}")
+
+    return spec, spec.loader
+
+
+def _load_source_runtime(spec: ModuleSpec, loader: Any) -> ModuleType:
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[RUNTIME_MODULE_NAME] = module
+    loader.exec_module(module)
+    return module
 
 
 def _runtime_source_path() -> Path:

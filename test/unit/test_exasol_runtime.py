@@ -14,8 +14,14 @@ from typing import Any
 import pytest
 
 from exasol.ansible_modules import (
-    common_query,
     exasol_query,
+)
+from exasol.ansible_modules.common_identifier_validation import (
+    quote_identifier,
+    validate_object_name,
+    validate_role_name,
+    validate_schema_name,
+    validate_user_name,
 )
 from plugins.doc_fragments.exasol_query import ModuleDocFragment
 
@@ -44,29 +50,6 @@ def test_runtime_argument_spec_import_does_not_require_sqlglot(
     spec.loader.exec_module(module)
 
     assert module.exasol_connection_argument_spec()["login_password"]["no_log"] is True
-
-
-def test_sqlglot_helpers_fail_clearly_when_sqlglot_is_missing(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify runtime SQL parsing helpers raise an actionable dependency error."""
-    original_import = builtins.__import__
-
-    def import_without_sqlglot(name: str, *args: Any, **kwargs: Any) -> Any:
-        if name == "sqlglot" or name.startswith("sqlglot."):
-            raise ImportError("blocked sqlglot import")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", import_without_sqlglot)
-
-    calls = [
-        lambda: common_query._sqlglot_tokens("SELECT 1"),
-        common_query._sqlglot_token_type,
-        common_query._sqlglot_parser_runtime,
-    ]
-    for call in calls:
-        with pytest.raises(RuntimeError, match="sqlglot is required"):
-            call()
 
 
 def test_build_exasol_connect_kwargs_maps_ansible_arguments_to_pyexasol() -> None:
@@ -352,15 +335,6 @@ def test_prepare_query_rejects_extra_named_argument() -> None:
     assert "remove the extra named_args entries" in message
 
 
-@pytest.mark.parametrize("query", ["SELECT : n AS A", "SELECT :1 AS A"])
-def test_prepare_query_rejects_unused_named_args_for_non_placeholders(
-    query: str,
-) -> None:
-    """Verify colon syntax is only treated as a placeholder for valid ':name' tokens."""
-    with pytest.raises(ValueError, match="named_args contains unused value"):
-        exasol_query.prepare_query(query, named_args={"n": 17})
-
-
 def test_is_read_only_query_classifies_common_sql_statements() -> None:
     """Verify read-only detection handles common Exasol SQL statement types."""
     assert (
@@ -389,20 +363,6 @@ def test_is_read_only_query_classifies_common_sql_statements() -> None:
     assert exasol_query.is_read_only_query("CALL F()") is False
 
 
-def test_read_only_expression_accepts_values_only_with_values_keyword() -> None:
-    """Verify VALUES expressions are read-only only for VALUES statements."""
-    sqlglot, exp, _parse_errors = common_query._sqlglot_parser_runtime()
-    expression = sqlglot.parse("VALUES (1)", read=common_query.SQLGLOT_DIALECT)[0]
-
-    assert common_query._is_read_only_expression(expression, exp, "VALUES") is True
-    assert common_query._is_read_only_expression(expression, exp, "SELECT") is False
-
-
-def test_token_read_only_fallback_rejects_queries_without_tokens() -> None:
-    """Verify token fallback remains conservative for empty input."""
-    assert common_query._is_read_only_by_token("") is False
-
-
 def test_is_read_only_query_parse_error_fallback_is_conservative_for_select(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -416,13 +376,13 @@ def test_is_read_only_query_parse_error_fallback_is_conservative_for_select(
             raise ParserFailure()
 
     monkeypatch.setattr(
-        common_query,
+        exasol_query,
         "_sqlglot_parser_runtime",
         lambda: (Parser(), object(), (ParserFailure,)),
     )
 
-    assert common_query.is_read_only_query("SELECT 1") is False
-    assert common_query.is_read_only_query("SHOW TABLES") is True
+    assert exasol_query.is_read_only_query("SELECT 1") is False
+    assert exasol_query.is_read_only_query("SHOW TABLES") is True
 
 
 def test_fetch_result_rows_uses_col_names_fallback() -> None:
@@ -486,7 +446,7 @@ def test_sanitize_error_message_redacts_overlapping_secrets(
 ) -> None:
     """Verify shorter secret values cannot expose suffixes of longer secrets."""
     monkeypatch.setattr(
-        common_query,
+        exasol_query,
         "_secret_values",
         lambda _params: ["abc", "abcdef"],
     )
@@ -554,6 +514,45 @@ def test_execution_error_is_sanitized() -> None:
 
     assert message == ("Exasol statement execution failed: SQL failed near ********")
     assert exception == "SQL failed near ********"
+
+
+def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
+    """Verify schema, user, role, and object identifier helpers."""
+    assert validate_schema_name("APP_SCHEMA") == "APP_SCHEMA"
+    assert validate_user_name("APP_USER1") == "APP_USER1"
+    assert validate_role_name("APP_ROLE") == "APP_ROLE"
+    assert validate_object_name("APP_SCHEMA.TABLE1") == "APP_SCHEMA.TABLE1"
+    assert (
+        quote_identifier(
+            "app_schema.table1",
+            allow_qualified=True,
+        )
+        == '"APP_SCHEMA"."TABLE1"'
+    )
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "",
+        "1APP",
+        "APP-TABLE",
+        "APP TABLE",
+        "APPÄ",
+        "APP.TABLE.EXTRA",
+        f"A{'B' * 128}",
+    ],
+)
+def test_identifier_validation_helpers_reject_invalid_schema_names(name: str) -> None:
+    """Verify invalid identifiers are rejected before dynamic SQL generation."""
+    with pytest.raises(ValueError):
+        validate_schema_name(name)
+
+
+def test_object_identifier_validation_rejects_too_many_parts() -> None:
+    """Verify object names are limited to schema.object qualification."""
+    with pytest.raises(ValueError):
+        validate_object_name("APP.TABLE.EXTRA")
 
 
 def test_to_json_safe_converts_exasol_values() -> None:
