@@ -1,5 +1,5 @@
 Exasol User Security Guide
-===============
+==========================
 
 Security Considerations
 -----------------------
