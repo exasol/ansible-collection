@@ -441,19 +441,14 @@ def test_sanitize_error_message_redacts_nested_sensitive_values() -> None:
     assert message == "******** ******** public"
 
 
-def test_sanitize_error_message_redacts_overlapping_secrets(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_sanitize_error_message_redacts_overlapping_secrets() -> None:
     """Verify shorter secret values cannot expose suffixes of longer secrets."""
-    monkeypatch.setattr(
-        exasol_query,
-        "_secret_values",
-        lambda _params: ["abc", "abcdef"],
-    )
-
     message = exasol_query.sanitize_error_message(
         RuntimeError("token abcdef password abc"),
-        {},
+        {
+            "login_password": "abc",
+            "named_args": {"api_token": "abcdef"},
+        },
     )
 
     assert message == "token ******** password ********"

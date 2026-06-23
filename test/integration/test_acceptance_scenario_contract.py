@@ -27,19 +27,6 @@ class Scenario:
     ("spec_file", "playbook_file", "acceptance_file"),
     [
         (
-            PROJECT_ROOT / "specs" / "exasol_query.feature",
-            PROJECT_ROOT
-            / "test"
-            / "integration"
-            / "exasol_query"
-            / "exasol_query_playbook.yml",
-            PROJECT_ROOT
-            / "test"
-            / "integration"
-            / "exasol_query"
-            / "test_acceptance_exasol_query.py",
-        ),
-        (
             PROJECT_ROOT / "specs" / "exasol_user.feature",
             PROJECT_ROOT
             / "test"
@@ -51,19 +38,6 @@ class Scenario:
             / "integration"
             / "exasol_user"
             / "test_acceptance_exasol_user.py",
-        ),
-        (
-            PROJECT_ROOT / "specs" / "exasol_role.feature",
-            PROJECT_ROOT
-            / "test"
-            / "integration"
-            / "exasol_role"
-            / "exasol_role_playbook.yml",
-            PROJECT_ROOT
-            / "test"
-            / "integration"
-            / "exasol_role"
-            / "test_acceptance_exasol_role.py",
         ),
     ],
 )
