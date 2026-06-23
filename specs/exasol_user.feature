@@ -18,18 +18,6 @@ Feature: exasol-user specification
     And user "ALICE" can run query "SELECT 17 AS A" with password "Initial_Secret_42"
     And the module result does not contain "Initial_Secret_42"
 
-
-  @exasol-user-create-user-password-authentication
-  Scenario: Create user with password authentication
-    Given an Exasol database is reachable at localhost
-    And user "ALICE" does not exist in EXA_DBA_USERS
-    When exasol_user runs with:
-      | name  | authentication_method | password          | state   |
-      | ALICE | password              | Initial_Secret_42 | present |
-    Then changed is true
-    And EXA_DBA_USERS contains one row where USER_NAME equals "ALICE"
-    And the module result does not contain "Initial_Secret_42"
-
   @exasol-user-apply-unchanged
   Scenario: Applying identical user state results in no changes
     Given an Exasol database is reachable at localhost

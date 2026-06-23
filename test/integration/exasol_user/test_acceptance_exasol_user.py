@@ -47,11 +47,11 @@ def test_exasol_user_create_missing_user(
 
 @pytest.mark.integration
 @pytest.mark.slow
-def test_exasol_user_present_idempotent(
+def test_exasol_user_apply_unchanged(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Present user is idempotent."""
+    """Scenario: Applying identical user state results in no changes."""
     context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
 
     result = when_module_scenario_runs(
