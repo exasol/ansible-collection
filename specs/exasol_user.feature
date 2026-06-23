@@ -58,6 +58,7 @@ Feature: exasol-user specification
       | sql                                          |
       | ALTER USER "ALICE" IDENTIFIED BY "********" |
     And user "ALICE" can run query "SELECT 19 AS A" with password "Rotated_Secret_42"
+    And the user cannot authenticate with the old password
     And the module result does not contain "Rotated_Secret_42"
     And the module result does not contain "Initial_Secret_42"
 

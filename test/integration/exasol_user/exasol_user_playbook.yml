@@ -259,12 +259,14 @@
                 login_password: "{{ test_user_password }}"
                 query: SELECT 19 AS A
               register: exasol_user_login_old
-              failed_when: false
+              ignore_errors: true
 
             - name: Assert old password is rejected
               ansible.builtin.assert:
                 that:
                   - exasol_user_login_old is failed
+                  - "'authenticate' in exasol_user_login_old.msg"
+                  - test_user_password not in exasol_user_login_old.msg
 
             - name: Store scenario result
               ansible.builtin.set_fact:

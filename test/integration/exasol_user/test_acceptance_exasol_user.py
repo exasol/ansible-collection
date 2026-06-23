@@ -40,6 +40,7 @@ def test_exasol_user_create_missing_user(
             "user": context.test_user,
             "login_value": "17",
             "executed_query_count": "2",
+            "user_count": "1",
         },
     )
     then_secret_is_not_exposed(result, context.test_user_password)
