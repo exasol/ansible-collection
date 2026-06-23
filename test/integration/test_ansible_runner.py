@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import (
     AnsibleException,

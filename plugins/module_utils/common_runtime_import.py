@@ -1,4 +1,4 @@
-"""Shared runtime loading helpers for Exasol Ansible modules."""
+"""Runtime loading helpers for Ansible module utility shims."""
 
 from __future__ import annotations
 
@@ -10,14 +10,6 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-QUERY_RUNTIME_MODULE = "exasol.ansible_modules.exasol_query"
-QUERY_RUNTIME_MODULE_NAME = "_exasol_ansible_modules_exasol_query"
-
-
-def query_runtime() -> ModuleType:
-    """Load the query runtime module next to this helper."""
-    return _sibling_query_runtime(__file__)
-
 
 def load_runtime_module(
     module_name: str,
@@ -25,7 +17,6 @@ def load_runtime_module(
     source_path: Path,
     description: str,
 ) -> ModuleType:
-    """Import a runtime module, falling back to direct source-file loading."""
     try:
         return importlib.import_module(module_name)
     except ImportError:
@@ -37,13 +28,12 @@ def runtime_from_source_file(
     source_path: Path,
     description: str,
 ) -> ModuleType:
-    """Load a runtime module from a source file and cache it in sys.modules."""
     cached_runtime = sys.modules.get(source_module_name)
     if cached_runtime is not None:
         return cached_runtime
 
-    # ensure deterministic absolute path (fixes CI file resolution issues)
-    source_path = Path(source_path)
+    source_path = Path(source_path).resolve()
+    _ensure_collection_root_on_path(source_path)
 
     spec, loader = source_runtime_spec_and_loader(
         source_module_name,
@@ -63,7 +53,6 @@ def source_runtime_spec_and_loader(
     source_path: Path,
     description: str,
 ) -> tuple[ModuleSpec, Any]:
-    """Return the import spec and loader for a source-backed runtime module."""
     spec = importlib.util.spec_from_file_location(source_module_name, str(source_path))
 
     if spec is None or spec.loader is None:
@@ -72,10 +61,8 @@ def source_runtime_spec_and_loader(
     return spec, spec.loader
 
 
-def _sibling_query_runtime(source_file: str) -> ModuleType:
-    return load_runtime_module(
-        module_name=QUERY_RUNTIME_MODULE,
-        source_module_name=QUERY_RUNTIME_MODULE_NAME,
-        source_path=Path(source_file).resolve().with_name("exasol_query.py"),
-        description="query runtime implementation",
-    )
+def _ensure_collection_root_on_path(source_path: Path) -> None:
+    collection_root = source_path.parents[2]
+    collection_root_text = str(collection_root)
+    if collection_root_text not in sys.path:
+        sys.path.insert(0, collection_root_text)

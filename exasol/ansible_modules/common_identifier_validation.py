@@ -33,7 +33,8 @@ def validate_identifier(
 
     if allow_qualified and len(parts) > 2:
         raise ValueError(
-            f"Exasol {identifier_type} name must use at most schema.object qualification."
+            f"Exasol {identifier_type} name must use at most "
+            "schema.object qualification."
         )
 
     for part in parts:

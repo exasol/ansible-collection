@@ -12,7 +12,6 @@ from typing import Any
 
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
-
 from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
@@ -198,7 +197,7 @@ def _write_playbook(
     scenario_id: str,
 ) -> Path:
     _assert_playbook_contains_scenario(playbook_resource, scenario_id)
-    _copy_acceptance_common_tasks(project_dir)
+    copy_acceptance_common_tasks(project_dir)
     playbook_dir = project_dir / playbook_resource.parent.name
     playbook_dir.mkdir(exist_ok=True)
     playbook = playbook_dir / f"{scenario_id}.yml"
@@ -223,7 +222,7 @@ def _without_scenario_id(result: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in result.items() if key != "scenario_id"}
 
 
-def _copy_acceptance_common_tasks(project_dir: Path) -> None:
+def copy_acceptance_common_tasks(project_dir: Path) -> None:
     common_dir = project_dir / "acceptance_common"
     common_dir.mkdir(exist_ok=True)
     for file_name in ACCEPTANCE_COMMON_TASK_FILES:

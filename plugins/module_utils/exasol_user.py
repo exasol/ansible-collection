@@ -6,9 +6,14 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from exasol.ansible_modules.common_runtime_import import (
-    load_runtime_module,
-)
+try:
+    from ansible_collections.exasol.exasol.plugins.module_utils.common_runtime_import import (
+        load_runtime_module,
+    )
+except ImportError:
+    from plugins.module_utils.common_runtime_import import (
+        load_runtime_module,
+    )
 
 RUNTIME_MODULE = "exasol.ansible_modules.exasol_user"
 RUNTIME_MODULE_NAME = "_exasol_ansible_modules_exasol_user"

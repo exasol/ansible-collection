@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from exasol.ansible_modules import common_query
 from exasol.ansible_modules.common_identifier_validation import (
     quote_identifier,
     validate_user_name,
@@ -12,9 +13,6 @@ from exasol.ansible_modules.common_identifier_validation import (
 from exasol.ansible_modules.common_param_validation import (
     validate_choice_param,
     validate_required_param,
-)
-from exasol.ansible_modules.common_runtime_import import (
-    query_runtime,
 )
 
 DEFAULT_STATE = "present"
@@ -64,7 +62,7 @@ def ensure_user(
     )
 
     if statements and not check_mode:
-        query_runtime().execute_queries(
+        common_query.execute_queries(
             connection,
             [statement.actual for statement in statements],
         )
@@ -80,7 +78,7 @@ def ensure_user(
 
 def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
     """Redact Exasol connection and user secrets from an error string."""
-    return query_runtime().sanitize_error_message(
+    return common_query.sanitize_error_message(
         error,
         _params_with_user_secrets(params),
     )
@@ -92,7 +90,7 @@ def normalized_exasol_error_message(
     operation: str = "Exasol user management",
 ) -> str:
     """Return a sanitized user-facing Exasol user-management failure message."""
-    return query_runtime().normalized_exasol_error_message(
+    return common_query.normalized_exasol_error_message(
         error,
         params=_params_with_user_secrets(params),
         operation=operation,
@@ -104,7 +102,7 @@ def _normalized_user_name(name: str) -> str:
 
 
 def _user_metadata(connection: object, name: str) -> UserMetadata | None:
-    result = query_runtime().execute_queries(
+    result = common_query.execute_queries(
         connection,
         USER_METADATA_QUERY,
         named_args={"user_name": _normalized_user_name(name)},
@@ -317,7 +315,8 @@ def _authentication_method(params: Mapping[str, object]) -> str:
 
     if not isinstance(authentication_method, str):
         raise TypeError(
-            f"authentication_method must be a string, got {type(authentication_method).__name__}"
+            "authentication_method must be a string, "
+            f"got {type(authentication_method).__name__}"
         )
 
     return validate_choice_param(

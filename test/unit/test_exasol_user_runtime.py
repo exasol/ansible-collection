@@ -388,13 +388,10 @@ def test_user_metadata_rejects_unexpected_row_shape(
 ) -> None:
     """Verify metadata probing fails clearly when the query result shape is wrong."""
 
-    class Runtime:
-        def execute_queries(
-            self, *_args: object, **_kwargs: object
-        ) -> dict[str, object]:
-            return {"query_result": [("APP_USER", None)]}
+    def execute_queries(*_args: object, **_kwargs: object) -> dict[str, object]:
+        return {"query_result": [("APP_USER", None)]}
 
-    monkeypatch.setattr(exasol_user, "query_runtime", lambda: Runtime())
+    monkeypatch.setattr(exasol_user.common_query, "execute_queries", execute_queries)
 
     with pytest.raises(ValueError, match="unexpected row"):
         exasol_user._user_metadata(object(), "app_user")
@@ -405,29 +402,31 @@ def test_normalized_error_message_redacts_user_secrets(
 ) -> None:
     """Verify normalized user errors delegate with the expanded secret set."""
 
-    class Runtime:
-        def normalized_exasol_error_message(
-            self,
-            error: BaseException,
-            *,
-            params: dict[str, object],
-            operation: str,
-        ) -> str:
-            assert str(error) == "failed near secret and cn=''app"
-            assert operation == "user operation"
-            assert params["password"] == "secret"
-            assert params["ldap_dn"] == "cn='app"
-            assert params["named_args"] == {
-                "password": "secret",
-                "password_sql_identifier": "secret",
-                "ldap_dn": "cn='app",
-                "ldap_dn_sql_literal": "cn=''app",
-                "ldap_dn_secret": "cn='app",
-                "ldap_dn_sql_literal_secret": "cn=''app",
-            }
-            return "user operation failed: failed near ******** and ********"
+    def normalized_exasol_error_message(
+        error: BaseException,
+        *,
+        params: dict[str, object],
+        operation: str,
+    ) -> str:
+        assert str(error) == "failed near secret and cn=''app"
+        assert operation == "user operation"
+        assert params["password"] == "secret"
+        assert params["ldap_dn"] == "cn='app"
+        assert params["named_args"] == {
+            "password": "secret",
+            "password_sql_identifier": "secret",
+            "ldap_dn": "cn='app",
+            "ldap_dn_sql_literal": "cn=''app",
+            "ldap_dn_secret": "cn='app",
+            "ldap_dn_sql_literal_secret": "cn=''app",
+        }
+        return "user operation failed: failed near ******** and ********"
 
-    monkeypatch.setattr(exasol_user, "query_runtime", lambda: Runtime())
+    monkeypatch.setattr(
+        exasol_user.common_query,
+        "normalized_exasol_error_message",
+        normalized_exasol_error_message,
+    )
 
     assert (
         exasol_user.normalized_exasol_error_message(

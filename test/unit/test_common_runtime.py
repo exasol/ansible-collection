@@ -21,7 +21,6 @@ from exasol.ansible_modules.common_param_validation import (
     validate_choice_param,
     validate_required_param,
 )
-
 from exasol.ansible_modules.common_runtime_import import (
     QUERY_RUNTIME_MODULE_NAME,
     load_runtime_module,

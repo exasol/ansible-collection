@@ -12,6 +12,7 @@ def validate_choice_param(
     default: str,
     choices: Collection[str],
 ) -> str:
+    """Validate and return a string choice parameter."""
     value = params.get(name, default)
 
     if not isinstance(value, str):
@@ -25,6 +26,7 @@ def validate_choice_param(
 
 
 def validate_required_param(params: Mapping[str, object], name: str) -> str:
+    """Validate and return a required non-empty string parameter."""
     value = params.get(name)
 
     if not isinstance(value, str) or not value:
