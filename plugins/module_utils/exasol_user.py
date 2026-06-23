@@ -6,7 +6,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Any
 
-from ansible_collections.exasol.exasol.plugins.module_utils.common_runtime_import import (
+from exasol.ansible_modules.common_runtime_import import (
     load_runtime_module,
 )
 

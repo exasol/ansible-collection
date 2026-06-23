@@ -2,23 +2,21 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from plugins.module_utils.common_identifier_validation import (
+from exasol.ansible_modules.common_identifier_validation import (
     quote_identifier,
     validate_user_name,
 )
-from plugins.module_utils.common_param_validation import (
+from exasol.ansible_modules.common_param_validation import (
     validate_choice_param,
     validate_required_param,
 )
-from plugins.module_utils.common_runtime_import import (
+from exasol.ansible_modules.common_runtime_import import (
     query_runtime,
 )
 
-MAX_IDENTIFIER_LENGTH = 128
 DEFAULT_STATE = "present"
 DEFAULT_UPDATE_MODE = "on_create"
 DEFAULT_CASCADE = False
@@ -32,10 +30,6 @@ WHERE USER_NAME = :user_name
 STATES = frozenset({"present", "absent"})
 UPDATE_MODES = frozenset({"always", "on_create"})
 AUTHENTICATION_METHODS = frozenset({"password", "ldap"})
-_REGULAR_IDENTIFIER_PATTERN = re.compile(
-    r"^[A-Za-z]\w*$",  # re.ASCII keeps \w aligned with generated SQL rules.
-    re.ASCII,
-)
 
 
 @dataclass(frozen=True)
@@ -120,6 +114,8 @@ def _user_metadata(connection: object, name: str) -> UserMetadata | None:
         return None
 
     row = rows[0]
+    if not isinstance(row, Mapping):
+        raise ValueError("unexpected row shape for Exasol user metadata.")
 
     return UserMetadata(
         name=str(row["USER_NAME"]).upper(),

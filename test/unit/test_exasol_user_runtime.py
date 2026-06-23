@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from types import ModuleType
 from typing import Any
 
 import pytest
 
 from exasol.ansible_modules import exasol_user
+from exasol.ansible_modules.common_identifier_validation import validate_identifier
 
 
 class FakeStatement:
@@ -394,7 +394,7 @@ def test_user_metadata_rejects_unexpected_row_shape(
         ) -> dict[str, object]:
             return {"query_result": [("APP_USER", None)]}
 
-    monkeypatch.setattr(exasol_user, "_query_runtime", lambda: Runtime())
+    monkeypatch.setattr(exasol_user, "query_runtime", lambda: Runtime())
 
     with pytest.raises(ValueError, match="unexpected row"):
         exasol_user._user_metadata(object(), "app_user")
@@ -427,7 +427,7 @@ def test_normalized_error_message_redacts_user_secrets(
             }
             return "user operation failed: failed near ******** and ********"
 
-    monkeypatch.setattr(exasol_user, "_query_runtime", lambda: Runtime())
+    monkeypatch.setattr(exasol_user, "query_runtime", lambda: Runtime())
 
     assert (
         exasol_user.normalized_exasol_error_message(
@@ -463,7 +463,7 @@ def test_sanitize_error_message_redacts_ldap_dn() -> None:
 def test_validate_identifier_rejects_invalid_name_types(identifier: object) -> None:
     """Verify identifier validation rejects non-string and empty values directly."""
     with pytest.raises(ValueError):
-        exasol_user.validate_identifier(identifier)  # type: ignore[arg-type]
+        validate_identifier(identifier)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize("ldap_dn", [object(), "", "bad\x00dn"])
@@ -476,27 +476,6 @@ def test_quote_sql_string_literal_rejects_invalid_values(ldap_dn: object) -> Non
 def test_quote_sql_string_literal_escapes_single_quotes() -> None:
     """Verify LDAP distinguished names are escaped as SQL string literals."""
     assert exasol_user._quote_sql_string_literal("cn=o'hara") == "'cn=o''hara'"
-
-
-def test_query_runtime_import_falls_back_to_sibling_file(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify user runtime loading delegates to the shared query loader."""
-    runtime = ModuleType("runtime")
-    source_files = []
-
-    def sibling_query_runtime(source_file: str) -> ModuleType:
-        source_files.append(source_file)
-        return runtime
-
-    monkeypatch.setattr(
-        exasol_user,
-        "sibling_query_runtime",
-        sibling_query_runtime,
-    )
-
-    assert exasol_user._query_runtime() is runtime
-    assert source_files == [exasol_user.__file__]
 
 
 def _quoted_identifier(query: str) -> str:
