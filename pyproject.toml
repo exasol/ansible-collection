@@ -1,6 +1,6 @@
 [project]
 name = "exasol-ansible-modules"
-version = "0.1.0"
+version = "1.0.0"
 description = "Python runtime package for Exasol Ansible collection modules."
 authors = [
     {name = "Mykhailo Skliar", email = "mykhailo.skliar@exasol.com"},
