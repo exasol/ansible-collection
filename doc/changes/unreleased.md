@@ -21,3 +21,4 @@
 * #12: Align collection identity, metadata, and standard repository skeleton
 * #13: Implement shared Exasol module utilities and connection doc fragment
 * #18: Use sqlglot for validate and other functions in plugin module_utils package
+* #35: Updated exasol-toolbox to 10.0.0
