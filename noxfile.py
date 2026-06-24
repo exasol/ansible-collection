@@ -13,7 +13,6 @@ import yaml  # type: ignore[import-untyped]
 
 # imports all nox task provided by the toolbox
 from exasol.toolbox.nox.tasks import *  # noqa: F403
-
 from noxconfig import PROJECT_CONFIG
 
 # default actions to be run if nothing is explicitly specified with the -s option

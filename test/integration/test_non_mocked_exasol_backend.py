@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
-
 from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()

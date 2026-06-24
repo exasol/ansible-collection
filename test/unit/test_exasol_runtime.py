@@ -15,7 +15,13 @@ import pytest
 
 from exasol.ansible_modules import (
     exasol_query,
-    exasol_user,
+)
+from exasol.ansible_modules.common_identifier_validation import (
+    quote_identifier,
+    validate_object_name,
+    validate_role_name,
+    validate_schema_name,
+    validate_user_name,
 )
 from plugins.doc_fragments.exasol_query import ModuleDocFragment
 
@@ -435,19 +441,14 @@ def test_sanitize_error_message_redacts_nested_sensitive_values() -> None:
     assert message == "******** ******** public"
 
 
-def test_sanitize_error_message_redacts_overlapping_secrets(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_sanitize_error_message_redacts_overlapping_secrets() -> None:
     """Verify shorter secret values cannot expose suffixes of longer secrets."""
-    monkeypatch.setattr(
-        exasol_query,
-        "_secret_values",
-        lambda _params: ["abc", "abcdef"],
-    )
-
     message = exasol_query.sanitize_error_message(
         RuntimeError("token abcdef password abc"),
-        {},
+        {
+            "login_password": "abc",
+            "named_args": {"api_token": "abcdef"},
+        },
     )
 
     assert message == "token ******** password ********"
@@ -512,14 +513,12 @@ def test_execution_error_is_sanitized() -> None:
 
 def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
     """Verify schema, user, role, and object identifier helpers."""
-    assert exasol_user.validate_schema_name("APP_SCHEMA") == "APP_SCHEMA"
-    assert exasol_user.validate_user_name("APP_USER1") == "APP_USER1"
-    assert exasol_user.validate_role_name("APP_ROLE") == "APP_ROLE"
-    assert exasol_user.validate_object_name("APP_SCHEMA.TABLE1") == (
-        "APP_SCHEMA.TABLE1"
-    )
+    assert validate_schema_name("APP_SCHEMA") == "APP_SCHEMA"
+    assert validate_user_name("APP_USER1") == "APP_USER1"
+    assert validate_role_name("APP_ROLE") == "APP_ROLE"
+    assert validate_object_name("APP_SCHEMA.TABLE1") == "APP_SCHEMA.TABLE1"
     assert (
-        exasol_user.quote_identifier(
+        quote_identifier(
             "app_schema.table1",
             allow_qualified=True,
         )
@@ -542,13 +541,13 @@ def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
 def test_identifier_validation_helpers_reject_invalid_schema_names(name: str) -> None:
     """Verify invalid identifiers are rejected before dynamic SQL generation."""
     with pytest.raises(ValueError):
-        exasol_user.validate_schema_name(name)
+        validate_schema_name(name)
 
 
 def test_object_identifier_validation_rejects_too_many_parts() -> None:
     """Verify object names are limited to schema.object qualification."""
     with pytest.raises(ValueError):
-        exasol_user.validate_object_name("APP.TABLE.EXTRA")
+        validate_object_name("APP.TABLE.EXTRA")
 
 
 def test_to_json_safe_converts_exasol_values() -> None:

@@ -8,14 +8,22 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from acceptance_common.acceptance_test_common import (
+    copy_acceptance_common_tasks,
+)
+
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
-
 from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 PLAYBOOK_RESOURCE = (
-    PROJECT_ROOT / "test" / "integration" / "exasol_query" / "exasol_query_playbook.yml"
+    PROJECT_ROOT
+    / "test"
+    / "integration"
+    / "acceptance"
+    / "exasol_query"
+    / "exasol_query_playbook.yml"
 )
 
 
@@ -37,7 +45,7 @@ def test_exasol_query_module_executes_against_exasol(
 
     facts = runner.run(
         Playbook(
-            playbook.name,
+            playbook.relative_to(ansible_runner_workspace.project_dir).as_posix(),
             {
                 **exasol_login_vars,
                 "ansible_python_interpreter": sys.executable,
@@ -62,7 +70,10 @@ def test_exasol_query_module_executes_against_exasol(
 
 
 def _write_playbook(project_dir: Path) -> Path:
-    playbook = project_dir / "exasol_query_backend.yml"
+    copy_acceptance_common_tasks(project_dir)
+    playbook_dir = project_dir / "exasol_query"
+    playbook_dir.mkdir(exist_ok=True)
+    playbook = playbook_dir / "exasol_query_backend.yml"
     playbook.write_text(
         PLAYBOOK_RESOURCE.read_text(encoding="utf-8"),
         encoding="utf-8",

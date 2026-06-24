@@ -1,0 +1,561 @@
+---
+- hosts: localhost
+  gather_facts: false
+  collections:
+    - exasol.exasol
+  module_defaults:
+    exasol.exasol.exasol_query:
+      login_host: "{{ login_host }}"
+      login_port: "{{ login_port }}"
+      login_user: "{{ login_user }}"
+      login_password: "{{ login_password }}"
+      validate_certs: "{{ validate_certs }}"
+      certificate_fingerprint: "{{ certificate_fingerprint | default('') }}"
+    exasol.exasol.exasol_user:
+      login_host: "{{ login_host }}"
+      login_port: "{{ login_port }}"
+      login_user: "{{ login_user }}"
+      login_password: "{{ login_password }}"
+      validate_certs: "{{ validate_certs }}"
+      certificate_fingerprint: "{{ certificate_fingerprint | default('') }}"
+  tasks:
+    - name: Setup Exasol test environment
+      ansible.builtin.import_tasks: ../acceptance_common/acceptance_common_setup.yml
+      vars:
+        acceptance_disposable_name_assertions:
+          - (test_user | default('')) is match('^ANSIBLE_USER_[0-9A-F]{32}$')
+          - >-
+            (check_mode_user | default(''))
+            is match('^ANSIBLE_USER_CHECK_[0-9A-F]{32}$')
+        acceptance_disposable_name_fail_msg: >-
+          Refusing to run destructive exasol_user integration cleanup for
+          unsafe test_user={{ test_user | default('<undefined>') }} or
+          check_mode_user={{ check_mode_user | default('<undefined>') }}.
+
+    - name: Run exasol_user scenarios
+      block:
+        - name: Pre-clean exasol_user backend test users
+          exasol.exasol.exasol_user:
+            name: "{{ item }}"
+            state: absent
+            cascade: true
+          loop:
+            - "{{ test_user }}"
+            - "{{ check_mode_user }}"
+
+        - name: Create missing user
+          vars:
+            acceptance_current_scenario_id: exasol-user-create-missing-user
+          when: >-
+            (acceptance_scenario_id | default(''))
+            in ['', acceptance_current_scenario_id]
+          block:
+            - name: Given a disposable Exasol user does not exist
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                state: absent
+                cascade: true
+
+            - name: When the exasol_user module runs with state present and a password
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                password: "{{ test_user_password }}"
+              register: exasol_user_create
+
+            - name: Then the module reports changed
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_create is changed
+                  - exasol_user_create.user == test_user
+                  - exasol_user_create.exists is true
+                  - exasol_user_create.executed_queries | length == 2
+                  - "'********' in exasol_user_create.executed_queries[0]"
+                  - test_user_password not in (exasol_user_create | to_json)
+
+            - name: Then the created user can authenticate
+              exasol.exasol.exasol_query:
+                login_user: "{{ test_user }}"
+                login_password: "{{ test_user_password }}"
+                query: SELECT 17 AS A
+              register: exasol_user_login_initial
+
+            - name: Assert created user authentication
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_login_initial is not changed
+                  - exasol_user_login_initial.query_result[0].A | string == "17"
+
+            - name: AND the created user appears in EXA_DBA_USERS
+              exasol.exasol.exasol_query:
+                query: >-
+                  SELECT COUNT(*) AS USER_COUNT
+                  FROM EXA_DBA_USERS
+                  WHERE USER_NAME = :user_name
+                named_args:
+                  user_name: "{{ test_user }}"
+              register: exasol_user_password_metadata
+
+            - name: Assert password-authenticated user metadata
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_password_metadata.query_result[0].USER_COUNT | string == "1"
+
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                  changed: true
+                  exists: true
+                  user: "{{ test_user }}"
+                  login_value: "{{ exasol_user_login_initial.query_result[0].A | string }}"
+                  executed_query_count: "{{ exasol_user_create.executed_queries | length }}"
+                  user_count: "{{ exasol_user_password_metadata.query_result[0].USER_COUNT | string }}"
+                  result_json: "{{ exasol_user_create | to_json }}"
+                cacheable: true
+
+        - name: Applying identical user state results in no changes
+          vars:
+            acceptance_current_scenario_id: exasol-user-apply-unchanged
+          when: >-
+            (acceptance_scenario_id | default(''))
+            in ['', acceptance_current_scenario_id]
+          block:
+            - name: Given a disposable Exasol user already exists
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                password: "{{ test_user_password }}"
+
+            - name: When the exasol_user module runs with update_password on_create
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                password: "{{ test_user_password }}"
+                update_password: on_create
+              register: exasol_user_existing
+
+            - name: Then the module reports unchanged and does not execute user DDL
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_existing is not changed
+                  - exasol_user_existing.exists is true
+                  - exasol_user_existing.executed_queries == []
+
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                  changed: false
+                  exists: true
+                  executed_query_count: 0
+                cacheable: true
+
+        - name: Change authentication to LDAP
+          vars:
+            acceptance_current_scenario_id: exasol-user-change-authentication-to-ldap
+          when:
+            - >-
+              (acceptance_scenario_id | default(''))
+              in ['', acceptance_current_scenario_id]
+            - exasol_backend_supports_ldap | default(false) | bool
+          block:
+            - name: Given a disposable Exasol password-authenticated user already exists
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                password: "{{ test_user_password }}"
+
+            - name: When the exasol_user module runs with LDAP authentication
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                authentication_method: ldap
+                ldap_dn: "{{ test_user_ldap_dn }}"
+              register: exasol_user_ldap
+
+            - name: Then the module reports changed without exposing the LDAP DN
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_ldap is changed
+                  - exasol_user_ldap.exists is true
+                  - exasol_user_ldap.executed_queries | length == 1
+                  - >-
+                    exasol_user_ldap.executed_queries[0]
+                    == 'ALTER USER "' ~ test_user ~ '" IDENTIFIED AT LDAP AS ' ~ "'********'"
+                  - test_user_ldap_dn not in (exasol_user_ldap | to_json)
+
+            - name: Then the LDAP distinguished name is visible in metadata
+              exasol.exasol.exasol_query:
+                query: >-
+                  SELECT DISTINGUISHED_NAME
+                  FROM EXA_DBA_USERS
+                  WHERE USER_NAME = :user_name
+                named_args:
+                  user_name: "{{ test_user }}"
+              register: exasol_user_ldap_metadata
+
+            - name: Assert LDAP authentication metadata
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_ldap_metadata.query_result[0].DISTINGUISHED_NAME == test_user_ldap_dn
+
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                  changed: true
+                  exists: true
+                  ldap_dn: "{{ exasol_user_ldap_metadata.query_result[0].DISTINGUISHED_NAME }}"
+                  result_json: "{{ exasol_user_ldap | to_json }}"
+                cacheable: true
+
+        - name: Rotate password
+          vars:
+            acceptance_current_scenario_id: exasol-user-rotate-password
+          when: >-
+            (acceptance_scenario_id | default(''))
+            in ['', acceptance_current_scenario_id]
+          block:
+            - name: Given a user exists with password authentication and initial password
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                password: "{{ test_user_password }}"
+
+            - name: When exasol_user runs with update_password always and a new password
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                password: "{{ test_user_rotated_password }}"
+                update_password: always
+              register: exasol_user_rotate
+
+            - name: Then the module reports changed
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_rotate is changed
+                  - exasol_user_rotate.exists is true
+                  - exasol_user_rotate.executed_queries | length == 1
+                  - >-
+                    exasol_user_rotate.executed_queries[0]
+                    == 'ALTER USER "' ~ test_user ~ '" IDENTIFIED BY "********"'
+
+            - name: Then neither old nor new password is exposed in module output
+              ansible.builtin.assert:
+                that:
+                  - test_user_password not in (exasol_user_rotate | to_json)
+                  - test_user_rotated_password not in (exasol_user_rotate | to_json)
+
+            - name: Then the user can authenticate with the new password
+              exasol.exasol.exasol_query:
+                login_user: "{{ test_user }}"
+                login_password: "{{ test_user_rotated_password }}"
+                query: SELECT 19 AS A
+              register: exasol_user_login_new
+
+            - name: Assert new password works
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_login_new is not changed
+                  - exasol_user_login_new.query_result[0].A | string == "19"
+
+            - name: Then the user cannot authenticate with the old password
+              exasol.exasol.exasol_query:
+                login_user: "{{ test_user }}"
+                login_password: "{{ test_user_password }}"
+                query: SELECT 19 AS A
+              register: exasol_user_login_old
+              ignore_errors: true
+
+            - name: Assert old password is rejected
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_login_old is failed
+                  - "'authenticate' in exasol_user_login_old.msg"
+                  - test_user_password not in exasol_user_login_old.msg
+
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                  changed: true
+                  exists: true
+                  login_value: "{{ exasol_user_login_new.query_result[0].A | string }}"
+                  result_json: "{{ exasol_user_rotate | to_json }}"
+                cacheable: true
+
+        - name: Check mode predicts create
+          vars:
+            acceptance_current_scenario_id: exasol-user-check-mode-create
+          when: >-
+            (acceptance_scenario_id | default(''))
+            in ['', acceptance_current_scenario_id]
+          block:
+            - name: Given a disposable Exasol user does not exist
+              exasol.exasol.exasol_user:
+                name: "{{ check_mode_user }}"
+                state: absent
+                cascade: true
+
+            - name: When the exasol_user module runs in check mode with state present
+              exasol.exasol.exasol_user:
+                name: "{{ check_mode_user }}"
+                password: "{{ check_mode_user_password }}"
+              check_mode: true
+              register: exasol_user_check_create
+
+            - name: Then the module reports the predicted change
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_check_create is changed
+                  - exasol_user_check_create.user == check_mode_user
+                  - exasol_user_check_create.exists is true
+                  - exasol_user_check_create.executed_queries | length == 2
+                  - check_mode_user_password not in (exasol_user_check_create | to_json)
+
+            - name: Then the module does not create the user
+              exasol.exasol.exasol_query:
+                query: >-
+                  SELECT COUNT(*) AS USER_COUNT
+                  FROM EXA_ALL_USERS
+                  WHERE USER_NAME = :user_name
+                named_args:
+                  user_name: "{{ check_mode_user }}"
+              register: exasol_user_check_metadata
+
+            - name: Assert check mode did not create the user
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_check_metadata.query_result[0].USER_COUNT | string == "0"
+
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                  changed: true
+                  predicted_exists: true
+                  user_count: "{{ exasol_user_check_metadata.query_result[0].USER_COUNT | string }}"
+                  result_json: "{{ exasol_user_check_create | to_json }}"
+                cacheable: true
+
+        - name: Check mode predicts LDAP update
+          vars:
+            acceptance_current_scenario_id: exasol-user-check-mode-update-ldap
+          when:
+            - >-
+              (acceptance_scenario_id | default(''))
+              in ['', acceptance_current_scenario_id]
+            - exasol_backend_supports_ldap_check_mode | default(true) | bool
+          block:
+            - name: Given a disposable Exasol password-authenticated user already exists
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                password: "{{ test_user_password }}"
+
+            - name: When the exasol_user module predicts LDAP authentication in check mode
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                authentication_method: ldap
+                ldap_dn: "{{ check_mode_user_ldap_dn }}"
+              check_mode: true
+              register: exasol_user_check_ldap
+
+            - name: Then the module reports the predicted LDAP update
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_check_ldap is changed
+                  - exasol_user_check_ldap.exists is true
+                  - exasol_user_check_ldap.executed_queries | length == 1
+                  - >-
+                    exasol_user_check_ldap.executed_queries[0]
+                    == 'ALTER USER "' ~ test_user ~ '" IDENTIFIED AT LDAP AS ' ~ "'********'"
+                  - check_mode_user_ldap_dn not in (exasol_user_check_ldap | to_json)
+
+            - name: Then the user authentication method was not changed
+              exasol.exasol.exasol_query:
+                query: >-
+                  SELECT DISTINGUISHED_NAME
+                  FROM EXA_DBA_USERS
+                  WHERE USER_NAME = :user_name
+                named_args:
+                  user_name: "{{ test_user }}"
+              register: exasol_user_check_ldap_metadata
+
+            - name: Assert check mode LDAP update was not executed
+              ansible.builtin.assert:
+                that:
+                  - >-
+                    exasol_user_check_ldap_metadata.query_result[0].DISTINGUISHED_NAME
+                    | default('', true) | string == ''
+
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                  changed: true
+                  exists: true
+                  ldap_dn: >-
+                    {{ exasol_user_check_ldap_metadata.query_result[0].DISTINGUISHED_NAME
+                    | default('', true) | string }}
+                  result_json: "{{ exasol_user_check_ldap | to_json }}"
+                cacheable: true
+
+        - name: Check mode predicts drop
+          vars:
+            acceptance_current_scenario_id: exasol-user-check-mode-drop
+          when: >-
+            (acceptance_scenario_id | default(''))
+            in ['', acceptance_current_scenario_id]
+          block:
+            - name: Given a disposable Exasol user exists
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                password: "{{ test_user_password }}"
+
+            - name: When the exasol_user module predicts drop in check mode
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                state: absent
+                cascade: true
+              check_mode: true
+              register: exasol_user_check_drop
+
+            - name: Then the module reports the predicted drop
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_check_drop is changed
+                  - exasol_user_check_drop.exists is false
+                  - exasol_user_check_drop.executed_queries == ['DROP USER "' ~ test_user ~ '" CASCADE']
+
+            - name: Then the user was not dropped
+              exasol.exasol.exasol_query:
+                query: >-
+                  SELECT COUNT(*) AS USER_COUNT
+                  FROM EXA_ALL_USERS
+                  WHERE USER_NAME = :user_name
+                named_args:
+                  user_name: "{{ test_user }}"
+              register: exasol_user_check_drop_metadata
+
+            - name: Assert check mode drop was not executed
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_check_drop_metadata.query_result[0].USER_COUNT | string == "1"
+
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                  changed: true
+                  predicted_exists: false
+                  user_count: "{{ exasol_user_check_drop_metadata.query_result[0].USER_COUNT | string }}"
+                cacheable: true
+
+        - name: Drop existing user
+          vars:
+            acceptance_current_scenario_id: exasol-user-drop-existing-user
+          when: >-
+            (acceptance_scenario_id | default(''))
+            in ['', acceptance_current_scenario_id]
+          block:
+            - name: Given a disposable Exasol user exists
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                password: "{{ test_user_password }}"
+
+            - name: When the exasol_user module runs with state absent and cascade
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                state: absent
+                cascade: true
+              register: exasol_user_drop
+
+            - name: Then the module reports changed
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_drop is changed
+                  - exasol_user_drop.state == "absent"
+                  - exasol_user_drop.exists is false
+                  - exasol_user_drop.executed_queries | length == 1
+                  - >-
+                    exasol_user_drop.executed_queries[0]
+                    == 'DROP USER "' ~ test_user ~ '" CASCADE'
+
+            - name: Then the user no longer exists
+              exasol.exasol.exasol_query:
+                query: >-
+                  SELECT COUNT(*) AS USER_COUNT
+                  FROM EXA_ALL_USERS
+                  WHERE USER_NAME = :user_name
+                named_args:
+                  user_name: "{{ test_user }}"
+              register: exasol_user_drop_metadata
+
+            - name: Assert dropped user is absent
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_drop_metadata.query_result[0].USER_COUNT | string == "0"
+
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                  changed: true
+                  exists: false
+                  user_count: "{{ exasol_user_drop_metadata.query_result[0].USER_COUNT | string }}"
+                cacheable: true
+
+        - name: Drop missing user
+          vars:
+            acceptance_current_scenario_id: exasol-user-drop-missing-user
+          when: >-
+            (acceptance_scenario_id | default(''))
+            in ['', acceptance_current_scenario_id]
+          block:
+            - name: Given a disposable Exasol user does not exist
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                state: absent
+                cascade: true
+
+            - name: When the exasol_user module runs with state absent
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                state: absent
+              register: exasol_user_drop_missing
+
+            - name: Then the module reports unchanged and executes no user DDL
+              ansible.builtin.assert:
+                that:
+                  - exasol_user_drop_missing is not changed
+                  - exasol_user_drop_missing.exists is false
+                  - exasol_user_drop_missing.executed_queries == []
+
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                  changed: false
+                  exists: false
+                  executed_query_count: 0
+                cacheable: true
+
+        - name: Store exasol_user backend probe result
+          ansible.builtin.set_fact:
+            exasol_user_backend_probe:
+              user: "{{ test_user }}"
+              create_changed: true
+              initial_login_value: "{{ exasol_user_login_initial.query_result[0].A | string }}"
+              idempotent_changed: false
+              rotate_changed: true
+              rotated_login_value: "{{ exasol_user_login_rotated.query_result[0].A | string }}"
+              check_mode_user_count: "{{ exasol_user_check_metadata.query_result[0].USER_COUNT | string }}"
+              drop_changed: true
+              drop_missing_changed: false
+            cacheable: true
+          when: acceptance_scenario_id | default('') | length == 0
+
+      always:
+        - name: Post-clean exasol_user backend test users
+          exasol.exasol.exasol_user:
+            name: "{{ item }}"
+            state: absent
+            cascade: true
+          loop:
+            - "{{ test_user }}"
+            - "{{ check_mode_user }}"
+          ignore_errors: true

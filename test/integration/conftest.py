@@ -6,6 +6,7 @@ import fnmatch
 import os
 import shutil
 import ssl
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -15,8 +16,12 @@ import yaml
 from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
+INTEGRATION_ROOT = Path(__file__).resolve().parent
 COLLECTION_NAMESPACE = "exasol"
 COLLECTION_NAME = "exasol"
+
+if str(INTEGRATION_ROOT) not in sys.path:
+    sys.path.insert(0, str(INTEGRATION_ROOT))
 
 
 @dataclass(frozen=True)
