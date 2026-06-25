@@ -17,7 +17,7 @@ version_added: "0.1.0"
 author:
   - Exasol AG (@exasol)
 extends_documentation_fragment:
-  - exasol.exasol.exasol_query
+  - exasol.exasol.connection
 options:
   query:
     description:
@@ -116,12 +116,24 @@ execution_time_ms:
     - 12.3
 """
 
+import sys
+from pathlib import Path
 from typing import Any
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.exasol.exasol.plugins.module_utils import (
-    exasol_query as exasol_query_utils,
-)
+
+
+def _ensure_collection_root_on_path() -> None:
+    """Make source-tree runtime imports visible to Ansible sanity checks."""
+    collection_root = str(Path(__file__).resolve().parents[2])
+    if collection_root not in sys.path:
+        sys.path.insert(0, collection_root)
+
+
+_ensure_collection_root_on_path()
+
+from exasol.ansible_modules import exasol_query as exasol_query_utils  # noqa: E402
+from exasol.ansible_modules.common_query import ExasolQueryResult  # noqa: E402
 
 
 def main() -> None:
@@ -175,7 +187,7 @@ def exit_if_check_mode_would_change(module: AnsibleModule, queries: list[str]) -
     )
 
 
-def run_query(params: dict[str, Any]) -> dict[str, Any]:
+def run_query(params: dict[str, Any]) -> ExasolQueryResult:
     """Connect to Exasol, execute query parameters, and close the connection."""
     try:
         import pyexasol

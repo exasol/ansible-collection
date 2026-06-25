@@ -25,7 +25,7 @@ version_added: "0.1.0"
 author:
   - Exasol AG (@exasol)
 extends_documentation_fragment:
-  - exasol.exasol.exasol_query
+  - exasol.exasol.connection
 options:
   name:
     description:
@@ -168,15 +168,24 @@ executed_queries:
     - CREATE USER "APP_USER" IDENTIFIED BY "********"
 """
 
+import sys
+from pathlib import Path
 from typing import Any
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.exasol.exasol.plugins.module_utils import (
-    exasol_query as exasol_query_utils,
-)
-from ansible_collections.exasol.exasol.plugins.module_utils import (
-    exasol_user as exasol_user_utils,
-)
+
+
+def _ensure_collection_root_on_path() -> None:
+    """Make source-tree runtime imports visible to Ansible sanity checks."""
+    collection_root = str(Path(__file__).resolve().parents[2])
+    if collection_root not in sys.path:
+        sys.path.insert(0, collection_root)
+
+
+_ensure_collection_root_on_path()
+
+from exasol.ansible_modules import exasol_query as exasol_query_utils  # noqa: E402
+from exasol.ansible_modules import exasol_user as exasol_user_utils  # noqa: E402
 
 
 def main() -> None:
