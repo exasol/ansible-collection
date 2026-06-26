@@ -53,6 +53,34 @@ def _ignore_collection_build_paths(directory: str, names: list[str]) -> set[str]
     return ignored_names
 
 
+def _ignore_ansible_test_source_paths(directory: str, names: list[str]) -> set[str]:
+    """Return paths ignored when preparing the ansible-test source layout.
+
+    The Galaxy archive must ignore the top-level exasol/ package because the
+    runtime is provided by the PyPI package. The temporary ansible-test source
+    layout is different: sanity imports module files before that PyPI runtime is
+    installed in its isolated venvs, so the source runtime package must stay
+    available there.
+    """
+    ignored_names = _ignore_collection_build_paths(directory, names)
+    directory_path = Path(directory)
+
+    for name in tuple(ignored_names):
+        path = directory_path / name
+        try:
+            relative_path = path.relative_to(PROJECT_ROOT).as_posix()
+        except ValueError:
+            continue
+
+        # ansible-test sanity imports modules from an isolated venv before the
+        # PyPI runtime package is installed. Keep the source runtime package in
+        # this temporary test layout; galaxy.yml still excludes it from archives.
+        if relative_path == "exasol" or relative_path.startswith("exasol/"):
+            ignored_names.remove(name)
+
+    return ignored_names
+
+
 def _ansible_env(tmp_path: Path) -> dict[str, str]:
     """Return Ansible environment variables rooted in a writable temp path."""
     ansible_home = tmp_path / ".ansible"
@@ -87,7 +115,7 @@ def _prepare_ansible_test_collection_layout(tmp_path: Path) -> Path:
     shutil.copytree(
         PROJECT_ROOT,
         collection_path,
-        ignore=_ignore_collection_build_paths,
+        ignore=_ignore_ansible_test_source_paths,
     )
 
     return collection_path
@@ -122,6 +150,7 @@ def collection_sanity(session: nox.Session) -> None:
     with tempfile.TemporaryDirectory(prefix="ansible-collection-sanity-") as tmp_dir:
         tmp_path = Path(tmp_dir)
         collection_path = _prepare_ansible_test_collection_layout(tmp_path)
+        env = _ansible_env(tmp_path)
 
         with session.chdir(collection_path):
             session.run(
@@ -129,7 +158,7 @@ def collection_sanity(session: nox.Session) -> None:
                 "sanity",
                 "--python-interpreter",
                 sys.executable,
-                env=_ansible_env(tmp_path),
+                env=env,
             )
 
 

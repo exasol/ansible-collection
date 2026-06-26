@@ -171,6 +171,12 @@ executed_queries:
 from typing import Any
 
 from ansible.module_utils.basic import AnsibleModule
+from ansible_collections.exasol.exasol.plugins.module_utils import (
+    common_runtime_import,
+)
+
+common_runtime_import.make_source_runtime_importable_for_ansible_sanity(__file__)
+
 from exasol.ansible_modules import exasol_query as exasol_query_utils
 from exasol.ansible_modules import exasol_user as exasol_user_utils
 
