@@ -1,9 +1,10 @@
-"""Static checks for spec/playbook acceptance scenario contracts."""
+"""Static checks for scenario-id/acceptance-test contracts."""
 
 from __future__ import annotations
 
 import ast
 import re
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -13,8 +14,10 @@ import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ACCEPTANCE_ROOT = PROJECT_ROOT / "test" / "integration" / "acceptance"
+ACCEPTANCE_COMMON_ROOT = PROJECT_ROOT / "test" / "integration" / "acceptance_common"
 SPEC_ROOT = PROJECT_ROOT / "specs"
 SCENARIO_ID_PATTERN = re.compile(r"^[a-z0-9-]+$")
+SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 
 
 @dataclass(frozen=True)
@@ -27,22 +30,19 @@ class Scenario:
 
 def _acceptance_contract_files() -> list[object]:
     params: list[object] = []
-    for module_dir in sorted(
-        path for path in ACCEPTANCE_ROOT.iterdir() if path.is_dir()
-    ):
-        module_name = module_dir.name
+    for spec_file in sorted(SPEC_ROOT.glob("*.feature")):
+        module_name = spec_file.stem
+        module_dir = ACCEPTANCE_ROOT / module_name
         spec_file = SPEC_ROOT / f"{module_name}.feature"
         playbook_file = module_dir / f"{module_name}_playbook.yml"
-        acceptance_file = module_dir / f"test_acceptance_{module_name}.py"
-        if not (
-            spec_file.exists() and playbook_file.exists() and acceptance_file.exists()
-        ):
+        acceptance_file = _acceptance_file(module_name, module_dir)
+        if not (spec_file.exists() and acceptance_file.exists()):
             continue
 
         params.append(
             pytest.param(
                 spec_file,
-                playbook_file,
+                playbook_file if playbook_file.exists() else None,
                 acceptance_file,
                 id=module_name,
             )
@@ -51,29 +51,75 @@ def _acceptance_contract_files() -> list[object]:
     return params
 
 
+def _acceptance_file(module_name: str, module_dir: Path) -> Path:
+    parent_file = ACCEPTANCE_ROOT / f"test_acceptance_{module_name}.py"
+    if parent_file.exists():
+        return parent_file
+
+    return module_dir / f"test_acceptance_{module_name}.py"
+
+
 @pytest.mark.parametrize(
     ("spec_file", "playbook_file", "acceptance_file"),
     _acceptance_contract_files(),
 )
-def test_spec_scenarios_match_playbook_scenarios(
+def test_spec_scenarios_match_acceptance_scenarios(
     spec_file: Path,
-    playbook_file: Path,
+    playbook_file: Path | None,
     acceptance_file: Path,
 ) -> None:
-    """Every spec scenario must have one playbook block and acceptance test."""
+    """Every spec scenario must have a matching acceptance test."""
     scenarios = _spec_scenarios(spec_file)
 
-    assert scenarios == _playbook_scenarios(playbook_file)
     assert scenarios == _acceptance_scenarios(acceptance_file)
-    _assert_scenario_ids_declared_once(playbook_file, scenarios)
     _assert_scenario_ids_declared_once(acceptance_file, scenarios)
+    if playbook_file is None:
+        return
+
+    assert scenarios == _playbook_scenarios(playbook_file)
+    _assert_scenario_ids_declared_once(playbook_file, scenarios)
 
 
-def test_acceptance_root_contains_only_module_directories() -> None:
-    """Verify acceptance modules are grouped in per-module subdirectories."""
-    direct_files = [path for path in ACCEPTANCE_ROOT.iterdir() if path.is_file()]
+def test_acceptance_root_contains_only_acceptance_tests_or_module_directories() -> None:
+    """Verify direct acceptance files follow the acceptance-test naming convention."""
+    direct_files = sorted(path for path in ACCEPTANCE_ROOT.iterdir() if path.is_file())
 
-    assert direct_files == []
+    assert all(path.name.startswith("test_acceptance_") for path in direct_files)
+
+
+def test_acceptance_playbook_template_defines_one_scenario_placeholder() -> None:
+    """Verify the shared template has one explicit scenario insertion point."""
+    template = (ACCEPTANCE_COMMON_ROOT / "acceptance_playbook_template.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert template.count(SCENARIO_TASKS_PLACEHOLDER) == 1
+    assert "INSERT HERE" not in template
+
+
+def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None:
+    """Verify inline scenario fragments are inserted as valid playbook tasks."""
+    integration_root = PROJECT_ROOT / "test" / "integration"
+    if str(integration_root) not in sys.path:
+        sys.path.insert(0, str(integration_root))
+
+    from acceptance_common.acceptance_test_common import _render_template_playbook
+
+    rendered = _render_template_playbook("""
+        - name: Inline scenario
+          vars:
+            acceptance_current_scenario_id: "{{ acceptance_scenario_id }}"
+          block:
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                cacheable: true
+        """)
+    parsed = yaml.safe_load(rendered)
+
+    assert "__ACCEPTANCE_SCENARIO_TASKS__" not in rendered
+    assert parsed[0]["tasks"][2]["block"][1]["name"] == "Inline scenario"
 
 
 def _spec_scenarios(path: Path) -> list[Scenario]:

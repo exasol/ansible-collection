@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 import sys
+import textwrap
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +18,10 @@ from noxconfig import PROJECT_CONFIG
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 ACCEPTANCE_COMMON_DIR = PROJECT_ROOT / "test" / "integration" / "acceptance_common"
 ACCEPTANCE_COMMON_TASK_FILES = ("acceptance_common_setup.yml",)
+ACCEPTANCE_PLAYBOOK_TEMPLATE = (
+    ACCEPTANCE_COMMON_DIR / "acceptance_playbook_template.yml"
+)
+SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 
 
 @dataclass(frozen=True)
@@ -137,15 +142,43 @@ def when_module_scenario_runs(
     context: AcceptanceContext,
     module_name: str,
     scenario_id: str,
+    *,
+    scenario_playbook: str | None = None,
     extra_vars: dict[str, object] | None = None,
 ) -> dict[str, Any]:
     """When one module acceptance scenario runs with an existing context."""
+    if scenario_playbook is not None:
+        return when_template_scenario_runs(
+            context,
+            module_name,
+            scenario_id,
+            scenario_playbook,
+            extra_vars=extra_vars,
+        )
+
     return when_playbook_scenario_runs(
         context,
         acceptance_playbook_resource(module_name),
         scenario_id,
         extra_vars=extra_vars,
     )
+
+
+def when_template_scenario_runs(
+    context: AcceptanceContext,
+    module_name: str,
+    scenario_id: str,
+    scenario_playbook: str,
+    extra_vars: dict[str, object] | None = None,
+) -> dict[str, Any]:
+    """When one inline scenario fragment runs through the shared template."""
+    playbook = _write_template_playbook(
+        context.project_dir,
+        module_name,
+        scenario_id,
+        scenario_playbook,
+    )
+    return _run_playbook(context, playbook, scenario_id, extra_vars=extra_vars)
 
 
 def when_playbook_scenario_runs(
@@ -160,6 +193,15 @@ def when_playbook_scenario_runs(
         playbook_resource,
         scenario_id,
     )
+    return _run_playbook(context, playbook, scenario_id, extra_vars=extra_vars)
+
+
+def _run_playbook(
+    context: AcceptanceContext,
+    playbook: Path,
+    scenario_id: str,
+    extra_vars: dict[str, object] | None = None,
+) -> dict[str, Any]:
     runner = Runner(
         repositories=(),
         work_dir=context.private_data_dir,
@@ -207,6 +249,33 @@ def _write_playbook(
         encoding="utf-8",
     )
     return playbook
+
+
+def _write_template_playbook(
+    project_dir: Path,
+    module_name: str,
+    scenario_id: str,
+    scenario_playbook: str,
+) -> Path:
+    playbook_dir = project_dir / module_name
+    playbook_dir.mkdir(exist_ok=True)
+    playbook = playbook_dir / f"{scenario_id}.yml"
+    rendered_playbook = _render_template_playbook(scenario_playbook)
+    playbook.write_text(rendered_playbook, encoding="utf-8")
+    return playbook
+
+
+def _render_template_playbook(scenario_playbook: str) -> str:
+    template = ACCEPTANCE_PLAYBOOK_TEMPLATE.read_text(encoding="utf-8")
+    scenario_tasks = textwrap.indent(
+        textwrap.dedent(scenario_playbook).strip("\n"),
+        " " * 8,
+    )
+    if SCENARIO_TASKS_PLACEHOLDER not in template:
+        msg = f"{ACCEPTANCE_PLAYBOOK_TEMPLATE} does not define scenario placeholder"
+        raise AssertionError(msg)
+
+    return template.replace(SCENARIO_TASKS_PLACEHOLDER, scenario_tasks)
 
 
 def _assert_playbook_contains_scenario(

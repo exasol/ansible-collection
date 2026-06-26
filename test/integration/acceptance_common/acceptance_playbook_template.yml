@@ -1,0 +1,54 @@
+---
+# Shared acceptance playbook template.
+# The acceptance test helper replaces the placeholder below with the
+# scenario-specific task fragment supplied by an individual test.
+- hosts: localhost
+  gather_facts: false
+  collections:
+    - exasol.exasol
+  module_defaults:
+    exasol.exasol.exasol_query:
+      login_host: "{{ login_host }}"
+      login_port: "{{ login_port }}"
+      login_user: "{{ login_user }}"
+      login_password: "{{ login_password }}"
+      validate_certs: "{{ validate_certs }}"
+      certificate_fingerprint: "{{ certificate_fingerprint | default('') }}"
+  tasks:
+    - name: Setup acceptance test environment
+      ansible.builtin.import_role:
+        name: exasol.exasol.setup_exasol
+      vars:
+        exasol_host: "{{ login_host }}"
+        exasol_port: "{{ login_port }}"
+        exasol_user: "{{ login_user }}"
+        exasol_password: "{{ login_password }}"
+        exasol_validate_certs: "{{ validate_certs }}"
+        exasol_certificate_fingerprint: "{{ certificate_fingerprint | default('') }}"
+
+    - name: Verify disposable acceptance identifiers
+      ansible.builtin.assert:
+        that:
+          - (test_schema | default('')) is match('^ANSIBLE_QUERY_[0-9A-F]{32}$')
+        fail_msg: >-
+          Refusing to run destructive acceptance cleanup for unsafe
+          test_schema={{ test_schema | default('<undefined>') }}.
+        quiet: true
+
+    - name: Run acceptance scenario
+      block:
+        - name: Pre-clean disposable schemas
+          exasol.exasol.exasol_query:
+            query:
+              - DROP SCHEMA IF EXISTS {{ test_schema }} CASCADE
+              - DROP SCHEMA IF EXISTS {{ test_schema }}_CHECK_MODE CASCADE
+
+        __ACCEPTANCE_SCENARIO_TASKS__
+
+      always:
+        - name: Post-clean disposable schemas
+          exasol.exasol.exasol_query:
+            query:
+              - DROP SCHEMA IF EXISTS {{ test_schema }} CASCADE
+              - DROP SCHEMA IF EXISTS {{ test_schema }}_CHECK_MODE CASCADE
+          ignore_errors: true
