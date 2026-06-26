@@ -27,15 +27,17 @@ ansible-galaxy collection install exasol.exasol
 
 ## Runtime Dependencies
 
-Install the Python dependencies required by the collection modules in the
-execution environment that runs Ansible:
+Install the Python dependencies required by the collection modules in the Python
+environment that executes the modules:
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
 The dependency list includes `exasol-ansible-modules`, the Python package with
-the Exasol module runtime logic.
+the Exasol module runtime logic. For remote hosts, install it for the configured
+`ansible_python_interpreter`. For Ansible execution environments, include it in
+the execution-environment Python requirements.
 
 ## Usage
 

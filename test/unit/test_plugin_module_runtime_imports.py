@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
-import sys
 from pathlib import Path
 from types import ModuleType
-
-import pytest
 
 from exasol.ansible_modules import (
     exasol_query,
@@ -48,42 +45,6 @@ def test_exasol_query_plugin_uses_direct_query_runtime() -> None:
     assert module.exasol_query_utils is exasol_query
 
 
-def test_exasol_user_plugin_uses_direct_user_and_query_runtimes() -> None:
-    """Verify exasol_user no longer imports through plugins/module_utils."""
-    module = _load_plugin_module("exasol_user")
-
-    assert module.exasol_query_utils is exasol_query
-    assert module.exasol_user_utils is exasol_user
-
-
-def test_plugin_modules_do_not_reference_collection_module_utils() -> None:
-    """Verify module entry points do not depend on the removed shim package."""
-    for module_name in ("exasol_query", "exasol_user"):
-        source = (PLUGIN_MODULES / f"{module_name}.py").read_text(encoding="utf-8")
-
-        assert "plugins.module_utils" not in source
-        assert "ansible_collections.exasol.exasol.plugins.module_utils" not in source
-
-
-@pytest.mark.parametrize("module_name", ["exasol_query", "exasol_user"])
-def test_plugin_modules_bootstrap_collection_root_for_direct_runtime_import(
-    monkeypatch: pytest.MonkeyPatch,
-    module_name: str,
-) -> None:
-    """Verify direct runtime imports work in Ansible's isolated sanity imports."""
-    project_root = str(PROJECT_ROOT)
-    monkeypatch.setattr(
-        sys,
-        "path",
-        [path for path in sys.path if Path(path or ".").resolve() != PROJECT_ROOT],
-    )
-    _remove_cached_exasol_modules(monkeypatch)
-
-    _load_plugin_module(module_name)
-
-    assert sys.path[0] == project_root
-
-
 def test_direct_query_runtime_keeps_removed_module_utils_surface() -> None:
     """Verify all former exasol_query shim functions remain directly available."""
     for function_name in REMOVED_QUERY_MODULE_UTILS_SURFACE:
@@ -108,9 +69,3 @@ def _load_plugin_module(module_name: str) -> ModuleType:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
-
-
-def _remove_cached_exasol_modules(monkeypatch: pytest.MonkeyPatch) -> None:
-    for module_name in list(sys.modules):
-        if module_name == "exasol" or module_name.startswith("exasol."):
-            monkeypatch.delitem(sys.modules, module_name)

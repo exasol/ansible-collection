@@ -168,24 +168,11 @@ executed_queries:
     - CREATE USER "APP_USER" IDENTIFIED BY "********"
 """
 
-import sys
-from pathlib import Path
 from typing import Any
 
 from ansible.module_utils.basic import AnsibleModule
-
-
-def _ensure_collection_root_on_path() -> None:
-    """Make source-tree runtime imports visible to Ansible sanity checks."""
-    collection_root = str(Path(__file__).resolve().parents[2])
-    if collection_root not in sys.path:
-        sys.path.insert(0, collection_root)
-
-
-_ensure_collection_root_on_path()
-
-from exasol.ansible_modules import exasol_query as exasol_query_utils  # noqa: E402
-from exasol.ansible_modules import exasol_user as exasol_user_utils  # noqa: E402
+from exasol.ansible_modules import exasol_query as exasol_query_utils
+from exasol.ansible_modules import exasol_user as exasol_user_utils
 
 
 def main() -> None:
