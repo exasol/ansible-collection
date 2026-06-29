@@ -34,7 +34,9 @@ class CollectionManifestRules:
         if any(normalized_path.startswith(f"{root}/") for root in self.included_trees):
             return True
 
-        if is_dir and any(root.startswith(f"{normalized_path}/") for root in self.included_trees):
+        if is_dir and any(
+            root.startswith(f"{normalized_path}/") for root in self.included_trees
+        ):
             return True
 
         return False

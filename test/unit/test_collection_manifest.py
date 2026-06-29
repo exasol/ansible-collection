@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
 
 from collection_manifest import ignore_collection_manifest_paths

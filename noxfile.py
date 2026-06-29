@@ -3,7 +3,6 @@
 # pylint: disable=wildcard-import,unused-wildcard-import
 
 import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -11,6 +10,7 @@ from pathlib import Path
 import nox
 
 from collection_manifest import ignore_collection_manifest_paths
+
 # imports all nox task provided by the toolbox
 from exasol.toolbox.nox.tasks import *  # noqa: F403
 from noxconfig import PROJECT_CONFIG
