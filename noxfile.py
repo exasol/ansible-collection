@@ -30,12 +30,14 @@ def _collection_metadata() -> dict[str, str]:
     return {
         "namespace": galaxy["namespace"],
         "name": galaxy["name"],
+        "version": galaxy["version"],
     }
 
 
 COLLECTION_METADATA = _collection_metadata()
 COLLECTION_NAMESPACE = COLLECTION_METADATA["namespace"]
 COLLECTION_NAME = COLLECTION_METADATA["name"]
+COLLECTION_VERSION = COLLECTION_METADATA["version"]
 
 
 def _collection_build_ignore_patterns() -> tuple[str, ...]:
@@ -203,7 +205,12 @@ def collection_publish(session: nox.Session) -> None:
     """Publish the Ansible collection archive to Ansible Galaxy.
     This requires an Ansible Galaxy API token in ANSIBLE_GALAXY_TOKEN.
     """
-    collection_archive = PROJECT_ROOT / ".build_output" / "collections" / f"{COLLECTION_NAMESPACE}-{COLLECTION_NAME}-0.1.0.tar.gz"
+    collection_archive = (
+        PROJECT_ROOT
+        / ".build_output"
+        / "collections"
+        / f"{COLLECTION_NAMESPACE}-{COLLECTION_NAME}-{COLLECTION_VERSION}.tar.gz"
+    )
 
     with tempfile.NamedTemporaryFile(mode="w", prefix="ansible_galaxy_", suffix=".cfg") as config_file:
         token = os.environ.get("ANSIBLE_GALAXY_TOKEN")
