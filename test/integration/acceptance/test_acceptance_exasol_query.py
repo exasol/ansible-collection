@@ -455,12 +455,12 @@ def _without_dynamic_metadata(result: dict[str, Any]) -> dict[str, Any]:
 
 
 def _assert_query_module_result(
-        result: dict[str, Any],
-        *,
-        changed: bool,
-        query_result: list[dict[str, object]],
-        query_all_results: list[list[dict[str, object]]],
-        executed_queries: list[str],
+    result: dict[str, Any],
+    *,
+    changed: bool,
+    query_result: list[dict[str, object]],
+    query_all_results: list[list[dict[str, object]]],
+    executed_queries: list[str],
 ) -> None:
     assert _without_dynamic_metadata(result) == {
         "changed": changed,
