@@ -216,11 +216,10 @@ def collection_publish(session: nox.Session) -> None:
 server_list = galaxy
 
 [galaxy_server.galaxy]
-url = https://galaxy.ansible.com/api
+url = https://galaxy.ansible.com/
 """)
+        config_file.flush()
 
-        env = _ansible_env(Path(config_file.name).parent)
-        env["ANSIBLE_GALAXY_TOKEN_PATH"] = str(config_file.name)
         with session.chdir(PROJECT_ROOT):
             session.run(
                 "ansible-galaxy",
@@ -229,6 +228,9 @@ url = https://galaxy.ansible.com/api
                 str(collection_archive),
                 "-vvvvvvvv",
                 "--server",
-                "https://galaxy.ansible.com/api",
-                env={**env, "ANSIBLE_CONFIG": str(config_file.name), "ANSIBLE_GALAXY_TOKEN": token},
+                "galaxy",
+                env={
+                    "ANSIBLE_CONFIG": str(config_file.name),
+                    "ANSIBLE_GALAXY_SERVER_GALAXY_TOKEN": token,
+                },
             )
