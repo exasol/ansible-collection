@@ -1,0 +1,16 @@
+name: "CD-Extension: Publish Collection to Ansible Galaxy"
+
+on:
+  workflow_call:
+    secrets:
+      ANSIBLE_GALAXY_TOKEN:
+        required: true
+
+jobs:
+  publish-ansible-galaxy:
+    name: Publish Collection to Ansible Galaxy
+    uses: ./.github/workflows/publish-ansible-galaxy.yml
+    permissions:
+      contents: read
+    secrets:
+      ANSIBLE_GALAXY_TOKEN: ${{ secrets.ANSIBLE_GALAXY_TOKEN }}

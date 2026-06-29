@@ -3,6 +3,8 @@
 # pylint: disable=wildcard-import,unused-wildcard-import
 
 import fnmatch
+from functools import lru_cache
+import os
 import shutil
 import sys
 import tempfile
@@ -19,8 +21,21 @@ from noxconfig import PROJECT_CONFIG
 nox.options.sessions = ["format:fix"]
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
-COLLECTION_NAMESPACE = "exasol"
-COLLECTION_NAME = "exasol"
+
+
+@lru_cache(maxsize=1)
+def _collection_metadata() -> dict[str, str]:
+    """Return collection metadata from galaxy.yml."""
+    galaxy = yaml.safe_load((PROJECT_ROOT / "galaxy.yml").read_text())
+    return {
+        "namespace": galaxy["namespace"],
+        "name": galaxy["name"],
+    }
+
+
+COLLECTION_METADATA = _collection_metadata()
+COLLECTION_NAMESPACE = COLLECTION_METADATA["namespace"]
+COLLECTION_NAME = COLLECTION_METADATA["name"]
 
 
 def _collection_build_ignore_patterns() -> tuple[str, ...]:
@@ -181,4 +196,39 @@ def collection_integration(session: nox.Session) -> None:
                 sys.executable,
                 *session.posargs,
                 env=_ansible_env(tmp_path),
+            )
+
+@nox.session(name="collection:publish", python=False)
+def collection_publish(session: nox.Session) -> None:
+    """Publish the Ansible collection archive to Ansible Galaxy.
+    This requires an Ansible Galaxy API token in ANSIBLE_GALAXY_TOKEN.
+    """
+    collection_archive = PROJECT_ROOT / ".build_output" / "collections" / f"{COLLECTION_NAMESPACE}-{COLLECTION_NAME}-0.1.0.tar.gz"
+
+    with tempfile.NamedTemporaryFile(mode="w", prefix="ansible_galaxy_", suffix=".cfg") as config_file:
+        token = os.environ.get("ANSIBLE_GALAXY_TOKEN")
+        if not token:
+            raise RuntimeError("Set environment variable ANSIBLE_GALAXY_TOKEN.")
+
+        # Configuration file is required by ansible-galaxy to read the token from the environment variable.
+        config_file.write("""
+[galaxy]
+server_list = galaxy
+
+[galaxy_server.galaxy]
+url = https://galaxy.ansible.com/api
+""")
+
+        env = _ansible_env(Path(config_file.name).parent)
+        env["ANSIBLE_GALAXY_TOKEN_PATH"] = str(config_file.name)
+        with session.chdir(PROJECT_ROOT):
+            session.run(
+                "ansible-galaxy",
+                "collection",
+                "publish",
+                str(collection_archive),
+                "-vvvvvvvv",
+                "--server",
+                "https://galaxy.ansible.com/api",
+                env={**env, "ANSIBLE_CONFIG": str(config_file.name), "ANSIBLE_GALAXY_TOKEN": token},
             )

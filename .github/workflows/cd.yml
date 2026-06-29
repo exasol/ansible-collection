@@ -25,6 +25,15 @@ jobs:
     secrets:
       PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
 
+  cd-extension:
+    name: Extension
+    uses: ./.github/workflows/cd-extension.yml
+    needs:
+      - check-release-tag
+    secrets:
+      ANSIBLE_GALAXY_TOKEN: ${{ secrets.ANSIBLE_GALAXY_TOKEN }}
+    permissions:
+      contents: write
 
   publish-docs:
     needs:

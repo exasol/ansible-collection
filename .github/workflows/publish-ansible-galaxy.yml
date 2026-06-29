@@ -1,0 +1,39 @@
+name: Publish Collection to Anasible Galaxy
+
+on:
+  workflow_call:
+    secrets:
+      ANSIBLE_GALAXY_TOKEN:
+        required: true
+
+jobs:
+  publish-ansible-galaxy:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - name: SCM Checkout
+      uses: actions/checkout@v7
+      with:
+        persist-credentials: false
+
+    - name: Set up Python & Poetry Environment
+      id: set-up-python-and-poetry-environment
+      uses: exasol/python-toolbox/.github/actions/python-environment@v10
+      with:
+        python-version: "3.11"
+        poetry-version: "2.3.0"
+
+    - name: Build Ansible Collection
+      id: build-ansible-collection
+      run: poetry run nox -s collection:build
+
+    - name: Run Collection Sanity Checks
+      id: run-collection-sanity-checks
+      run: poetry run nox -s collection:sanity
+
+    - name: Publish Collection to Ansible Galaxy
+      id: publish-collection-to-ansible-galaxy
+      run: poetry run nox -s collection:publish
+      env:
+        ANSIBLE_GALAXY_TOKEN: ${{ secrets.ANSIBLE_GALAXY_TOKEN }}

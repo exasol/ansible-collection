@@ -1,5 +1,5 @@
-namespace: exasol
-name: exasol
+namespace: kaklakariada
+name: tmp-exasol
 version: "0.1.0"
 readme: README.md
 authors:
