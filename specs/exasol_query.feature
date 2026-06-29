@@ -66,3 +66,19 @@ Feature: exasol-query specification
     When exasol_query runs with an invalid login password
     Then the module fails with an authentication error
     And the invalid password is not exposed
+
+  @exasol-query-reject-batch-args
+  Scenario: Reject bound arguments for statement batch
+    Given an Exasol database is reachable at localhost
+    When exasol_query runs a statement batch with bound arguments
+    Then the module fails with a validation error
+    And the error explains that bound arguments require a single statement
+
+  @exasol-query-check-mode-mixed-batch
+  Scenario: Skip mixed read-write batch in check mode
+    Given an Exasol database is reachable at localhost
+    And a disposable check-mode schema does not exist
+    When exasol_query runs a batch containing SELECT and CREATE SCHEMA in check mode
+    Then changed is true
+    And no statement in the batch is executed
+    And the check-mode schema still does not exist

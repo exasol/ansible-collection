@@ -258,6 +258,15 @@ def execute_queries(
 ) -> ExasolQueryResult:
     """Execute one or more Exasol statements and return Ansible result values."""
     queries = normalize_query_list(query)
+
+    # Prevent unsafe reuse of args across batch execution
+    if len(queries) > 1 and (positional_args or named_args):
+        raise ValueError(
+            "positional_args and named_args can only be used with a single SQL "
+            "statement. For statement batches, split the batch into separate "
+            "exasol_query tasks or inline values in each statement."
+        )
+
     all_results: list[list[JsonValue]] = []
     rowcounts: list[int] = []
     execution_time_ms: list[float] = []
