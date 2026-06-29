@@ -3,6 +3,8 @@
 ## Summary
 
 * Removed plugin module_utils layer
+* Prepare publishing to Ansible Galaxy
+  * Only include required files into the uploaded bundle
 
 ## Refactorings
 
