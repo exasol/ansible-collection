@@ -1,4 +1,4 @@
-"""Tests for collection-native exasol_query module utility helpers."""
+"""Tests for collection-native exasol_query runtime helpers."""
 
 from __future__ import annotations
 
@@ -6,10 +6,9 @@ import datetime as dt
 import json
 import ssl
 from decimal import Decimal
-from pathlib import Path
 from typing import Any
 
-from plugins.module_utils import exasol_query
+from exasol.ansible_modules import exasol_query
 
 
 class FakeStatement:
@@ -62,16 +61,6 @@ def test_connection_argument_spec_marks_secret_options_no_log() -> None:
     assert argument_spec["login_password"]["no_log"] is True
     assert argument_spec["client_kwargs"]["no_log"] is True
     assert argument_spec["login_db"]["aliases"] == ["login_schema"]
-
-
-def test_runtime_source_path_uses_collection_root() -> None:
-    """Verify source-layout fallback is derived from the module file path."""
-    assert exasol_query._runtime_source_path() == (
-        Path(exasol_query.__file__).resolve().parents[2]
-        / "exasol"
-        / "ansible_modules"
-        / "exasol_query.py"
-    )
 
 
 def test_build_exasol_dsn_includes_certificate_fingerprint() -> None:
