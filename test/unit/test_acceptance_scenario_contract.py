@@ -175,7 +175,7 @@ def test_acceptance_python_cleanup_rejects_unsafe_schema_name(
     monkeypatch.setattr(
         acceptance_common,
         "connect_to_exasol",
-        lambda login_vars: connections.append(login_vars),
+        connections.append,
     )
 
     with pytest.raises(AssertionError, match="Unsafe disposable acceptance schema"):
