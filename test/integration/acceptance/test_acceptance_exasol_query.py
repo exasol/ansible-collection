@@ -106,8 +106,8 @@ def test_exasol_query_single_select(
     _assert_query_module_result(
         module_result,
         changed=False,
-        query_result=[{"A": "11"}],
-        query_all_results=[[{"A": "11"}]],
+        query_result=[{"A": 11}],
+        query_all_results=[[{"A": 11}]],
         executed_queries=["SELECT 11 AS A"],
     )
 
@@ -175,7 +175,7 @@ def test_exasol_query_batch_statements(
             [],
             [],
             [],
-            [{"ROW_COUNT": "2", "NOTE": "backend"}],
+            [{"ROW_COUNT": 2, "NOTE": "backend"}],
         ],
         executed_queries=expected_queries,
     )
@@ -237,8 +237,8 @@ def test_exasol_query_positional_args(
     _assert_query_module_result(
         module_result,
         changed=False,
-        query_result=[{"A": "42"}],
-        query_all_results=[[{"A": "42"}]],
+        query_result=[{"A": 42}],
+        query_all_results=[[{"A": 42}]],
         executed_queries=["SELECT ? AS A"],
     )
 
@@ -282,8 +282,8 @@ def test_exasol_query_named_args(
     _assert_query_module_result(
         module_result,
         changed=False,
-        query_result=[{"A": "7"}],
-        query_all_results=[[{"A": "7"}]],
+        query_result=[{"A": 7}],
+        query_all_results=[[{"A": 7}]],
         executed_queries=["SELECT :n AS A"],
     )
 
@@ -326,8 +326,8 @@ def test_exasol_query_check_mode_select(
     _assert_query_module_result(
         module_result,
         changed=False,
-        query_result=[{"A": "13"}],
-        query_all_results=[[{"A": "13"}]],
+        query_result=[{"A": 13}],
+        query_all_results=[[{"A": 13}]],
         executed_queries=["SELECT 13 AS A"],
     )
 
@@ -379,6 +379,7 @@ def test_exasol_query_check_mode_write(
 
     assert predicted_result == {
         "changed": True,
+        "failed": False,
         "query_result": [],
         "query_all_results": [],
         "executed_queries": [f"CREATE SCHEMA {context.test_schema}_CHECK_MODE"],
@@ -388,8 +389,8 @@ def test_exasol_query_check_mode_write(
     _assert_query_module_result(
         schema_check_result,
         changed=False,
-        query_result=[{"SCHEMA_COUNT": "0"}],
-        query_all_results=[[{"SCHEMA_COUNT": "0"}]],
+        query_result=[{"SCHEMA_COUNT": 0}],
+        query_all_results=[[{"SCHEMA_COUNT": 0}]],
         executed_queries=[
             (
                 "SELECT COUNT(*) AS SCHEMA_COUNT FROM EXA_SCHEMAS "
@@ -454,15 +455,16 @@ def _without_dynamic_metadata(result: dict[str, Any]) -> dict[str, Any]:
 
 
 def _assert_query_module_result(
-    result: dict[str, Any],
-    *,
-    changed: bool,
-    query_result: list[dict[str, object]],
-    query_all_results: list[list[dict[str, object]]],
-    executed_queries: list[str],
+        result: dict[str, Any],
+        *,
+        changed: bool,
+        query_result: list[dict[str, object]],
+        query_all_results: list[list[dict[str, object]]],
+        executed_queries: list[str],
 ) -> None:
     assert _without_dynamic_metadata(result) == {
         "changed": changed,
+        "failed": False,
         "query_result": query_result,
         "query_all_results": query_all_results,
         "executed_queries": executed_queries,
