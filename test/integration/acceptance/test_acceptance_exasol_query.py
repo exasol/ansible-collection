@@ -169,7 +169,7 @@ def test_exasol_query_batch_statements(
     _assert_query_module_result(
         module_result,
         changed=True,
-        query_result=[{"ROW_COUNT": "2", "NOTE": "backend"}],
+        query_result=[{"ROW_COUNT": 2, "NOTE": "backend"}],
         query_all_results=[
             [],
             [],
