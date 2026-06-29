@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sys
 import textwrap
@@ -13,6 +14,11 @@ from typing import Any
 
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
+from exasol.ansible_modules.common_identifier_validation import quote_identifier
+from exasol.ansible_modules.common_query import (
+    build_exasol_connect_kwargs,
+    normalized_exasol_error_message,
+)
 from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
@@ -22,6 +28,7 @@ ACCEPTANCE_PLAYBOOK_TEMPLATE = (
     ACCEPTANCE_COMMON_DIR / "acceptance_playbook_template.yml"
 )
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
+DISPOSABLE_SCHEMA_PATTERN = re.compile(r"^ANSIBLE_QUERY_[0-9A-F]{32}$")
 
 
 @dataclass(frozen=True)
@@ -178,6 +185,7 @@ def when_template_scenario_runs(
         scenario_id,
         scenario_playbook,
     )
+    _cleanup_disposable_schemas(context)
     return _run_playbook(context, playbook, scenario_id, extra_vars=extra_vars)
 
 
@@ -290,6 +298,43 @@ def _assert_playbook_contains_scenario(
 
 def _without_scenario_id(result: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in result.items() if key != "scenario_id"}
+
+
+def _cleanup_disposable_schemas(
+    context: AcceptanceContext,
+) -> None:
+    schema_names = _disposable_schema_names(context)
+    try:
+        connection = connect_to_exasol(context.login_vars)
+        try:
+            for schema_name in schema_names:
+                connection.execute(
+                    f"DROP SCHEMA IF EXISTS {quote_identifier(schema_name)} CASCADE"
+                )
+        finally:
+            connection.close()
+    except Exception as error:
+        message = normalized_exasol_error_message(
+            error,
+            context.login_vars,
+            operation="Acceptance cleanup",
+        )
+        raise AssertionError(message) from error
+
+
+def connect_to_exasol(login_vars: dict[str, object]) -> Any:
+    import pyexasol
+
+    return pyexasol.connect(**build_exasol_connect_kwargs(login_vars))
+
+
+def _disposable_schema_names(context: AcceptanceContext) -> tuple[str, str]:
+    schema_name = context.test_schema
+    if not DISPOSABLE_SCHEMA_PATTERN.fullmatch(schema_name):
+        msg = f"Unsafe disposable acceptance schema name: {schema_name}"
+        raise AssertionError(msg)
+
+    return schema_name, f"{schema_name}_CHECK_MODE"
 
 
 def copy_acceptance_common_tasks(project_dir: Path) -> None:

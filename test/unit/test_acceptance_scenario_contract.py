@@ -97,29 +97,115 @@ def test_acceptance_playbook_template_defines_one_scenario_placeholder() -> None
     assert "INSERT HERE" not in template
 
 
+def test_acceptance_playbook_template_leaves_cleanup_to_python() -> None:
+    """Verify the shared template contains no destructive cleanup tasks."""
+    template = (ACCEPTANCE_COMMON_ROOT / "acceptance_playbook_template.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "DROP SCHEMA" not in template
+    assert "Verify disposable acceptance identifiers" not in template
+
+
 def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None:
     """Verify inline scenario fragments are inserted as valid playbook tasks."""
-    integration_root = PROJECT_ROOT / "test" / "integration"
-    if str(integration_root) not in sys.path:
-        sys.path.insert(0, str(integration_root))
+    acceptance_common = _acceptance_common_module()
 
-    from acceptance_common.acceptance_test_common import _render_template_playbook
-
-    rendered = _render_template_playbook("""
+    rendered = acceptance_common._render_template_playbook("""
         - name: Inline scenario
-          vars:
-            acceptance_current_scenario_id: "{{ acceptance_scenario_id }}"
           block:
             - name: Store scenario result
               ansible.builtin.set_fact:
                 acceptance_result:
-                  scenario_id: "{{ acceptance_current_scenario_id }}"
+                  scenario_id: "{{ acceptance_scenario_id }}"
                 cacheable: true
         """)
     parsed = yaml.safe_load(rendered)
 
     assert "__ACCEPTANCE_SCENARIO_TASKS__" not in rendered
-    assert parsed[0]["tasks"][2]["block"][1]["name"] == "Inline scenario"
+    assert parsed[0]["tasks"][1]["block"][0]["name"] == "Inline scenario"
+
+
+def test_acceptance_python_cleanup_drops_disposable_schemas(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify Python cleanup drops both generated acceptance schemas."""
+    acceptance_common = _acceptance_common_module()
+    connection = FakeConnection()
+    context = acceptance_common.AcceptanceContext(
+        private_data_dir=tmp_path,
+        project_dir=tmp_path,
+        login_vars={"login_user": "sys", "login_password": "secret"},
+        suffix="0123456789ABCDEF0123456789ABCDEF",
+    )
+
+    monkeypatch.setattr(
+        acceptance_common,
+        "connect_to_exasol",
+        lambda login_vars: connection,
+    )
+
+    acceptance_common._cleanup_disposable_schemas(context)
+
+    assert connection.executed == [
+        'DROP SCHEMA IF EXISTS "ANSIBLE_QUERY_0123456789ABCDEF0123456789ABCDEF" CASCADE',
+        (
+            "DROP SCHEMA IF EXISTS "
+            '"ANSIBLE_QUERY_0123456789ABCDEF0123456789ABCDEF_CHECK_MODE" CASCADE'
+        ),
+    ]
+    assert connection.closed is True
+
+
+def test_acceptance_python_cleanup_rejects_unsafe_schema_name(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify Python cleanup preserves the disposable schema-name safety check."""
+    acceptance_common = _acceptance_common_module()
+    connections: list[dict[str, object]] = []
+    context = acceptance_common.AcceptanceContext(
+        private_data_dir=tmp_path,
+        project_dir=tmp_path,
+        login_vars={"login_user": "sys", "login_password": "secret"},
+        suffix="NOT_SAFE",
+    )
+
+    monkeypatch.setattr(
+        acceptance_common,
+        "connect_to_exasol",
+        lambda login_vars: connections.append(login_vars),
+    )
+
+    with pytest.raises(AssertionError, match="Unsafe disposable acceptance schema"):
+        acceptance_common._cleanup_disposable_schemas(context)
+
+    assert connections == []
+
+
+class FakeConnection:
+    """Small pyexasol connection stand-in for cleanup tests."""
+
+    def __init__(self) -> None:
+        self.executed: list[str] = []
+        self.closed = False
+
+    def execute(self, query: str) -> None:
+        self.executed.append(query)
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def _acceptance_common_module() -> Any:
+    integration_root = PROJECT_ROOT / "test" / "integration"
+    if str(integration_root) not in sys.path:
+        sys.path.insert(0, str(integration_root))
+
+    from acceptance_common import acceptance_test_common
+
+    return acceptance_test_common
 
 
 def _spec_scenarios(path: Path) -> list[Scenario]:

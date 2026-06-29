@@ -26,29 +26,6 @@
         exasol_validate_certs: "{{ validate_certs }}"
         exasol_certificate_fingerprint: "{{ certificate_fingerprint | default('') }}"
 
-    - name: Verify disposable acceptance identifiers
-      ansible.builtin.assert:
-        that:
-          - (test_schema | default('')) is match('^ANSIBLE_QUERY_[0-9A-F]{32}$')
-        fail_msg: >-
-          Refusing to run destructive acceptance cleanup for unsafe
-          test_schema={{ test_schema | default('<undefined>') }}.
-        quiet: true
-
     - name: Run acceptance scenario
       block:
-        - name: Pre-clean disposable schemas
-          exasol.exasol.exasol_query:
-            query:
-              - DROP SCHEMA IF EXISTS {{ test_schema }} CASCADE
-              - DROP SCHEMA IF EXISTS {{ test_schema }}_CHECK_MODE CASCADE
-
         __ACCEPTANCE_SCENARIO_TASKS__
-
-      always:
-        - name: Post-clean disposable schemas
-          exasol.exasol.exasol_query:
-            query:
-              - DROP SCHEMA IF EXISTS {{ test_schema }} CASCADE
-              - DROP SCHEMA IF EXISTS {{ test_schema }}_CHECK_MODE CASCADE
-          ignore_errors: true
