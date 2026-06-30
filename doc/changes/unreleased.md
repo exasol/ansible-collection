@@ -4,7 +4,12 @@
 
 * Removed plugin module_utils layer
 * Prepare publishing to Ansible Galaxy
-  * Only include required files into the uploaded bundle
+* Only include required files into the uploaded bundle
+* Implemented exasol_role module
+
+## Features
+
+* #36: Implement exasol_role module
 
 ## Refactorings
 
