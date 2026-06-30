@@ -233,3 +233,5 @@ itde/
 
 # codex
 /.codex
+/.serena/
+/.python-version

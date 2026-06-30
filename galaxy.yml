@@ -1,6 +1,6 @@
 namespace: exasol
 name: exasol
-version: "0.1.0"
+version: "0.2.0"
 readme: README.md
 authors:
   - Exasol AG <opensource@exasol.com>
@@ -14,29 +14,12 @@ tags:
 repository: https://github.com/exasol/ansible-collection
 issues: https://github.com/exasol/ansible-collection/issues
 dependencies: {}
-build_ignore:
-  - "*.egg-info"
-  - "*.pyc"
-  - .ansible
-  - .ansible-test
-  - .build_output
-  - .codex
-  - .coverage
-  - .coverage.*
-  - .git
-  - .html-documentation
-  - .idea
-  - .lint.json
-  - .lint.txt
-  - .mypy_cache
-  - .nox
-  - .pytest_cache
-  - .ruff_cache
-  - .security.json
-  - .sonar
-  - __pycache__
-  - ansible_collections
-  - build
-  - dist
-  - exasol
-  - test
+manifest:
+  directives:
+    - global-exclude *
+    - include LICENSE
+    - include README.md
+    - include requirements.txt
+    - recursive-include meta *
+    - recursive-include plugins *
+    - recursive-include roles *
