@@ -8,6 +8,8 @@ import ssl
 from decimal import Decimal
 from typing import Any
 
+import pytest
+
 from exasol.ansible_modules import exasol_query
 
 
@@ -233,3 +235,32 @@ def test_error_sanitization_redacts_overlapping_secrets() -> None:
     )
 
     assert message == "token ******** password ********"
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"positional_args": [42]},
+        {"named_args": {"name": "app"}},
+    ],
+)
+def test_build_query_request_rejects_bound_args_for_statement_batches(
+    kwargs: dict[str, object],
+) -> None:
+    """Verify statement batches do not ambiguously reuse one argument set."""
+    connection = FakeConnection([])
+
+    with pytest.raises(ValueError) as error_info:
+        exasol_query.execute_queries(
+            connection,
+            [
+                "SELECT ? AS A",
+                "SELECT ? AS B",
+            ],
+            **kwargs,
+        )
+
+    message = str(error_info.value)
+    assert "positional_args and named_args" in message
+    assert "single SQL statement" in message
+    assert "statement batches" in message
