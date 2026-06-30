@@ -52,8 +52,8 @@ class _SqlglotExpression(Protocol):
 
     def find_all(
         self,
-        *expression_types: type["_SqlglotExpression"],
-    ) -> Iterable["_SqlglotExpression"]:
+        *expression_types: type[_SqlglotExpression],
+    ) -> Iterable[_SqlglotExpression]:
         """Find matching expressions in the parsed SQL tree."""
 
 

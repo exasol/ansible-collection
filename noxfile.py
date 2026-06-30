@@ -2,16 +2,17 @@
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 
-import fnmatch
-from functools import lru_cache
 import os
 import shutil
 import sys
 import tempfile
+from functools import lru_cache
 from pathlib import Path
 
 import nox
-import yaml  # type: ignore[import-untyped]
+import yaml
+
+from collection_manifest import ignore_collection_manifest_paths
 
 # imports all nox task provided by the toolbox
 from exasol.toolbox.nox.tasks import *  # noqa: F403
@@ -38,36 +39,17 @@ COLLECTION_METADATA = _collection_metadata()
 COLLECTION_NAMESPACE = COLLECTION_METADATA["namespace"]
 COLLECTION_NAME = COLLECTION_METADATA["name"]
 COLLECTION_VERSION = COLLECTION_METADATA["version"]
-
-
-def _collection_build_ignore_patterns() -> tuple[str, ...]:
-    """Return collection build ignore patterns from galaxy.yml."""
-    galaxy = yaml.safe_load((PROJECT_ROOT / "galaxy.yml").read_text())
-    return tuple(galaxy.get("build_ignore", ()))
+ANSIBLE_TEST_SOURCE_PATHS = (
+    "exasol",
+    "tests",
+    "tests/integration",
+    "tests/integration/targets",
+)
 
 
 def _ignore_collection_build_paths(directory: str, names: list[str]) -> set[str]:
-    """Return paths ignored by the collection build configuration."""
-    ignored_names = set()
-    patterns = _collection_build_ignore_patterns()
-    directory_path = Path(directory)
-
-    for name in names:
-        path = directory_path / name
-        try:
-            relative_path = path.relative_to(PROJECT_ROOT).as_posix()
-        except ValueError:
-            relative_path = name
-
-        if any(
-            fnmatch.fnmatch(name, pattern)
-            or fnmatch.fnmatch(relative_path, pattern)
-            or relative_path.startswith(f"{pattern.rstrip('/')}/")
-            for pattern in patterns
-        ):
-            ignored_names.add(name)
-
-    return ignored_names
+    """Return paths excluded by the Galaxy collection manifest."""
+    return ignore_collection_manifest_paths(directory, names)
 
 
 def _ignore_ansible_test_source_paths(directory: str, names: list[str]) -> set[str]:
@@ -89,10 +71,12 @@ def _ignore_ansible_test_source_paths(directory: str, names: list[str]) -> set[s
         except ValueError:
             continue
 
-        # ansible-test sanity imports modules from an isolated venv before the
-        # PyPI runtime package is installed. Keep the source runtime package in
-        # this temporary test layout; galaxy.yml still excludes it from archives.
-        if relative_path == "exasol" or relative_path.startswith("exasol/"):
+        if any(
+            relative_path == allowed_path
+            or relative_path.startswith(f"{allowed_path}/")
+            or allowed_path.startswith(f"{relative_path}/")
+            for allowed_path in ANSIBLE_TEST_SOURCE_PATHS
+        ):
             ignored_names.remove(name)
 
     return ignored_names
@@ -102,7 +86,9 @@ def _ansible_env(tmp_path: Path) -> dict[str, str]:
     """Return Ansible environment variables rooted in a writable temp path."""
     ansible_home = tmp_path / ".ansible"
     ansible_local_tmp = ansible_home / "tmp"
+    ansible_tmpdir = tmp_path / ".tmp"
     ansible_local_tmp.mkdir(parents=True, exist_ok=True)
+    ansible_tmpdir.mkdir(parents=True, exist_ok=True)
 
     return {
         "ANSIBLE_HOME": str(ansible_home),
@@ -200,6 +186,7 @@ def collection_integration(session: nox.Session) -> None:
                 env=_ansible_env(tmp_path),
             )
 
+
 @nox.session(name="collection:publish", python=False)
 def collection_publish(session: nox.Session) -> None:
     """Publish the Ansible collection archive to Ansible Galaxy.
@@ -212,7 +199,9 @@ def collection_publish(session: nox.Session) -> None:
         / f"{COLLECTION_NAMESPACE}-{COLLECTION_NAME}-{COLLECTION_VERSION}.tar.gz"
     )
 
-    with tempfile.NamedTemporaryFile(mode="w", prefix="ansible_galaxy_", suffix=".cfg") as config_file:
+    with tempfile.NamedTemporaryFile(
+        mode="w", prefix="ansible_galaxy_", suffix=".cfg"
+    ) as config_file:
         token = os.environ.get("ANSIBLE_GALAXY_TOKEN")
         if not token:
             raise RuntimeError("Set environment variable ANSIBLE_GALAXY_TOKEN.")

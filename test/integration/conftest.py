@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-import fnmatch
 import os
 import shutil
 import ssl
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
 
+from collection_manifest import ignore_collection_manifest_paths
 from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
@@ -61,32 +62,8 @@ class ExasolConnection:
         return result
 
 
-def _collection_build_ignore_patterns() -> tuple[str, ...]:
-    galaxy = yaml.safe_load((PROJECT_ROOT / "galaxy.yml").read_text())
-    return tuple(galaxy.get("build_ignore", ()))
-
-
 def _ignore_collection_build_paths(directory: str, names: list[str]) -> set[str]:
-    ignored_names = set()
-    patterns = _collection_build_ignore_patterns()
-    directory_path = Path(directory)
-
-    for name in names:
-        path = directory_path / name
-        try:
-            relative_path = path.relative_to(PROJECT_ROOT).as_posix()
-        except ValueError:
-            relative_path = name
-
-        if any(
-            fnmatch.fnmatch(name, pattern)
-            or fnmatch.fnmatch(relative_path, pattern)
-            or relative_path.startswith(f"{pattern.rstrip('/')}/")
-            for pattern in patterns
-        ):
-            ignored_names.add(name)
-
-    return ignored_names
+    return ignore_collection_manifest_paths(directory, names)
 
 
 def _prepare_collection_layout(root: Path) -> Path:
