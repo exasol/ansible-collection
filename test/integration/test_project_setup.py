@@ -5,6 +5,12 @@ from __future__ import annotations
 import yaml
 
 from noxconfig import PROJECT_CONFIG
+from release_version import (
+    RUNTIME_PACKAGE_NAME,
+    format_runtime_requirement,
+    load_pinned_runtime_requirement_version,
+    load_project_version,
+)
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 
@@ -65,4 +71,12 @@ def test_collection_execution_environment_metadata_exists() -> None:
 
     assert metadata["dependencies"]["python"] == "meta/ee-requirements.txt"
     assert metadata["dependencies"]["system"] == "meta/ee-bindep.txt"
-    assert "exasol-ansible-modules" in python_requirements_path.read_text().splitlines()
+    project_version = load_project_version(PROJECT_ROOT)
+
+    assert load_pinned_runtime_requirement_version(python_requirements_path) == (
+        project_version
+    )
+    assert python_requirements_path.read_text().strip() == format_runtime_requirement(
+        project_version
+    )
+    assert RUNTIME_PACKAGE_NAME in python_requirements_path.read_text()
