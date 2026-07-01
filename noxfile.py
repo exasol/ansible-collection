@@ -42,6 +42,7 @@ COLLECTION_NAME = COLLECTION_METADATA["name"]
 COLLECTION_VERSION = COLLECTION_METADATA["version"]
 ANSIBLE_TEST_SOURCE_PATHS = (
     "exasol",
+    "galaxy.yml",
     "tests",
     "tests/integration",
     "tests/integration/targets",
