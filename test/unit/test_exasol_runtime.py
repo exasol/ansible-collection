@@ -23,7 +23,7 @@ from exasol.ansible_modules.common_identifier_validation import (
     validate_schema_name,
     validate_user_name,
 )
-from plugins.doc_fragments.exasol_query import ModuleDocFragment
+from plugins.doc_fragments.connection import ModuleDocFragment
 
 
 def test_runtime_argument_spec_import_does_not_require_sqlglot(

@@ -1,0 +1,32 @@
+---
+# Shared acceptance playbook template.
+# The acceptance test helper replaces the placeholder below with the
+# scenario-specific task fragment supplied by an individual test.
+- hosts: localhost
+  gather_facts: false
+  collections:
+    - exasol.exasol
+  module_defaults:
+    __ACCEPTANCE_MODULE_DEFAULTS__:
+      login_host: "{{ login_host }}"
+      login_port: "{{ login_port }}"
+      login_user: "{{ login_user }}"
+      login_password: "{{ login_password }}"
+      validate_certs: "{{ validate_certs }}"
+      certificate_fingerprint: "{{ certificate_fingerprint | default('') }}"
+
+  tasks:
+    - name: Setup acceptance test environment
+      ansible.builtin.import_role:
+        name: exasol.exasol.setup_exasol
+      vars:
+        exasol_host: "{{ login_host }}"
+        exasol_port: "{{ login_port }}"
+        exasol_user: "{{ login_user }}"
+        exasol_password: "{{ login_password }}"
+        exasol_validate_certs: "{{ validate_certs }}"
+        exasol_certificate_fingerprint: "{{ certificate_fingerprint | default('') }}"
+
+    - name: Run acceptance scenario
+      block:
+        __ACCEPTANCE_SCENARIO_TASKS__

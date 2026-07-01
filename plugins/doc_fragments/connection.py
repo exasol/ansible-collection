@@ -1,10 +1,10 @@
-"""Documentation fragments for Exasol modules."""
+"""Shared Exasol connection documentation fragment."""
 
 from __future__ import annotations
 
 
 class ModuleDocFragment:
-    """Shared Exasol module documentation fragments."""
+    """Connection options shared by Exasol Ansible modules."""
 
     DOCUMENTATION = r"""
 options:

@@ -25,7 +25,7 @@ version_added: "0.1.0"
 author:
   - Exasol AG (@exasol)
 extends_documentation_fragment:
-  - exasol.exasol.exasol_query
+  - exasol.exasol.connection
 options:
   name:
     description:
@@ -172,11 +172,13 @@ from typing import Any
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.exasol.exasol.plugins.module_utils import (
-    exasol_query as exasol_query_utils,
+    common_runtime_import,
 )
-from ansible_collections.exasol.exasol.plugins.module_utils import (
-    exasol_user as exasol_user_utils,
-)
+
+common_runtime_import.make_source_runtime_importable_for_ansible_sanity(__file__)
+
+from exasol.ansible_modules import exasol_query as exasol_query_utils
+from exasol.ansible_modules import exasol_user as exasol_user_utils
 
 
 def main() -> None:

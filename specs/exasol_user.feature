@@ -75,7 +75,7 @@ Feature: exasol-user specification
       | sql                                         |
       | CREATE USER "BOB" IDENTIFIED BY "********" |
       | GRANT CREATE SESSION TO "BOB"              |
-    And user "BOB" still does not exist in EXA_ALL_USERS
+    And user "BOB" does not exist in EXA_ALL_USERS
     And the module result does not contain "Check_Secret_42"
 
   @exasol-user-check-mode-update-ldap
@@ -90,7 +90,7 @@ Feature: exasol-user specification
     And executed_queries equals:
       | sql                                                   |
       | ALTER USER "ALICE" IDENTIFIED AT LDAP AS '********'  |
-    And EXA_DBA_USERS.DISTINGUISHED_NAME for "ALICE" remains empty
+    And EXA_DBA_USERS.DISTINGUISHED_NAME for "ALICE" is unchanged
     And the module result does not contain "cn=alice-check,dc=authorization,dc=exasol,dc=com"
 
   @exasol-user-check-mode-drop

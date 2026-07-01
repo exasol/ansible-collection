@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
-import shutil
+import re
 import sys
+import textwrap
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,11 +13,21 @@ from typing import Any
 
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
+from exasol.ansible_modules.common_identifier_validation import quote_identifier
+from exasol.ansible_modules.common_query import (
+    build_exasol_connect_kwargs,
+    normalized_exasol_error_message,
+)
 from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 ACCEPTANCE_COMMON_DIR = PROJECT_ROOT / "test" / "integration" / "acceptance_common"
-ACCEPTANCE_COMMON_TASK_FILES = ("acceptance_common_setup.yml",)
+ACCEPTANCE_PLAYBOOK_TEMPLATE = (
+    ACCEPTANCE_COMMON_DIR / "acceptance_playbook_template.yml"
+)
+MODULE_DEFAULTS_PLACEHOLDER = "__ACCEPTANCE_MODULE_DEFAULTS__"
+SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
+DISPOSABLE_SCHEMA_PATTERN = re.compile(r"^ANSIBLE_QUERY_[0-9A-F]{32}$")
 
 
 @dataclass(frozen=True)
@@ -137,15 +148,44 @@ def when_module_scenario_runs(
     context: AcceptanceContext,
     module_name: str,
     scenario_id: str,
+    *,
+    scenario_playbook: str | None = None,
     extra_vars: dict[str, object] | None = None,
 ) -> dict[str, Any]:
     """When one module acceptance scenario runs with an existing context."""
+    if scenario_playbook is not None:
+        return when_template_scenario_runs(
+            context,
+            module_name,
+            scenario_id,
+            scenario_playbook,
+            extra_vars=extra_vars,
+        )
+
     return when_playbook_scenario_runs(
         context,
         acceptance_playbook_resource(module_name),
         scenario_id,
         extra_vars=extra_vars,
     )
+
+
+def when_template_scenario_runs(
+    context: AcceptanceContext,
+    module_name: str,
+    scenario_id: str,
+    scenario_playbook: str,
+    extra_vars: dict[str, object] | None = None,
+) -> dict[str, Any]:
+    """When one inline scenario fragment runs through the shared template."""
+    playbook = _write_template_playbook(
+        context.project_dir,
+        module_name,
+        scenario_id,
+        scenario_playbook,
+    )
+    _cleanup_disposable_schemas(context)
+    return _run_playbook(context, playbook, scenario_id, extra_vars=extra_vars)
 
 
 def when_playbook_scenario_runs(
@@ -160,6 +200,15 @@ def when_playbook_scenario_runs(
         playbook_resource,
         scenario_id,
     )
+    return _run_playbook(context, playbook, scenario_id, extra_vars=extra_vars)
+
+
+def _run_playbook(
+    context: AcceptanceContext,
+    playbook: Path,
+    scenario_id: str,
+    extra_vars: dict[str, object] | None = None,
+) -> dict[str, Any]:
     runner = Runner(
         repositories=(),
         work_dir=context.private_data_dir,
@@ -198,7 +247,6 @@ def _write_playbook(
     scenario_id: str,
 ) -> Path:
     _assert_playbook_contains_scenario(playbook_resource, scenario_id)
-    copy_acceptance_common_tasks(project_dir)
     playbook_dir = project_dir / playbook_resource.parent.name
     playbook_dir.mkdir(exist_ok=True)
     playbook = playbook_dir / f"{scenario_id}.yml"
@@ -207,6 +255,41 @@ def _write_playbook(
         encoding="utf-8",
     )
     return playbook
+
+
+def _write_template_playbook(
+    project_dir: Path,
+    module_name: str,
+    scenario_id: str,
+    scenario_playbook: str,
+) -> Path:
+    playbook_dir = project_dir / module_name
+    playbook_dir.mkdir(exist_ok=True)
+    playbook = playbook_dir / f"{scenario_id}.yml"
+    rendered_playbook = _render_template_playbook(module_name, scenario_playbook)
+    playbook.write_text(rendered_playbook, encoding="utf-8")
+    return playbook
+
+
+def _render_template_playbook(module_name: str, scenario_playbook: str) -> str:
+    template = ACCEPTANCE_PLAYBOOK_TEMPLATE.read_text(encoding="utf-8")
+    scenario_tasks = textwrap.indent(
+        textwrap.dedent(scenario_playbook).strip("\n"),
+        " " * 8,
+    )
+    if SCENARIO_TASKS_PLACEHOLDER not in template:
+        msg = f"{ACCEPTANCE_PLAYBOOK_TEMPLATE} does not define scenario placeholder"
+        raise AssertionError(msg)
+    if MODULE_DEFAULTS_PLACEHOLDER not in template:
+        msg = (
+            f"{ACCEPTANCE_PLAYBOOK_TEMPLATE} does not define module defaults "
+            "placeholder"
+        )
+        raise AssertionError(msg)
+
+    return template.replace(
+        MODULE_DEFAULTS_PLACEHOLDER, f"exasol.exasol.{module_name}"
+    ).replace(SCENARIO_TASKS_PLACEHOLDER, scenario_tasks)
 
 
 def _assert_playbook_contains_scenario(
@@ -223,11 +306,38 @@ def _without_scenario_id(result: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in result.items() if key != "scenario_id"}
 
 
-def copy_acceptance_common_tasks(project_dir: Path) -> None:
-    common_dir = project_dir / "acceptance_common"
-    common_dir.mkdir(exist_ok=True)
-    for file_name in ACCEPTANCE_COMMON_TASK_FILES:
-        shutil.copy2(
-            ACCEPTANCE_COMMON_DIR / file_name,
-            common_dir / file_name,
+def _cleanup_disposable_schemas(
+    context: AcceptanceContext,
+) -> None:
+    schema_names = _disposable_schema_names(context)
+    try:
+        connection = connect_to_exasol(context.login_vars)
+        try:
+            for schema_name in schema_names:
+                connection.execute(
+                    f"DROP SCHEMA IF EXISTS {quote_identifier(schema_name)} CASCADE"
+                )
+        finally:
+            connection.close()
+    except Exception as error:
+        message = normalized_exasol_error_message(
+            error,
+            context.login_vars,
+            operation="Acceptance cleanup",
         )
+        raise AssertionError(message) from error
+
+
+def connect_to_exasol(login_vars: dict[str, object]) -> Any:
+    import pyexasol
+
+    return pyexasol.connect(**build_exasol_connect_kwargs(login_vars))
+
+
+def _disposable_schema_names(context: AcceptanceContext) -> tuple[str, str]:
+    schema_name = context.test_schema
+    if not DISPOSABLE_SCHEMA_PATTERN.fullmatch(schema_name):
+        msg = f"Unsafe disposable acceptance schema name: {schema_name}"
+        raise AssertionError(msg)
+
+    return schema_name, f"{schema_name}_CHECK_MODE"

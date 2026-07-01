@@ -17,7 +17,7 @@ version_added: "0.1.0"
 author:
   - Exasol AG (@exasol)
 extends_documentation_fragment:
-  - exasol.exasol.exasol_query
+  - exasol.exasol.connection
 options:
   query:
     description:
@@ -120,8 +120,13 @@ from typing import Any
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.exasol.exasol.plugins.module_utils import (
-    exasol_query as exasol_query_utils,
+    common_runtime_import,
 )
+
+common_runtime_import.make_source_runtime_importable_for_ansible_sanity(__file__)
+
+from exasol.ansible_modules import exasol_query as exasol_query_utils
+from exasol.ansible_modules.common_query import ExasolQueryResult
 
 
 def main() -> None:
@@ -175,7 +180,7 @@ def exit_if_check_mode_would_change(module: AnsibleModule, queries: list[str]) -
     )
 
 
-def run_query(params: dict[str, Any]) -> dict[str, Any]:
+def run_query(params: dict[str, Any]) -> ExasolQueryResult:
     """Connect to Exasol, execute query parameters, and close the connection."""
     try:
         import pyexasol

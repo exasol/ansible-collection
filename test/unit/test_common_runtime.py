@@ -1,14 +1,9 @@
-"""Tests for shared runtime helpers."""
+"""Tests for shared runtime validation helpers."""
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-from types import ModuleType
-
 import pytest
 
-from exasol.ansible_modules import common_runtime_import
 from exasol.ansible_modules.common_identifier_validation import (
     quote_identifier,
     validate_identifier,
@@ -21,14 +16,6 @@ from exasol.ansible_modules.common_param_validation import (
     validate_choice_param,
     validate_required_param,
 )
-from exasol.ansible_modules.common_runtime_import import (
-    QUERY_RUNTIME_MODULE_NAME,
-    load_runtime_module,
-    runtime_from_source_file,
-    source_runtime_spec_and_loader,
-)
-
-RUNTIME_DIR = Path(__file__).resolve().parents[2] / "exasol" / "ansible_modules"
 
 
 def test_choice_string_accepts_valid_values() -> None:
@@ -73,117 +60,6 @@ def test_required_string_rejects_invalid_values(value: object) -> None:
     """Verify required string options must be non-empty strings."""
     with pytest.raises(ValueError, match="name must be a non-empty string"):
         validate_required_param({"name": value}, "name")
-
-
-def test_load_runtime_module_falls_back_to_source_file(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify runtime loading falls back to source-file loading."""
-    runtime = ModuleType("runtime")
-
-    def import_module(name: str) -> ModuleType:
-        assert name == "missing.module"
-        raise ImportError("missing package import")
-
-    def fake_runtime_from_source_file(
-        source_module_name: str,
-        source_path: Path,
-        description: str,
-    ) -> ModuleType:
-        assert source_module_name == "source.module"
-        assert source_path == Path("runtime.py")
-        assert description == "runtime implementation"
-        return runtime
-
-    monkeypatch.setattr(
-        "exasol.ansible_modules.common_runtime_import.importlib.import_module",
-        import_module,
-    )
-    monkeypatch.setattr(
-        common_runtime_import,
-        "runtime_from_source_file",
-        fake_runtime_from_source_file,
-    )
-
-    assert (
-        load_runtime_module(
-            module_name="missing.module",
-            source_module_name="source.module",
-            source_path=Path("runtime.py"),
-            description="runtime implementation",
-        )
-        is runtime
-    )
-
-
-def test_runtime_from_source_file_returns_cached_module() -> None:
-    """Verify source runtime loading reuses an already cached module."""
-    runtime = ModuleType("cached_runtime")
-    source_module_name = "_test_cached_runtime"
-
-    previous = sys.modules.get(source_module_name)
-    sys.modules[source_module_name] = runtime
-
-    try:
-        assert (
-            runtime_from_source_file(
-                source_module_name,
-                Path("runtime.py"),
-                "runtime implementation",
-            )
-            is runtime
-        )
-    finally:
-        if previous is None:
-            sys.modules.pop(source_module_name, None)
-        else:
-            sys.modules[source_module_name] = previous
-
-
-def test_runtime_from_source_file_loads_query_runtime() -> None:
-    """Verify source runtime loading can import the sibling query module."""
-    previous = sys.modules.pop(QUERY_RUNTIME_MODULE_NAME, None)
-
-    try:
-        runtime = runtime_from_source_file(
-            QUERY_RUNTIME_MODULE_NAME,
-            RUNTIME_DIR / "exasol_query.py",
-            "query runtime implementation",
-        )
-
-        assert runtime.__name__ == QUERY_RUNTIME_MODULE_NAME
-        assert Path(runtime.__file__).resolve() == RUNTIME_DIR / "exasol_query.py"
-        assert hasattr(runtime, "execute_queries")
-    finally:
-        sys.modules.pop(QUERY_RUNTIME_MODULE_NAME, None)
-        if previous is not None:
-            sys.modules[QUERY_RUNTIME_MODULE_NAME] = previous
-
-
-def test_source_runtime_spec_loader_failure_is_actionable(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify source runtime loading fails clearly when no loader is available."""
-
-    monkeypatch.setattr(
-        common_runtime_import.importlib.util,
-        "spec_from_file_location",
-        lambda *_args, **_kwargs: None,
-    )
-
-    with pytest.raises(ImportError) as exc_info:
-        source_runtime_spec_and_loader(
-            QUERY_RUNTIME_MODULE_NAME,
-            Path("exasol_query.py"),
-            "query runtime implementation",
-        )
-
-    message = str(exc_info.value)
-    assert "Cannot load query runtime implementation from exasol_query.py" in message
-    assert (
-        "Ensure the collection was installed with its runtime source files" in message
-    )
-    assert "path is readable" in message
 
 
 def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
