@@ -17,6 +17,7 @@ ACCEPTANCE_ROOT = PROJECT_ROOT / "test" / "integration" / "acceptance"
 ACCEPTANCE_COMMON_ROOT = PROJECT_ROOT / "test" / "integration" / "acceptance_common"
 SPEC_ROOT = PROJECT_ROOT / "specs"
 SCENARIO_ID_PATTERN = re.compile(r"^[a-z0-9-]+$")
+MODULE_DEFAULTS_PLACEHOLDER = "__ACCEPTANCE_MODULE_DEFAULTS__"
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 
 
@@ -25,7 +26,6 @@ class Scenario:
     """Scenario identity shared by specs, playbooks, and tests."""
 
     scenario_id: str
-    name: str
 
 
 def _acceptance_contract_files() -> list[object]:
@@ -94,6 +94,7 @@ def test_acceptance_playbook_template_defines_one_scenario_placeholder() -> None
     )
 
     assert template.count(SCENARIO_TASKS_PLACEHOLDER) == 1
+    assert template.count(MODULE_DEFAULTS_PLACEHOLDER) == 1
     assert "INSERT HERE" not in template
 
 
@@ -111,7 +112,9 @@ def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None
     """Verify inline scenario fragments are inserted as valid playbook tasks."""
     acceptance_common = _acceptance_common_module()
 
-    rendered = acceptance_common._render_template_playbook("""
+    rendered = acceptance_common._render_template_playbook(
+        "exasol_user",
+        """
         - name: Inline scenario
           block:
             - name: Store scenario result
@@ -119,10 +122,13 @@ def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None
                 acceptance_result:
                   scenario_id: "{{ acceptance_scenario_id }}"
                 cacheable: true
-        """)
+        """,
+    )
     parsed = yaml.safe_load(rendered)
 
     assert "__ACCEPTANCE_SCENARIO_TASKS__" not in rendered
+    assert "__ACCEPTANCE_MODULE_DEFAULTS__" not in rendered
+    assert "exasol.exasol.exasol_user" in parsed[0]["module_defaults"]
     assert parsed[0]["tasks"][1]["block"][0]["name"] == "Inline scenario"
 
 
@@ -221,11 +227,10 @@ def _spec_scenarios(path: Path) -> list[Scenario]:
         if not stripped.startswith("Scenario: "):
             continue
 
-        scenario_name = stripped.removeprefix("Scenario: ")
         assert pending_tags, f"{path}: Scenario '{scenario_name}' needs an @id tag"
         scenario_id = pending_tags[0].removeprefix("@")
         assert SCENARIO_ID_PATTERN.fullmatch(scenario_id)
-        scenarios.append(Scenario(scenario_id=scenario_id, name=scenario_name))
+        scenarios.append(Scenario(scenario_id=scenario_id))
         pending_tags = []
 
     return scenarios
@@ -240,14 +245,12 @@ def _playbook_scenarios(path: Path) -> list[Scenario]:
         if scenario_id is None:
             continue
 
-        scenario_name = task.get("name")
-        assert isinstance(scenario_name, str)
         assert isinstance(scenario_id, str)
         assert SCENARIO_ID_PATTERN.fullmatch(scenario_id)
         assert "tags" not in task
         assert _scenario_when_uses_current_scenario_id(task.get("when"))
         assert _scenario_result_uses_current_scenario_id(task)
-        scenarios.append(Scenario(scenario_id=scenario_id, name=scenario_name))
+        scenarios.append(Scenario(scenario_id=scenario_id))
 
     return scenarios
 
@@ -285,12 +288,8 @@ def _acceptance_scenarios(path: Path) -> list[Scenario]:
         if not isinstance(node, ast.FunctionDef) or not node.name.startswith("test_"):
             continue
 
-        docstring = ast.get_docstring(node) or ""
-        match = re.fullmatch(r"Scenario: (.+)\.", docstring)
-        assert match is not None, f"{path}:{node.name} must document a scenario name"
-        scenario_name = match.group(1)
         scenario_id = _acceptance_function_scenario_id(path, node)
-        scenarios.append(Scenario(scenario_id=scenario_id, name=scenario_name))
+        scenarios.append(Scenario(scenario_id=scenario_id))
 
     return scenarios
 
