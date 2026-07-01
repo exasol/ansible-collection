@@ -23,6 +23,7 @@ COLLECTION_NAMESPACE = "exasol"
 COLLECTION_NAME = "exasol"
 ANSIBLE_TEST_SOURCE_PATHS = (
     "exasol",
+    "galaxy.yml",
     "tests",
     "tests/integration",
     "tests/integration/targets",
