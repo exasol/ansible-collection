@@ -6,6 +6,7 @@
 * Prepare publishing to Ansible Galaxy
 * Only include required files into the uploaded bundle
 * Implemented exasol_role module
+* Replaced stale GPL module headers with MIT references
 
 ## Features
 
@@ -21,3 +22,4 @@
 ## Bug Fixes
 
 * #46: Pin runtime package versions across release artifacts
+* #68: Replace stale GPL license headers with MIT references

@@ -50,7 +50,7 @@ def test_ansible_test_layout_keeps_source_runtime_package() -> None:
     """Verify ansible-test copies retain source-only runtime and target paths."""
     ignored = _ignore_ansible_test_source_paths(
         str(PROJECT_ROOT),
-        [".git", ".nox", "exasol", "plugins", "test", "tests"],
+        [".git", ".nox", "exasol", "galaxy.yml", "plugins", "test", "tests"],
     )
 
     assert ignored == {".git", ".nox", "test"}
