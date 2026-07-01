@@ -14,6 +14,7 @@ from collection_manifest import ignore_collection_manifest_paths
 # imports all nox task provided by the toolbox
 from exasol.toolbox.nox.tasks import *  # noqa: F403
 from noxconfig import PROJECT_CONFIG
+from release_version import sync_release_versions
 
 # default actions to be run if nothing is explicitly specified with the -s option
 nox.options.sessions = ["format:fix"]
@@ -167,3 +168,10 @@ def collection_integration(session: nox.Session) -> None:
                 *session.posargs,
                 env=_ansible_env(tmp_path),
             )
+
+
+@nox.session(name="release:sync-version", python=False)
+def release_sync_version(session: nox.Session) -> None:
+    """Sync versioned release artifacts from pyproject.toml."""
+    version = sync_release_versions(PROJECT_ROOT)
+    session.log(f"Synchronized release artifact versions to {version}.")

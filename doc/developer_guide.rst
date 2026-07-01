@@ -61,6 +61,19 @@ Keep the Python toolbox checks green while developing collection code:
    poetry run nox -s test:unit test:integration
    poetry run nox -s docs:build
 
+Release Version Sync
+--------------------
+
+After updating ``pyproject.toml`` for a release, sync the derived release
+artifacts with:
+
+.. code-block:: bash
+
+   poetry run nox -s release:sync-version
+
+This updates ``galaxy.yml``, ``requirements.txt``, and
+``meta/ee-requirements.txt`` to the version declared in ``pyproject.toml``.
+
 Collection Integration Tests
 ----------------------------
 
