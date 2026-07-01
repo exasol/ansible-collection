@@ -17,7 +17,6 @@ ACCEPTANCE_ROOT = PROJECT_ROOT / "test" / "integration" / "acceptance"
 ACCEPTANCE_COMMON_ROOT = PROJECT_ROOT / "test" / "integration" / "acceptance_common"
 SPEC_ROOT = PROJECT_ROOT / "specs"
 SCENARIO_ID_PATTERN = re.compile(r"^[a-z0-9-]+$")
-MODULE_DEFAULTS_PLACEHOLDER = "__ACCEPTANCE_MODULE_DEFAULTS__"
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 
 
@@ -94,7 +93,6 @@ def test_acceptance_playbook_template_defines_one_scenario_placeholder() -> None
     )
 
     assert template.count(SCENARIO_TASKS_PLACEHOLDER) == 1
-    assert template.count(MODULE_DEFAULTS_PLACEHOLDER) == 1
     assert "INSERT HERE" not in template
 
 
@@ -113,7 +111,6 @@ def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None
     acceptance_common = _acceptance_common_module()
 
     rendered = acceptance_common._render_template_playbook(
-        "exasol_user",
         """
         - name: Inline scenario
           block:
@@ -127,8 +124,6 @@ def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None
     parsed = yaml.safe_load(rendered)
 
     assert "__ACCEPTANCE_SCENARIO_TASKS__" not in rendered
-    assert "__ACCEPTANCE_MODULE_DEFAULTS__" not in rendered
-    assert "exasol.exasol.exasol_user" in parsed[0]["module_defaults"]
     assert parsed[0]["tasks"][1]["block"][0]["name"] == "Inline scenario"
 
 
