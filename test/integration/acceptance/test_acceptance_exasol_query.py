@@ -23,7 +23,6 @@ def test_exasol_query_read_metadata_version(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Read database version metadata."""
     scenario_id = "exasol-query-read-metadata-version"
     playbook = """
     - name: Read database version metadata
@@ -75,7 +74,6 @@ def test_exasol_query_single_select(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Execute single SELECT."""
     scenario_id = "exasol-query-single-select"
     playbook = """
     - name: Execute single SELECT
@@ -118,7 +116,6 @@ def test_exasol_query_batch_statements(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Execute statement batch on one connection."""
     scenario_id = "exasol-query-batch-statements"
     playbook = """
     - name: Execute statement batch on one connection
@@ -204,7 +201,6 @@ def test_exasol_query_positional_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Bind positional arguments."""
     scenario_id = "exasol-query-positional-args"
     playbook = """
     - name: Bind positional arguments
@@ -249,7 +245,6 @@ def test_exasol_query_named_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Bind named arguments."""
     scenario_id = "exasol-query-named-args"
     playbook = """
     - name: Bind named arguments
@@ -294,7 +289,6 @@ def test_exasol_query_check_mode_select(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Execute read-only query in check mode."""
     scenario_id = "exasol-query-check-mode-select"
     playbook = """
     - name: Execute read-only query in check mode
@@ -338,7 +332,6 @@ def test_exasol_query_check_mode_write(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Predict write in check mode without execution."""
     scenario_id = "exasol-query-check-mode-write"
     playbook = """
     - name: Predict write in check mode without execution
@@ -406,7 +399,6 @@ def test_exasol_query_sanitize_bad_credentials(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Sanitize bad credential errors."""
     scenario_id = "exasol-query-sanitize-bad-credentials"
     playbook = """
     - name: Sanitize bad credential errors
@@ -444,6 +436,131 @@ def test_exasol_query_sanitize_bad_credentials(
     assert module_result["failed"] is True
     assert "authenticate" in module_result["msg"]
     then_secret_is_not_exposed(result, context.invalid_login_password)
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_exasol_query_reject_batch_args(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+) -> None:
+    scenario_id = "exasol-query-reject-batch-args"
+    playbook = """
+    - name: Reject bound arguments for statement batch
+      block:
+        - name: When exasol_query runs a statement batch with bound arguments
+          exasol.exasol.exasol_query:
+            query:
+              - SELECT ? AS A
+              - SELECT ? AS B
+            positional_args:
+              - 42
+          register: exasol_query_batch_args
+          ignore_errors: true
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ exasol_query_batch_args }}"
+            cacheable: true
+    """
+
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+
+    result = when_module_scenario_runs(
+        context,
+        MODULE_NAME,
+        scenario_id,
+        scenario_playbook=playbook,
+    )
+
+    module_result = result["module_result"]
+
+    assert module_result["failed"] is True
+
+    message = str(module_result["msg"])
+    assert "positional_args and named_args" in message
+    assert "single SQL statement" in message
+    assert "statement batches" in message
+
+    assert module_result["changed"] is False
+    assert "query_result" not in module_result
+    assert "query_all_results" not in module_result
+    assert "executed_queries" not in module_result
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_exasol_query_check_mode_mixed_batch(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+) -> None:
+    scenario_id = "exasol-query-check-mode-mixed-batch"
+    playbook = """
+    - name: Skip mixed read-write batch in check mode
+      block:
+        - name: When exasol_query predicts a mixed batch in check mode
+          exasol.exasol.exasol_query:
+            query:
+              - SELECT 99 AS A
+              - CREATE SCHEMA {{ test_schema }}_CHECK_MODE
+          check_mode: true
+          register: exasol_query_check_mode_mixed
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              mixed_result: "{{ exasol_query_check_mode_mixed }}"
+            cacheable: true
+    """
+
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+
+    result = when_module_scenario_runs(
+        context,
+        MODULE_NAME,
+        scenario_id,
+        scenario_playbook=playbook,
+    )
+
+    mixed = result["mixed_result"]
+
+    expected_queries = [
+        "SELECT 99 AS A",
+        f"CREATE SCHEMA {context.test_schema}_CHECK_MODE",
+    ]
+
+    # -------------------------
+    # Mixed batch (check mode)
+    # -------------------------
+    assert mixed["changed"] is True
+    assert mixed["failed"] is False
+
+    assert mixed["query_result"] == []
+    assert mixed["query_all_results"] == []
+    assert mixed["executed_queries"] == expected_queries
+
+    # Check-mode prediction does not execute anything
+    assert mixed["rowcount"] == []
+    assert mixed["execution_time_ms"] == []
+
+    # -------------------------
+    # Check schema existence after check-mode run
+    # -------------------------
+    connection = connect_to_exasol(context.login_vars)
+    try:
+        rows = connection.execute(f"""
+            SELECT COUNT(*) AS SCHEMA_COUNT
+            FROM EXA_SCHEMAS
+            WHERE SCHEMA_NAME = '{context.test_schema}_CHECK_MODE'
+            """).fetchall()
+    finally:
+        connection.close()
+
+    assert len(rows) == 1
+    assert int(_row_value(rows[0], "SCHEMA_COUNT", 0)) == 0
 
 
 def _without_dynamic_metadata(result: dict[str, Any]) -> dict[str, Any]:

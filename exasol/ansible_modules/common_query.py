@@ -9,9 +9,11 @@ import math
 import ssl
 from collections.abc import (
     Iterable,
+    Iterator,
     Mapping,
     Sequence,
 )
+from contextlib import contextmanager
 from decimal import Decimal
 from typing import (
     Any,
@@ -201,6 +203,29 @@ def build_exasol_connect_kwargs(params: Mapping[str, object]) -> dict[str, objec
     return client_kwargs
 
 
+@contextmanager
+def connect_to_exasol(
+    params: Mapping[str, object],
+    module_name: str,
+) -> Iterator[_ExasolConnection]:
+    """Open a pyexasol connection and always close it afterwards."""
+    try:
+        import pyexasol
+    except ImportError as error:
+        raise RuntimeError(
+            f"pyexasol is required to use {module_name}. "
+            "Install it in the Python environment that runs Ansible modules, "
+            "for example with `python -m pip install exasol-ansible-modules`."
+        ) from error
+
+    connection = pyexasol.connect(**build_exasol_connect_kwargs(params))
+
+    try:
+        yield connection
+    finally:
+        connection.close()
+
+
 def _mapping_or_empty(value: object) -> Mapping[str, object]:
     if isinstance(value, Mapping):
         return cast(Mapping[str, object], value)
@@ -258,6 +283,15 @@ def execute_queries(
 ) -> ExasolQueryResult:
     """Execute one or more Exasol statements and return Ansible result values."""
     queries = normalize_query_list(query)
+
+    # Prevent unsafe reuse of args across batch execution
+    if len(queries) > 1 and (positional_args or named_args):
+        raise ValueError(
+            "positional_args and named_args can only be used with a single SQL "
+            "statement. For statement batches, split the batch into separate "
+            "exasol_query tasks or inline values in each statement."
+        )
+
     all_results: list[list[JsonValue]] = []
     rowcounts: list[int] = []
     execution_time_ms: list[float] = []

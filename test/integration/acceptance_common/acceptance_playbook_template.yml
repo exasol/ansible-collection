@@ -7,13 +7,14 @@
   collections:
     - exasol.exasol
   module_defaults:
-    exasol.exasol.exasol_query:
+    group/exasol.exasol.connection:
       login_host: "{{ login_host }}"
       login_port: "{{ login_port }}"
       login_user: "{{ login_user }}"
       login_password: "{{ login_password }}"
       validate_certs: "{{ validate_certs }}"
       certificate_fingerprint: "{{ certificate_fingerprint | default('') }}"
+
   tasks:
     - name: Setup acceptance test environment
       ansible.builtin.import_role:

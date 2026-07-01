@@ -177,6 +177,7 @@ from ansible_collections.exasol.exasol.plugins.module_utils import (
 
 common_runtime_import.make_source_runtime_importable_for_ansible_sanity(__file__)
 
+from exasol.ansible_modules import common_query
 from exasol.ansible_modules import exasol_query as exasol_query_utils
 from exasol.ansible_modules import exasol_user as exasol_user_utils
 
@@ -230,28 +231,16 @@ def main() -> None:
 
 
 def run_user(params: dict[str, Any], check_mode: bool = False) -> dict[str, object]:
-    """Connect to Exasol, manage the requested user, and close the connection."""
-    try:
-        import pyexasol
-    except ImportError as error:
-        raise RuntimeError(
-            "pyexasol is required to use exasol_user. "
-            "Install it in the Python environment that runs Ansible modules, "
-            "for example with `python -m pip install exasol-ansible-modules`."
-        ) from error
-
-    connection = pyexasol.connect(
-        **exasol_query_utils.build_exasol_connect_kwargs(params)
-    )
-
-    try:
+    """Connect to Exasol and manage the requested user."""
+    with common_query.connect_to_exasol(
+        params,
+        module_name="exasol_user",
+    ) as connection:
         return exasol_user_utils.ensure_user(
             connection,
             params,
             check_mode=check_mode,
         )
-    finally:
-        connection.close()
 
 
 if __name__ == "__main__":
