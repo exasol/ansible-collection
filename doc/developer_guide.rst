@@ -64,15 +64,16 @@ Keep the Python toolbox checks green while developing collection code:
 Release Version Sync
 --------------------
 
-After updating ``pyproject.toml`` for a release, sync the derived release
-artifacts with:
+The derived release artifacts are synchronized automatically during
+``release:prepare`` through the toolbox hook registered in ``noxconfig.py``:
 
 .. code-block:: bash
 
-   poetry run nox -s release:sync-version
+   poetry run nox -- -s release:prepare -- --type patch
 
-This updates ``galaxy.yml``, ``requirements.txt``, and
-``meta/ee-requirements.txt`` to the version declared in ``pyproject.toml``.
+The hook updates ``galaxy.yml``, ``requirements.txt``, and
+``meta/ee-requirements.txt`` to the version declared in ``pyproject.toml`` and
+adds them to the release-prepare commit.
 
 Collection Integration Tests
 ----------------------------
