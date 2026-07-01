@@ -139,26 +139,16 @@ def main() -> None:
 
 
 def run_role(params: dict[str, Any], check_mode: bool = False) -> dict[str, object]:
-    """Connect to Exasol, manage the requested role, and close the connection."""
-    try:
-        import pyexasol
-    except ImportError as error:
-        raise RuntimeError(
-            "pyexasol is required to use exasol_role. "
-            "Install it in the Python environment that runs Ansible modules, "
-            "for example with `python -m pip install exasol-ansible-modules`."
-        ) from error
-
-    connection = pyexasol.connect(**common_query.build_exasol_connect_kwargs(params))
-
-    try:
+    """Connect to Exasol and manage the requested role."""
+    with common_query.connect_to_exasol(
+        params,
+        module_name="exasol_role",
+    ) as connection:
         return exasol_role_utils.ensure_role(
             connection,
             params,
             check_mode=check_mode,
         )
-    finally:
-        connection.close()
 
 
 if __name__ == "__main__":
