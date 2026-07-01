@@ -7,14 +7,7 @@
   collections:
     - exasol.exasol
   module_defaults:
-    __ACCEPTANCE_MODULE_DEFAULTS__:
-      login_host: "{{ login_host }}"
-      login_port: "{{ login_port }}"
-      login_user: "{{ login_user }}"
-      login_password: "{{ login_password }}"
-      validate_certs: "{{ validate_certs }}"
-      certificate_fingerprint: "{{ certificate_fingerprint | default('') }}"
-    exasol.exasol.exasol_role:
+    group/exasol.exasol.connection:
       login_host: "{{ login_host }}"
       login_port: "{{ login_port }}"
       login_user: "{{ login_user }}"
