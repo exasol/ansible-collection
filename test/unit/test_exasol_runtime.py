@@ -629,7 +629,9 @@ def test_connect_to_exasol_raises_runtime_error_when_pyexasol_is_missing(
     monkeypatch.delitem(sys.modules, "pyexasol", raising=False)
     monkeypatch.setattr(builtins, "__import__", import_without_pyexasol)
 
-    with pytest.raises(RuntimeError, match="pyexasol is required to use my_ansible_module"):
+    with pytest.raises(
+        RuntimeError, match="pyexasol is required to use my_ansible_module"
+    ):
         with exasol_query.connect_to_exasol(
             {"login_user": "sys", "login_password": "secret"},
             module_name="my_ansible_module",
