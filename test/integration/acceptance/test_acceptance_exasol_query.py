@@ -23,7 +23,6 @@ def test_exasol_query_read_metadata_version(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Read database version metadata."""
     scenario_id = "exasol-query-read-metadata-version"
     playbook = """
     - name: Read database version metadata
@@ -75,7 +74,6 @@ def test_exasol_query_single_select(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Execute single SELECT."""
     scenario_id = "exasol-query-single-select"
     playbook = """
     - name: Execute single SELECT
@@ -118,7 +116,6 @@ def test_exasol_query_batch_statements(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Execute statement batch on one connection."""
     scenario_id = "exasol-query-batch-statements"
     playbook = """
     - name: Execute statement batch on one connection
@@ -204,7 +201,6 @@ def test_exasol_query_positional_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Bind positional arguments."""
     scenario_id = "exasol-query-positional-args"
     playbook = """
     - name: Bind positional arguments
@@ -249,7 +245,6 @@ def test_exasol_query_named_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Bind named arguments."""
     scenario_id = "exasol-query-named-args"
     playbook = """
     - name: Bind named arguments
@@ -294,7 +289,6 @@ def test_exasol_query_check_mode_select(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Execute read-only query in check mode."""
     scenario_id = "exasol-query-check-mode-select"
     playbook = """
     - name: Execute read-only query in check mode
@@ -338,7 +332,6 @@ def test_exasol_query_check_mode_write(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Predict write in check mode without execution."""
     scenario_id = "exasol-query-check-mode-write"
     playbook = """
     - name: Predict write in check mode without execution
@@ -406,7 +399,6 @@ def test_exasol_query_sanitize_bad_credentials(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Sanitize bad credential errors."""
     scenario_id = "exasol-query-sanitize-bad-credentials"
     playbook = """
     - name: Sanitize bad credential errors
@@ -452,7 +444,6 @@ def test_exasol_query_reject_batch_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Reject bound arguments for statement batch."""
     scenario_id = "exasol-query-reject-batch-args"
     playbook = """
     - name: Reject bound arguments for statement batch
@@ -505,7 +496,6 @@ def test_exasol_query_check_mode_mixed_batch(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Scenario: Skip mixed read-write batch in check mode."""
     scenario_id = "exasol-query-check-mode-mixed-batch"
     playbook = """
     - name: Skip mixed read-write batch in check mode

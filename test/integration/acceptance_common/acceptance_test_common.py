@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 import sys
 import textwrap
 import uuid
@@ -23,10 +22,10 @@ from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 ACCEPTANCE_COMMON_DIR = PROJECT_ROOT / "test" / "integration" / "acceptance_common"
-ACCEPTANCE_COMMON_TASK_FILES = ("acceptance_common_setup.yml",)
 ACCEPTANCE_PLAYBOOK_TEMPLATE = (
     ACCEPTANCE_COMMON_DIR / "acceptance_playbook_template.yml"
 )
+MODULE_DEFAULTS_PLACEHOLDER = "__ACCEPTANCE_MODULE_DEFAULTS__"
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 DISPOSABLE_SCHEMA_PATTERN = re.compile(r"^ANSIBLE_QUERY_[0-9A-F]{32}$")
 
@@ -248,7 +247,6 @@ def _write_playbook(
     scenario_id: str,
 ) -> Path:
     _assert_playbook_contains_scenario(playbook_resource, scenario_id)
-    copy_acceptance_common_tasks(project_dir)
     playbook_dir = project_dir / playbook_resource.parent.name
     playbook_dir.mkdir(exist_ok=True)
     playbook = playbook_dir / f"{scenario_id}.yml"
@@ -268,12 +266,12 @@ def _write_template_playbook(
     playbook_dir = project_dir / module_name
     playbook_dir.mkdir(exist_ok=True)
     playbook = playbook_dir / f"{scenario_id}.yml"
-    rendered_playbook = _render_template_playbook(scenario_playbook)
+    rendered_playbook = _render_template_playbook(module_name, scenario_playbook)
     playbook.write_text(rendered_playbook, encoding="utf-8")
     return playbook
 
 
-def _render_template_playbook(scenario_playbook: str) -> str:
+def _render_template_playbook(module_name: str, scenario_playbook: str) -> str:
     template = ACCEPTANCE_PLAYBOOK_TEMPLATE.read_text(encoding="utf-8")
     scenario_tasks = textwrap.indent(
         textwrap.dedent(scenario_playbook).strip("\n"),
@@ -282,8 +280,16 @@ def _render_template_playbook(scenario_playbook: str) -> str:
     if SCENARIO_TASKS_PLACEHOLDER not in template:
         msg = f"{ACCEPTANCE_PLAYBOOK_TEMPLATE} does not define scenario placeholder"
         raise AssertionError(msg)
+    if MODULE_DEFAULTS_PLACEHOLDER not in template:
+        msg = (
+            f"{ACCEPTANCE_PLAYBOOK_TEMPLATE} does not define module defaults "
+            "placeholder"
+        )
+        raise AssertionError(msg)
 
-    return template.replace(SCENARIO_TASKS_PLACEHOLDER, scenario_tasks)
+    return template.replace(
+        MODULE_DEFAULTS_PLACEHOLDER, f"exasol.exasol.{module_name}"
+    ).replace(SCENARIO_TASKS_PLACEHOLDER, scenario_tasks)
 
 
 def _assert_playbook_contains_scenario(
@@ -335,13 +341,3 @@ def _disposable_schema_names(context: AcceptanceContext) -> tuple[str, str]:
         raise AssertionError(msg)
 
     return schema_name, f"{schema_name}_CHECK_MODE"
-
-
-def copy_acceptance_common_tasks(project_dir: Path) -> None:
-    common_dir = project_dir / "acceptance_common"
-    common_dir.mkdir(exist_ok=True)
-    for file_name in ACCEPTANCE_COMMON_TASK_FILES:
-        shutil.copy2(
-            ACCEPTANCE_COMMON_DIR / file_name,
-            common_dir / file_name,
-        )
