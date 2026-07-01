@@ -58,6 +58,9 @@ source = [
     "exasol",
 ]
 
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8" # Required for dependency:audit
+
 [tool.pytest.ini_options]
 python_files = [
     "utest_*.py",
