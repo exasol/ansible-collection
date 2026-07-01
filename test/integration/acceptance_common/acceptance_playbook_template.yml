@@ -7,7 +7,7 @@
   collections:
     - exasol.exasol
   module_defaults:
-    __ACCEPTANCE_MODULE_DEFAULTS__:
+    group/exasol.exasol.connection:
       login_host: "{{ login_host }}"
       login_port: "{{ login_port }}"
       login_user: "{{ login_user }}"

@@ -9,9 +9,11 @@ import math
 import ssl
 from collections.abc import (
     Iterable,
+    Iterator,
     Mapping,
     Sequence,
 )
+from contextlib import contextmanager
 from decimal import Decimal
 from typing import (
     Any,
@@ -199,6 +201,29 @@ def build_exasol_connect_kwargs(params: Mapping[str, object]) -> dict[str, objec
 
     client_kwargs.update(connect_kwargs)
     return client_kwargs
+
+
+@contextmanager
+def connect_to_exasol(
+    params: Mapping[str, object],
+    module_name: str,
+) -> Iterator[_ExasolConnection]:
+    """Open a pyexasol connection and always close it afterwards."""
+    try:
+        import pyexasol
+    except ImportError as error:
+        raise RuntimeError(
+            f"pyexasol is required to use {module_name}. "
+            "Install it in the Python environment that runs Ansible modules, "
+            "for example with `python -m pip install exasol-ansible-modules`."
+        ) from error
+
+    connection = pyexasol.connect(**build_exasol_connect_kwargs(params))
+
+    try:
+        yield connection
+    finally:
+        connection.close()
 
 
 def _mapping_or_empty(value: object) -> Mapping[str, object]:

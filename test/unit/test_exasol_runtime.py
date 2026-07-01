@@ -7,8 +7,10 @@ import datetime as dt
 import importlib.util
 import json
 import ssl
+import sys
 from decimal import Decimal
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -584,3 +586,54 @@ def test_doc_fragment_exposes_connection_options() -> None:
     assert "ca_cert" in documentation
     assert "  encryption:" not in documentation
     assert "exasol-ansible-modules" in documentation
+
+
+def test_connect_to_exasol_closes_connection_after_with_block(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify the shared connection helper always closes pyexasol connections."""
+
+    class FakeConnection:
+        def __init__(self) -> None:
+            self.closed = False
+
+        def close(self) -> None:
+            self.closed = True
+
+    connection = FakeConnection()
+    pyexasol = SimpleNamespace(connect=lambda **_: connection)
+
+    monkeypatch.setitem(sys.modules, "pyexasol", pyexasol)
+
+    with exasol_query.connect_to_exasol(
+        {"login_user": "sys", "login_password": "secret"},
+        module_name="exasol_query",
+    ) as opened_connection:
+        assert opened_connection is connection
+        assert connection.closed is False
+
+    assert connection.closed is True
+
+
+def test_connect_to_exasol_raises_runtime_error_when_pyexasol_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify missing pyexasol dependency reports the module-specific guidance."""
+    original_import = builtins.__import__
+
+    def import_without_pyexasol(name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == "pyexasol":
+            raise ImportError("blocked pyexasol import")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.delitem(sys.modules, "pyexasol", raising=False)
+    monkeypatch.setattr(builtins, "__import__", import_without_pyexasol)
+
+    with pytest.raises(
+        RuntimeError, match="pyexasol is required to use my_ansible_module"
+    ):
+        with exasol_query.connect_to_exasol(
+            {"login_user": "sys", "login_password": "secret"},
+            module_name="my_ansible_module",
+        ):
+            pytest.fail("context manager should not yield a connection")

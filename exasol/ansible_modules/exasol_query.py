@@ -29,6 +29,7 @@ exasol_connection_argument_spec = common_query.exasol_connection_argument_spec
 connection_parameters_with_defaults = common_query.connection_parameters_with_defaults
 build_exasol_dsn = common_query.build_exasol_dsn
 build_exasol_connect_kwargs = common_query.build_exasol_connect_kwargs
+connect_to_exasol = common_query.connect_to_exasol
 normalized_exasol_error_message = common_query.normalized_exasol_error_message
 is_authentication_error = common_query.is_authentication_error
 sanitize_error_message = common_query.sanitize_error_message
