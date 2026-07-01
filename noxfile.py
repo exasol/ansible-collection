@@ -11,6 +11,7 @@ from pathlib import Path
 
 import nox
 import yaml
+from nox.command import CommandFailed
 
 from collection_manifest import ignore_collection_manifest_paths
 
@@ -163,6 +164,44 @@ def collection_sanity(session: nox.Session) -> None:
                 sys.executable,
                 env=env,
             )
+
+
+@nox.session(name="collection:doc", python=False)
+def collection_ansible_doc(session: nox.Session) -> None:
+    """Run ansible-doc for all collection modules and fail on documentation issues."""
+    output_path = PROJECT_ROOT / ".build_output" / "ansible-doc"
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory(prefix="ansible-collection-doc-") as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        collection_path = _prepare_ansible_test_collection_layout(tmp_path)
+        env = _ansible_env(tmp_path)
+        env["ANSIBLE_COLLECTIONS_PATH"] = str(tmp_path)
+        module_names = sorted(
+            module_path.stem
+            for module_path in (PROJECT_ROOT / "plugins" / "modules").glob("*.py")
+            if module_path.stem != "__init__"
+        )
+
+        with session.chdir(collection_path):
+            for module_name in module_names:
+                output_file = output_path / f"{module_name}.txt"
+                try:
+                    with output_file.open("w", encoding="utf-8") as doc_output:
+                        session.run(
+                            "ansible-doc",
+                            "--type",
+                            "module",
+                            f"{COLLECTION_NAMESPACE}.{COLLECTION_NAME}.{module_name}",
+                            env=env,
+                            stdout=doc_output,
+                        )
+                except CommandFailed:
+                    session.log(
+                        f"ansible-doc output for {module_name}:\n"
+                        f"{output_file.read_text(encoding='utf-8')}"
+                    )
+                    raise
 
 
 @nox.session(name="collection:integration", python=False)

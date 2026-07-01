@@ -33,6 +33,9 @@ jobs:
         id: check-links
         run: poetry run -- nox -s links:check
 
+      - name: Build Collection Documentation
+        id: build-collection-documentation
+        run: poetry run -- nox -s collection:doc
   check-changelog-was-updated:
     name: Check Changelog was Updated
     runs-on: "ubuntu-24.04"

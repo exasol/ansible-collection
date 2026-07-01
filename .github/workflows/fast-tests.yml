@@ -34,6 +34,16 @@ jobs:
         id: run-unit-tests
         run: poetry run -- nox -s test:unit -- --coverage
 
+      - name: Build Ansible Collection
+        id: build-ansible-collection
+        run: poetry run -- nox -s collection:build
+      - name: Run Ansible Collection Sanity Checks
+        id: run-collection-sanity-checks
+        run: poetry run -- nox -s collection:sanity
+      - name: Run Ansible Collection Integration Tests
+        id: run-collection-integration-tests
+        run: poetry run -- nox -s collection:integration
+
       - name: Upload Artifacts
         id: upload-artifacts
         uses: actions/upload-artifact@v7
