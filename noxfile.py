@@ -18,6 +18,7 @@ from collection_manifest import ignore_collection_manifest_paths
 # imports all nox task provided by the toolbox
 from exasol.toolbox.nox.tasks import *  # noqa: F403
 from noxconfig import PROJECT_CONFIG
+from release_version import sync_release_versions
 
 # default actions to be run if nothing is explicitly specified with the -s option
 nox.options.sessions = ["format:fix"]

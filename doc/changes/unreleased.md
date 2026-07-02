@@ -18,6 +18,10 @@
 * #55: Refactor acceptance tests to use inline playbook fragments 2
 * #54: Add exasol_query missing scenarios
 * #64: Refactor exasol_user aceptance tests to use inline playbook fragments
+
+## Bug Fixes
+
+* #46: Pin runtime package versions across release artifacts
 * #68: Replace stale GPL license headers with MIT references
 
 ## Bug Fixes
