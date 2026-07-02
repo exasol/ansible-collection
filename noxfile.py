@@ -177,7 +177,6 @@ def collection_ansible_doc(session: nox.Session) -> None:
         tmp_path = Path(tmp_dir)
         collection_path = _prepare_ansible_test_collection_layout(tmp_path)
         env = _ansible_env(tmp_path)
-        env["ANSIBLE_COLLECTIONS_PATHS"] = str(tmp_path)
         module_names = sorted(
             module_path.stem
             for module_path in (PROJECT_ROOT / "plugins" / "modules").glob("*.py")
