@@ -1,4 +1,4 @@
-name: Publish Collection to Anasible Galaxy
+name: Publish Collection to Ansible Galaxy
 
 on:
   workflow_call:
