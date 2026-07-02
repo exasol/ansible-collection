@@ -10,7 +10,7 @@ from release_version import (
     format_runtime_requirement,
     load_pinned_runtime_requirement_version,
     load_project_version,
-    sync_release_versions,
+    sync_release_versions_to,
 )
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
@@ -57,9 +57,8 @@ def test_sync_release_versions_updates_release_artifacts(tmp_path) -> None:
         f"{RUNTIME_PACKAGE_NAME}==0.0.1\n"
     )
 
-    version = sync_release_versions(tmp_path)
+    sync_release_versions_to(tmp_path, "1.2.3")
 
-    assert version == "1.2.3"
     assert 'version: "1.2.3"' in (tmp_path / "galaxy.yml").read_text()
     assert (
         tmp_path / "requirements.txt"

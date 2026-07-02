@@ -13,7 +13,7 @@ from exasol.toolbox.config import (
 from exasol.toolbox.nox.plugin import hookimpl
 from exasol.toolbox.util.version import Version
 
-from release_version import sync_release_versions
+from release_version import sync_release_versions_to
 
 
 class ProjectConfig(BaseConfig):
@@ -34,7 +34,9 @@ class ReleaseVersionSyncPlugin:
     @hookimpl
     def prepare_release_update_version(self, session: nox.Session, config: ProjectConfig, version: Version) -> None:
         """Update derived release files after pyproject.toml was bumped."""
-        synchronized_version = sync_release_versions(config.root_path)
+        synchronized_version = sync_release_versions_to(
+            config.root_path, str(version)
+        )
         if synchronized_version != str(version):
             session.error(
                 "release:prepare synchronized release artifacts to "
