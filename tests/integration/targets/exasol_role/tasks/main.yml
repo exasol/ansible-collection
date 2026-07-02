@@ -1,0 +1,164 @@
+---
+- name: Create mock pyexasol module directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: exasol-role-pyexasol
+  register: exasol_role_mock_directory
+
+- name: Configure writable Ansible remote temp directory
+  ansible.builtin.set_fact:
+    ansible_remote_tmp: "{{ exasol_role_mock_directory.path }}/ansible-tmp"
+
+- name: Install shared pyexasol mock support module
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../setup_pyexasol_mock/files/pyexasol_mock_base.py"
+    dest: "{{ exasol_role_mock_directory.path }}/pyexasol_mock_base.py"
+    mode: "0600"
+
+- name: Install exasol_role mock pyexasol module
+  ansible.builtin.copy:
+    src: pyexasol_mock.py
+    dest: "{{ exasol_role_mock_directory.path }}/pyexasol.py"
+    mode: "0600"
+
+- name: Configure mocked exasol_role integration environment
+  ansible.builtin.set_fact:
+    exasol_role_mock_environment:
+      PYTHONPATH: "{{ exasol_role_mock_directory.path }}"
+      EXASOL_ROLE_MOCK_STATE: "{{ exasol_role_mock_directory.path }}/state.json"
+
+- name: Run mocked exasol_role contract scenarios
+  block:
+    - name: Create missing role
+      exasol.exasol.exasol_role:
+        login_user: sys
+        name: app_role
+      environment: "{{ exasol_role_mock_environment }}"
+      register: exasol_role_create
+
+    - name: Verify missing role creation result
+      ansible.builtin.assert:
+        that:
+          - exasol_role_create is changed
+          - exasol_role_create.role == "APP_ROLE"
+          - exasol_role_create.state == "present"
+          - exasol_role_create.exists is true
+          - exasol_role_create.executed_queries == ['CREATE ROLE "APP_ROLE"']
+
+    - name: Existing role is unchanged
+      exasol.exasol.exasol_role:
+        login_user: sys
+        name: app_role
+      environment: "{{ exasol_role_mock_environment }}"
+      register: exasol_role_existing
+
+    - name: Verify existing role idempotence
+      ansible.builtin.assert:
+        that:
+          - exasol_role_existing is not changed
+          - exasol_role_existing.role == "APP_ROLE"
+          - exasol_role_existing.exists is true
+          - exasol_role_existing.executed_queries == []
+
+    - name: Check mode predicts role creation without executing it
+      exasol.exasol.exasol_role:
+        login_user: sys
+        name: check_role
+      check_mode: true
+      environment: "{{ exasol_role_mock_environment }}"
+      register: exasol_role_check_create
+
+    - name: Verify check mode role create prediction
+      ansible.builtin.assert:
+        that:
+          - exasol_role_check_create is changed
+          - exasol_role_check_create.role == "CHECK_ROLE"
+          - exasol_role_check_create.exists is true
+          - exasol_role_check_create.executed_queries == ['CREATE ROLE "CHECK_ROLE"']
+
+    - name: Verify check mode did not create the role
+      exasol.exasol.exasol_role:
+        login_user: sys
+        name: check_role
+        state: absent
+      environment: "{{ exasol_role_mock_environment }}"
+      register: exasol_role_check_absent
+
+    - name: Assert check mode role create was not executed
+      ansible.builtin.assert:
+        that:
+          - exasol_role_check_absent is not changed
+          - exasol_role_check_absent.exists is false
+          - exasol_role_check_absent.executed_queries == []
+
+    - name: Drop existing role with cascade
+      exasol.exasol.exasol_role:
+        login_user: sys
+        name: app_role
+        state: absent
+        cascade: true
+      environment: "{{ exasol_role_mock_environment }}"
+      register: exasol_role_drop
+
+    - name: Verify existing role drop result
+      ansible.builtin.assert:
+        that:
+          - exasol_role_drop is changed
+          - exasol_role_drop.role == "APP_ROLE"
+          - exasol_role_drop.state == "absent"
+          - exasol_role_drop.exists is false
+          - exasol_role_drop.executed_queries == ['DROP ROLE "APP_ROLE" CASCADE']
+
+    - name: Dropping a missing role is unchanged
+      exasol.exasol.exasol_role:
+        login_user: sys
+        name: app_role
+        state: absent
+        cascade: true
+      environment: "{{ exasol_role_mock_environment }}"
+      register: exasol_role_drop_missing
+
+    - name: Verify missing role drop idempotence
+      ansible.builtin.assert:
+        that:
+          - exasol_role_drop_missing is not changed
+          - exasol_role_drop_missing.exists is false
+          - exasol_role_drop_missing.executed_queries == []
+
+    - name: Invalid role names fail before SQL generation
+      exasol.exasol.exasol_role:
+        login_user: sys
+        name: bad-role
+        state: absent
+      environment: "{{ exasol_role_mock_environment }}"
+      register: exasol_role_invalid_name
+      ignore_errors: true
+
+    - name: Verify invalid role name failure
+      ansible.builtin.assert:
+        that:
+          - exasol_role_invalid_name is failed
+          - "'valid regular identifier' in exasol_role_invalid_name.msg"
+
+    - name: Bad credentials fail without leaking secrets
+      exasol.exasol.exasol_role:
+        login_user: sys
+        login_password: bad-secret
+        name: app_role
+        state: absent
+      environment: "{{ exasol_role_mock_environment }}"
+      register: exasol_role_bad_credentials
+      ignore_errors: true
+
+    - name: Verify bad credential error is sanitized
+      ansible.builtin.assert:
+        that:
+          - exasol_role_bad_credentials is failed
+          - "'authenticate' in exasol_role_bad_credentials.msg"
+          - "'bad-secret' not in exasol_role_bad_credentials.msg"
+
+  always:
+    - name: Remove mock pyexasol module directory
+      ansible.builtin.file:
+        path: "{{ exasol_role_mock_directory.path }}"
+        state: absent

@@ -1,0 +1,26 @@
+workflows:
+  - name: fast-tests
+    step_customizations:
+      - action: INSERT_AFTER
+        job: run-unit-tests
+        step_id: run-unit-tests
+        content:
+          - name: Build Ansible Collection
+            id: build-ansible-collection
+            run: poetry run -- nox -s collection:build
+          - name: Run Ansible Collection Sanity Checks
+            id: run-collection-sanity-checks
+            run: poetry run -- nox -s collection:sanity
+          - name: Run Ansible Collection Integration Tests
+            id: run-collection-integration-tests
+            run: poetry run -- nox -s collection:integration
+
+  - name: checks
+    step_customizations:
+      - action: INSERT_AFTER
+        job: build-documentation-and-check-links
+        step_id: check-links
+        content:
+          - name: Build Collection Documentation
+            id: build-collection-documentation
+            run: poetry run -- nox -s collection:doc

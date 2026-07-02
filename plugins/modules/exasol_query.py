@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # Copyright: (c) 2026, Exasol AG <opensource@exasol.com>
-# GNU General Public License v3.0+ (see COPYING or
-# https://www.gnu.org/licenses/gpl-3.0.txt)
+# MIT License (see LICENSE or https://opensource.org/license/mit)
 
 DOCUMENTATION = r"""
 ---
@@ -125,6 +124,7 @@ from ansible_collections.exasol.exasol.plugins.module_utils import (
 
 common_runtime_import.make_source_runtime_importable_for_ansible_sanity(__file__)
 
+from exasol.ansible_modules import common_query
 from exasol.ansible_modules import exasol_query as exasol_query_utils
 from exasol.ansible_modules.common_query import ExasolQueryResult
 
@@ -181,29 +181,17 @@ def exit_if_check_mode_would_change(module: AnsibleModule, queries: list[str]) -
 
 
 def run_query(params: dict[str, Any]) -> ExasolQueryResult:
-    """Connect to Exasol, execute query parameters, and close the connection."""
-    try:
-        import pyexasol
-    except ImportError as error:
-        raise RuntimeError(
-            "pyexasol is required to use exasol_query. "
-            "Install it in the Python environment that runs Ansible modules, "
-            "for example with `python -m pip install exasol-ansible-modules`."
-        ) from error
-
-    connection = pyexasol.connect(
-        **exasol_query_utils.build_exasol_connect_kwargs(params)
-    )
-
-    try:
+    """Connect to Exasol and execute query parameters."""
+    with common_query.connect_to_exasol(
+        params,
+        module_name="exasol_query",
+    ) as connection:
         return exasol_query_utils.execute_queries(
             connection,
             params["query"],
             positional_args=params.get("positional_args"),
             named_args=params.get("named_args"),
         )
-    finally:
-        connection.close()
 
 
 if __name__ == "__main__":

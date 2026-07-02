@@ -25,7 +25,6 @@ ACCEPTANCE_COMMON_DIR = PROJECT_ROOT / "test" / "integration" / "acceptance_comm
 ACCEPTANCE_PLAYBOOK_TEMPLATE = (
     ACCEPTANCE_COMMON_DIR / "acceptance_playbook_template.yml"
 )
-MODULE_DEFAULTS_PLACEHOLDER = "__ACCEPTANCE_MODULE_DEFAULTS__"
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 DISPOSABLE_SCHEMA_PATTERN = re.compile(r"^ANSIBLE_QUERY_[0-9A-F]{32}$")
 
@@ -266,12 +265,12 @@ def _write_template_playbook(
     playbook_dir = project_dir / module_name
     playbook_dir.mkdir(exist_ok=True)
     playbook = playbook_dir / f"{scenario_id}.yml"
-    rendered_playbook = _render_template_playbook(module_name, scenario_playbook)
+    rendered_playbook = _render_template_playbook(scenario_playbook)
     playbook.write_text(rendered_playbook, encoding="utf-8")
     return playbook
 
 
-def _render_template_playbook(module_name: str, scenario_playbook: str) -> str:
+def _render_template_playbook(scenario_playbook: str) -> str:
     template = ACCEPTANCE_PLAYBOOK_TEMPLATE.read_text(encoding="utf-8")
     scenario_tasks = textwrap.indent(
         textwrap.dedent(scenario_playbook).strip("\n"),
@@ -280,16 +279,7 @@ def _render_template_playbook(module_name: str, scenario_playbook: str) -> str:
     if SCENARIO_TASKS_PLACEHOLDER not in template:
         msg = f"{ACCEPTANCE_PLAYBOOK_TEMPLATE} does not define scenario placeholder"
         raise AssertionError(msg)
-    if MODULE_DEFAULTS_PLACEHOLDER not in template:
-        msg = (
-            f"{ACCEPTANCE_PLAYBOOK_TEMPLATE} does not define module defaults "
-            "placeholder"
-        )
-        raise AssertionError(msg)
-
-    return template.replace(
-        MODULE_DEFAULTS_PLACEHOLDER, f"exasol.exasol.{module_name}"
-    ).replace(SCENARIO_TASKS_PLACEHOLDER, scenario_tasks)
+    return template.replace(SCENARIO_TASKS_PLACEHOLDER, scenario_tasks)
 
 
 def _assert_playbook_contains_scenario(
