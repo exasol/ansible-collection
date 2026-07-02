@@ -11,6 +11,7 @@
 ## Features
 
 * #36: Implement exasol_role module
+* #48: Automate publishing to Ansible Galaxy
 
 ## Refactorings
 
@@ -23,7 +24,3 @@
 
 * #46: Pin runtime package versions across release artifacts
 * #68: Replace stale GPL license headers with MIT references
-
-## Bug Fixes
-
-* #46: Pin runtime package versions across release artifacts
