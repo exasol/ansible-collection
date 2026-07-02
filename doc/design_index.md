@@ -8,6 +8,25 @@ The structure follows arc42 with the user-perspective parts reduced to short ref
 
 ## Structure
 
+```{toctree}
+:maxdepth: 2
+:hidden:
+
+system_requirements
+design/constraints
+design/context_and_scope
+design/solution_strategy
+design/building_block_view
+design/runtime_view
+design/deployment_view
+design/crosscutting_concepts
+design/architecture_decisions
+design/quality_requirements
+design/risks_and_technical_debt
+design/glossary
+design/open_issues
+```
+
 ### Introduction and Goals
 
 This design document explains how the system realizes the requirements defined in [System Requirements](system_requirements.md).
