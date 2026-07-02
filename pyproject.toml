@@ -45,6 +45,9 @@ include = [
     "galaxy.yml",
 ]
 
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
+
 [project.urls]
 repository = "https://github.com/exasol/ansible-collection"
 homepage = "https://github.com/exasol/ansible-collection"
