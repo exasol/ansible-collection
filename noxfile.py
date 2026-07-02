@@ -2,26 +2,44 @@
 
 # pylint: disable=wildcard-import,unused-wildcard-import
 
+import os
 import shutil
 import sys
 import tempfile
+from functools import lru_cache
 from pathlib import Path
 
 import nox
+import yaml
+from nox.command import CommandFailed
 
 from collection_manifest import ignore_collection_manifest_paths
 
 # imports all nox task provided by the toolbox
 from exasol.toolbox.nox.tasks import *  # noqa: F403
 from noxconfig import PROJECT_CONFIG
-from release_version import sync_release_versions
 
 # default actions to be run if nothing is explicitly specified with the -s option
 nox.options.sessions = ["format:fix"]
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
-COLLECTION_NAMESPACE = "exasol"
-COLLECTION_NAME = "exasol"
+
+
+@lru_cache(maxsize=1)
+def _collection_metadata() -> dict[str, str]:
+    """Return collection metadata from galaxy.yml."""
+    galaxy = yaml.safe_load((PROJECT_ROOT / "galaxy.yml").read_text())
+    return {
+        "namespace": galaxy["namespace"],
+        "name": galaxy["name"],
+        "version": galaxy["version"],
+    }
+
+
+COLLECTION_METADATA = _collection_metadata()
+COLLECTION_NAMESPACE = COLLECTION_METADATA["namespace"]
+COLLECTION_NAME = COLLECTION_METADATA["name"]
+COLLECTION_VERSION = COLLECTION_METADATA["version"]
 ANSIBLE_TEST_SOURCE_PATHS = (
     "exasol",
     "galaxy.yml",
@@ -149,6 +167,43 @@ def collection_sanity(session: nox.Session) -> None:
             )
 
 
+@nox.session(name="collection:doc", python=False)
+def collection_ansible_doc(session: nox.Session) -> None:
+    """Run ansible-doc for all collection modules and fail on documentation issues."""
+    output_path = PROJECT_ROOT / ".build_output" / "ansible-doc"
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    with tempfile.TemporaryDirectory(prefix="ansible-collection-doc-") as tmp_dir:
+        tmp_path = Path(tmp_dir)
+        collection_path = _prepare_ansible_test_collection_layout(tmp_path)
+        env = _ansible_env(tmp_path)
+        module_names = sorted(
+            module_path.stem
+            for module_path in (PROJECT_ROOT / "plugins" / "modules").glob("*.py")
+            if module_path.stem != "__init__"
+        )
+
+        with session.chdir(collection_path):
+            for module_name in module_names:
+                output_file = output_path / f"{module_name}.txt"
+                try:
+                    with output_file.open("w", encoding="utf-8") as doc_output:
+                        session.run(
+                            "ansible-doc",
+                            "--type",
+                            "module",
+                            f"{COLLECTION_NAMESPACE}.{COLLECTION_NAME}.{module_name}",
+                            env=env,
+                            stdout=doc_output,
+                        )
+                except CommandFailed:
+                    session.log(
+                        f"ansible-doc output for {module_name}:\n"
+                        f"{output_file.read_text(encoding='utf-8')}"
+                    )
+                    raise
+
+
 @nox.session(name="collection:integration", python=False)
 def collection_integration(session: nox.Session) -> None:
     """Run ansible-test integration in a temporary collection namespace layout."""
@@ -171,8 +226,46 @@ def collection_integration(session: nox.Session) -> None:
             )
 
 
-@nox.session(name="release:sync-version", python=False)
-def release_sync_version(session: nox.Session) -> None:
-    """Sync versioned release artifacts from pyproject.toml."""
-    version = sync_release_versions(PROJECT_ROOT)
-    session.log(f"Synchronized release artifact versions to {version}.")
+@nox.session(name="collection:publish", python=False)
+def collection_publish(session: nox.Session) -> None:
+    """Publish the Ansible collection archive to Ansible Galaxy.
+    This requires an Ansible Galaxy API token in ANSIBLE_GALAXY_TOKEN.
+    """
+    collection_archive = (
+        PROJECT_ROOT
+        / ".build_output"
+        / "collections"
+        / f"{COLLECTION_NAMESPACE}-{COLLECTION_NAME}-{COLLECTION_VERSION}.tar.gz"
+    )
+
+    with tempfile.NamedTemporaryFile(
+        mode="w", prefix="ansible_galaxy_", suffix=".cfg"
+    ) as config_file:
+        token = os.environ.get("ANSIBLE_GALAXY_TOKEN")
+        if not token:
+            raise RuntimeError("Set environment variable ANSIBLE_GALAXY_TOKEN.")
+
+        # Configuration file is required by ansible-galaxy to read the token from the environment variable.
+        config_file.write("""
+[galaxy]
+server_list = galaxy
+
+[galaxy_server.galaxy]
+url = https://galaxy.ansible.com/
+""")
+        config_file.flush()
+
+        with session.chdir(PROJECT_ROOT):
+            session.run(
+                "ansible-galaxy",
+                "collection",
+                "publish",
+                str(collection_archive),
+                "-vvvvvvvv",
+                "--server",
+                "galaxy",
+                env={
+                    "ANSIBLE_CONFIG": str(config_file.name),
+                    "ANSIBLE_GALAXY_SERVER_GALAXY_TOKEN": token,
+                },
+            )

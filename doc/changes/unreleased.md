@@ -11,6 +11,7 @@
 ## Features
 
 * #36: Implement exasol_role module
+* #48: Automate publishing to Ansible Galaxy
 
 ## Refactorings
 

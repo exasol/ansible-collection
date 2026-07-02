@@ -4,32 +4,51 @@ User Guide
 Installation
 ------------
 
-The collection is not published to Ansible Galaxy yet. To try the current
-checkout locally, build the collection archive and install that archive:
-
-.. code-block:: bash
-
-   poetry run nox -s collection:build
-   poetry run ansible-galaxy collection install --force .build_output/collections/exasol-exasol-*.tar.gz
-
-After the collection is published, install it by collection name:
+Install the collection from Ansible Galaxy:
 
 .. code-block:: bash
 
    ansible-galaxy collection install exasol.exasol
 
-Runtime Dependencies
---------------------
-
-Install the Python dependencies required by collection modules in the execution
-environment that runs Ansible:
+Collection modules also require the Python runtime package
+``exasol-ansible-modules``. Install it separately in the Python environment
+that executes the modules:
 
 .. code-block:: bash
 
-   python -m pip install -r requirements.txt
+   python -m pip install exasol-ansible-modules
 
-The dependency list includes ``exasol-ansible-modules``, the Python package with
-the Exasol module runtime logic.
+For a pinned setup, use the version that matches the installed collection.
+
+Recommended Execution Environment
+---------------------------------
+
+We recommend using ``ansible-builder`` to create an execution environment and
+``ansible-navigator`` to run playbooks with that environment. This repository
+provides execution-environment metadata in ``meta/execution-environment.yml``:
+
+Add the collection to your execution-environment definition:
+
+.. code-block:: yaml
+
+   dependencies:
+     galaxy:
+       collections:
+         - name: exasol.exasol
+
+Then build the execution environment and run your playbook:
+
+.. code-block:: bash
+
+   ansible-builder build --tag exasol-ansible-ee --file execution-environment.yml
+   ansible-navigator run playbook.yml --execution-environment-image exasol-ansible-ee
+
+See the Ansible execution environment documentation for more details:
+https://docs.ansible.com/projects/ansible/latest/getting_started_ee/introduction.html
+
+If you do not use an execution environment, install
+``exasol-ansible-modules`` for the configured ``ansible_python_interpreter`` on
+the control node or remote host that executes the module.
 
 Basic Playbook
 --------------

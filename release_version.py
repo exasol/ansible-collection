@@ -36,13 +36,11 @@ def load_pinned_runtime_requirement_version(requirements_path: Path) -> str:
     return requirement.removeprefix(expected_prefix)
 
 
-def sync_release_versions(project_root: Path) -> str:
-    """Sync release artifact versions from pyproject.toml and return the version."""
-    version = load_project_version(project_root)
+def sync_release_versions_to(project_root: Path, version: str):
+    """Sync release artifact versions from an explicit version and return it."""
     _sync_galaxy_version(project_root / "galaxy.yml", version)
     _sync_runtime_requirement(project_root / "requirements.txt", version)
     _sync_runtime_requirement(project_root / "meta" / "ee-requirements.txt", version)
-    return version
 
 
 def _sync_galaxy_version(galaxy_path: Path, version: str) -> None:
