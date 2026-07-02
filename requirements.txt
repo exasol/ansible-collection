@@ -1,1 +1,1 @@
-exasol-ansible-modules
+exasol-ansible-modules==0.2.0
