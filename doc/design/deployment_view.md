@@ -14,7 +14,7 @@ The relevant deployment nodes are:
 
 ## Deployment Diagram
 <!-- The granularity for the PlantUML diagram below should be coarse. High-level components and artifacts only. Do not go down to class level! Adapt as necessary.-->
-```plantuml
+```text
 @startuml
 node "<Host>" {
   component "<System>"

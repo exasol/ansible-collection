@@ -6,7 +6,7 @@ This chapter describes the static decomposition of the system into building bloc
 
 `<Describe the main modules, packages, services, commands, UI areas, or deployable units.>`
 
-```plantuml
+```text
 @startuml
 component "<System>" as System
 component "<Component>" as Component
