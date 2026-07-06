@@ -113,8 +113,13 @@ def _openfasttrace_local_repo(session: nox.Session) -> Path:
         "-q",
         "-DforceStdout",
         silent=True,
-    ).strip()
-    return Path(local_repo)
+    )
+    if not local_repo:
+        raise RuntimeError(
+            "Could not determine Maven local repository path. "
+            "Please ensure Maven is installed and configured correctly."
+        )
+    return Path(local_repo.strip())
 
 
 def _openfasttrace_jar_file(session: nox.Session) -> Path:
