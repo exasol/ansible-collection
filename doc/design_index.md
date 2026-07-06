@@ -1,6 +1,6 @@
 # Design
 
-This document describes the architecture of `<project-name>`.
+This document describes the architecture of `ansible-collection`.
 
 User perspective, audience, features, user requirements, and acceptance scenarios are defined in [System Requirements](system_requirements.md). This design document focuses on architecture, technical decisions, runtime behavior, and implementation structure.
 
