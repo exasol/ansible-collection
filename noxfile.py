@@ -23,6 +23,7 @@ from noxconfig import PROJECT_CONFIG
 nox.options.sessions = ["format:fix"]
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
+OPENFASTTRACE_VERSION = "4.4.0"
 
 
 @lru_cache(maxsize=1)
@@ -97,6 +98,49 @@ def _ansible_env(tmp_path: Path) -> dict[str, str]:
         "ANSIBLE_LOCAL_TEMP": str(ansible_local_tmp),
         "HOME": str(tmp_path),
     }
+
+
+def _openfasttrace_local_repo(session: nox.Session) -> Path:
+    """Return the Maven local repository path used by the OFT wrapper."""
+    default_local_repo = Path.home() / ".m2" / "repository"
+    if default_local_repo.is_dir():
+        return default_local_repo
+
+    local_repo = session.run(
+        "mvn",
+        "help:evaluate",
+        "-Dexpression=settings.localRepository",
+        "-q",
+        "-DforceStdout",
+        silent=True,
+    ).strip()
+    return Path(local_repo)
+
+
+def _openfasttrace_jar_file(session: nox.Session) -> Path:
+    """Return the OpenFastTrace JAR path, downloading it if needed."""
+    local_repo = _openfasttrace_local_repo(session)
+    jar_file = (
+        local_repo
+        / "org"
+        / "itsallcode"
+        / "openfasttrace"
+        / "openfasttrace"
+        / OPENFASTTRACE_VERSION
+        / f"openfasttrace-{OPENFASTTRACE_VERSION}.jar"
+    )
+
+    if not jar_file.is_file():
+        session.log(f"Downloading OpenFastTrace {OPENFASTTRACE_VERSION}...")
+        session.run(
+            "mvn",
+            "--batch-mode",
+            "org.apache.maven.plugins:maven-dependency-plugin:3.11.0:get",
+            f"-Dartifact=org.itsallcode.openfasttrace:openfasttrace:{OPENFASTTRACE_VERSION}",
+            "-Dtransitive=false",
+        )
+
+    return jar_file
 
 
 def _skip_if_ansible_test_does_not_support_python(session: nox.Session) -> None:
@@ -269,3 +313,13 @@ url = https://galaxy.ansible.com/
                     "ANSIBLE_GALAXY_SERVER_GALAXY_TOKEN": token,
                 },
             )
+
+
+@nox.session(name="requirements:trace", python=False)
+def requirements_trace(session: nox.Session) -> None:
+    """Run OpenFastTrace locally or in CI without a shell wrapper."""
+    jar_file = _openfasttrace_jar_file(session)
+    trace_args = session.posargs or ["trace", "."]
+
+    with session.chdir(PROJECT_ROOT):
+        session.run("java", "-jar", str(jar_file), *trace_args)
