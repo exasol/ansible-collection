@@ -1,102 +1,133 @@
 # Security Considerations
 
-This chapter documents the system's security-relevant assumptions, exposed interfaces, threat model, and the mitigations that shape the design.
+This change expands the collection's database-administration surface. The main assets are Exasol credentials, authorization state, Ansible logs, and the integrity of automated schema, user, role, grant, and script execution workflows.
 
-## Purpose and Scope
+## Affects Authentication / Authorization
 
-Use this chapter to capture the security assessment for the collection and its operational context.
+Yes.
 
-Document:
+The collection authenticates to Exasol with `login_*` parameters and performs authorization-sensitive operations through `exasol_user`, `exasol_role`, and `exasol_grants`.
 
-* assets that need protection
-* trust assumptions and trust boundaries
-* externally reachable interfaces and attack surface
-* relevant threats and abuse cases
-* implemented and planned mitigations
-* residual risks and accepted limitations
+Main threats:
 
-## Assets and Security Goals
+* credential disclosure in task output or exceptions
+* unintended privilege changes through incorrect idempotency or grant logic
+* use of over-privileged service accounts
 
-Describe the assets that matter for this system and the security properties they require.
+Required controls:
 
-Typical assets in this project include:
+* keep authentication failure handling secret-safe
+* rely on Exasol authorization instead of local privilege bypass logic
+* document the required least-privilege database permissions per module
+* verify repeated runs do not add, revoke, or report privileges incorrectly
 
-* Exasol credentials and passwords
-* Ansible task output, logs, and failure messages
-* database users, roles, and authorization state
-* the integrity of automation workflows using this collection
+Applicable questions:
 
-For each asset, state the relevant security goals such as confidentiality, integrity, availability, authenticity, or auditability.
+* How does the connector authenticate to the third-party system?
+* Where are credentials stored?
+* Can the connector operate with least-privilege permissions?
+* How are privilege changes controlled and audited?
 
-## Assumptions and Trust Boundaries
+## Introduces or Modifies Sensitive Data Handling, Security-Relevant Processing, or Data Access Behavior
 
-Describe which parts of the environment are trusted, partially trusted, or untrusted.
+Yes.
 
-Capture at least:
+The change processes passwords, usernames, role names, privileges, and possibly SQL scripts that may embed sensitive values.
 
-* trusted administrative actors and automation systems
-* the trust relationship between Ansible control nodes, execution environments, and Exasol
-* secrets sources such as inventories, vaults, environment variables, or CI systems
-* boundaries where data crosses between components, users, or privilege domains
+Main threats:
 
-## Attack Surface
+* secrets leaking via logs, return values, tracebacks, or test failures
+* SQL script content exposing confidential data in diagnostics
+* unsafe handling of grant and user state leading to unauthorized access changes
 
-List the interfaces through which an attacker could influence the system or observe sensitive data.
+Required controls:
 
-Consider:
+* reuse shared secret-redaction helpers for parameters and exceptions
+* avoid storing secrets locally in the collection
+* keep module outputs minimal and free of raw credentials or script contents
+* add tests for redaction and authorization-state correctness
 
-* module input parameters and playbook variables
-* connection setup and authentication flows
-* Ansible stdout, stderr, return values, and logging
-* error propagation from drivers, libraries, and Exasol
-* packaging, dependency, and installation paths
+Applicable questions:
 
-For each interface, note the exposed data, reachable actor, and expected protection mechanism.
+* Are secrets ever exposed in logs, monitoring systems, or configuration files?
+* Is PII exposure in logs, monitoring, or error messages prevented?
+* Is only the minimum required data shared or displayed?
 
-## Threat Model
+## Impacts External Interfaces / APIs
 
-Identify the most relevant threats against the assets and interfaces above.
+Yes.
 
-Organize the analysis in a compact table or per-threat subsections covering:
+The change extends the module interface exposed to playbooks and increases the set of Exasol operations invoked through `pyexasol`.
 
-* threat or abuse case
-* attacker capability and preconditions
-* affected asset or boundary
-* impact
-* existing mitigation
-* remaining gap or follow-up action
+Main threats:
 
-If useful, classify threats with a method such as STRIDE, but keep the chapter focused on concrete project risks rather than exhaustive taxonomy.
+* unsafe or ambiguous module inputs causing unintended SQL effects
+* upstream error messages surfacing sensitive data
+* insecure transport or certificate validation on outbound database connections
 
-## Mitigations
+Required controls:
 
-Document the design measures that reduce the identified threats.
+* keep module parameters explicit and validate mutually unsafe combinations
+* sanitize surfaced driver and database errors
+* continue using TLS-capable connection handling with correct certificate validation
+* treat `exasol_script` as a trusted-operator interface, not a sandbox
 
-Examples for this project may include:
+Applicable questions:
 
-* redaction of secret values in outputs and exceptions
-* relying on Exasol authorization instead of duplicating privilege logic
-* explicit handling of password-update semantics
-* secure defaults for module parameters and logging behavior
-* tests that verify non-disclosure of secrets
+* Are API endpoints authenticated and authorized?
+* Is input validation performed?
+* Is output data sanitized before use or display?
+* Is communication with the third-party system encrypted using TLS?
 
-## Residual Risks
+## Involves New Dependencies or Services
 
-Record risks that remain after mitigation, including accepted trade-offs and constraints imposed by external systems.
+Yes.
 
-For each residual risk, capture:
+The scope depends on `pyexasol` for SQL script execution support and on Ansible Galaxy packaging for a usable release artifact.
 
-* why it cannot currently be removed
-* operational guidance or compensating control
-* whether follow-up work is required
+Main threats:
 
-## Verification and Review
+* supply-chain risk from new or changed package dependencies
+* version drift between collection and required Python package
+* release artifacts that install successfully but fail securely or insecurely at runtime
 
-Describe how the security assumptions and mitigations are validated.
+Required controls:
 
-This can include:
+* keep dependencies minimal and versioned consistently
+* validate that collection installation pulls the required Python package automatically
+* review upstream `pyexasol` changes that affect authentication, transport, or script execution behavior
 
-* unit, integration, and acceptance tests for security-relevant behavior
-* manual threat-model reviews during design changes
-* static analysis, dependency checks, and secret scanning
-* release-time review of security-sensitive changes
+Applicable questions:
+
+* Does the integration affect compliance scope?
+* What permissions are required by the connector in the third-party system?
+
+## Affects Infrastructure or Configuration
+
+Yes.
+
+The change affects connection configuration, secret provisioning, CI or release automation, and the operational guidance for running the modules.
+
+Main threats:
+
+* credentials placed in plaintext inventory or CI configuration
+* overly broad network reach from automation environments to Exasol
+* insecure defaults or missing documentation for TLS and secret handling
+
+Required controls:
+
+* keep Vault-based or equivalent secret management as the documented baseline
+* document required network reachability and approved endpoints only
+* avoid introducing new persistent secret stores, background services, or cluster-control paths
+* verify release and test automation do not print secrets
+
+Applicable questions:
+
+* In which network zone will the connector run?
+* Does the connector require direct access to sensitive systems or databases?
+* Are firewall rules restricted to only necessary endpoints and ports?
+* How are secrets rotated and revoked?
+
+## Residual Risk
+
+`exasol_script` intentionally enables arbitrary SQL execution for trusted operators. The security boundary is therefore operator authorization, secret-safe handling, and transport protection, not restriction of SQL semantics inside the module.
