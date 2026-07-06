@@ -20,6 +20,7 @@ design/building_block_view
 design/runtime_view
 design/deployment_view
 design/crosscutting_concepts
+design/security_considerations
 design/architecture_decisions
 design/quality_requirements
 design/risks_and_technical_debt
@@ -58,6 +59,10 @@ See [Deployment View](design/deployment_view.md).
 ### Crosscutting Concepts
 
 See [Crosscutting Concepts](design/crosscutting_concepts.md).
+
+### Security Considerations
+
+See [Security Considerations](design/security_considerations.md).
 
 ### Architecture Decisions
 
