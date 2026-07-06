@@ -12,7 +12,9 @@ Main threats:
 
 * credential disclosure in task output or exceptions
 * unintended privilege changes through incorrect idempotency or grant logic
+* unintended privilege revocation or destructive drift during reconciliation
 * use of over-privileged service accounts
+* partial failures leaving authorization state inconsistent
 
 Required controls:
 
@@ -20,6 +22,7 @@ Required controls:
 * rely on Exasol authorization instead of local privilege bypass logic
 * document the required least-privilege database permissions per module
 * verify repeated runs do not add, revoke, or report privileges incorrectly
+* make multi-step authorization changes fail predictably and visibly
 
 Applicable questions:
 
@@ -39,6 +42,8 @@ Main threats:
 * secrets leaking via logs, return values, tracebacks, or test failures
 * SQL script content exposing confidential data in diagnostics
 * unsafe handling of grant and user state leading to unauthorized access changes
+* leakage through diffs, `changed` reporting, or debug output
+* duplicate or replayed execution causing repeated destructive effects
 
 Required controls:
 
@@ -46,6 +51,7 @@ Required controls:
 * avoid storing secrets locally in the collection
 * keep module outputs minimal and free of raw credentials or script contents
 * add tests for redaction and authorization-state correctness
+* ensure replayed runs do not expose additional data or corrupt state
 
 Applicable questions:
 
@@ -61,6 +67,8 @@ The change extends the module interface exposed to playbooks and increases the s
 
 Main threats:
 
+* SQL injection or unsafe statement construction from module inputs
+* identifier quoting or escaping bugs targeting the wrong object
 * unsafe or ambiguous module inputs causing unintended SQL effects
 * upstream error messages surfacing sensitive data
 * insecure transport or certificate validation on outbound database connections
@@ -68,6 +76,7 @@ Main threats:
 Required controls:
 
 * keep module parameters explicit and validate mutually unsafe combinations
+* construct SQL safely for identifiers, literals, and grant targets
 * sanitize surfaced driver and database errors
 * continue using TLS-capable connection handling with correct certificate validation
 * treat `exasol_script` as a trusted-operator interface, not a sandbox
@@ -88,6 +97,7 @@ The scope depends on `pyexasol` for SQL script execution support and on Ansible 
 Main threats:
 
 * supply-chain risk from new or changed package dependencies
+* malicious, substituted, or compromised packages in the install path
 * version drift between collection and required Python package
 * release artifacts that install successfully but fail securely or insecurely at runtime
 
@@ -96,6 +106,7 @@ Required controls:
 * keep dependencies minimal and versioned consistently
 * validate that collection installation pulls the required Python package automatically
 * review upstream `pyexasol` changes that affect authentication, transport, or script execution behavior
+* verify release artifacts resolve dependencies from the intended source only
 
 Applicable questions:
 
@@ -113,6 +124,7 @@ Main threats:
 * credentials placed in plaintext inventory or CI configuration
 * overly broad network reach from automation environments to Exasol
 * insecure defaults or missing documentation for TLS and secret handling
+* publication to the wrong or compromised Galaxy namespace
 
 Required controls:
 
@@ -120,6 +132,7 @@ Required controls:
 * document required network reachability and approved endpoints only
 * avoid introducing new persistent secret stores, background services, or cluster-control paths
 * verify release and test automation do not print secrets
+* protect namespace ownership and release-publishing credentials
 
 Applicable questions:
 
@@ -131,3 +144,5 @@ Applicable questions:
 ## Residual Risk
 
 `exasol_script` intentionally enables arbitrary SQL execution for trusted operators. The security boundary is therefore operator authorization, secret-safe handling, and transport protection, not restriction of SQL semantics inside the module.
+
+Trusted operators can still intentionally or accidentally execute destructive SQL. This risk is accepted as part of the module's purpose and must be managed operationally through least privilege, review of playbooks, and controlled execution environments.
