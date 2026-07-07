@@ -52,3 +52,9 @@ jobs:
           path: .coverage
           include-hidden-files: true
           overwrite: false
+
+  fast-tests-extension:
+    name: Extension
+    uses: ./.github/workflows/fast-tests-extension.yml
+    permissions:
+      contents: read

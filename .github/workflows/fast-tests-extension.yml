@@ -1,0 +1,29 @@
+name: Fast-Tests-Extension
+
+on:
+  workflow_call:
+
+jobs:
+  run-requirements-trace:
+    name: Run requirements trace with OpenFastTrace
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out Repository
+        id: check-out-repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python & Poetry Environment
+        id: set-up-python-and-poetry-environment
+        uses: exasol/python-toolbox/.github/actions/python-environment@v10
+        with:
+          python-version: 3.13
+          poetry-version: "2.3.0"
+
+      - name: Trace Requirements With OpenFastTrace
+        id: trace-requirements-with-open-fast-trace
+        run: poetry run -- nox -s requirements:trace

@@ -49,6 +49,22 @@ The session copies the checkout into a temporary
 ``ansible_collections/exasol/exasol`` layout before invoking
 ``ansible-test sanity``.
 
+Requirement Tracing
+-------------------
+
+Run OpenFastTrace locally with:
+
+.. code-block:: bash
+
+   poetry run nox -s requirements:trace
+
+The session traces the whole repository from the project root so that
+requirements, design, implementation, and tests can participate in one OFT
+run.
+
+Java 17 or newer and Maven must be available locally. On the first run, the
+session downloads the OFT JAR into the local Maven repository, then executes ``trace .``.
+
 Toolbox Checks
 --------------
 
