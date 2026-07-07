@@ -324,7 +324,11 @@ url = https://galaxy.ansible.com/
 def requirements_trace(session: nox.Session) -> None:
     """Run OpenFastTrace locally or in CI without a shell wrapper."""
     jar_file = _openfasttrace_jar_file(session)
-    trace_args = session.posargs or ["trace", "."]
+    default_args = ["trace", "."]
+    # Only include present artifact types until we trace into the code
+    default_args = default_args + ["--wanted-artifact-types", "feat,req,scn"]
+
+    trace_args = session.posargs or default_args
 
     with session.chdir(PROJECT_ROOT):
         session.run("java", "-jar", str(jar_file), *trace_args)
