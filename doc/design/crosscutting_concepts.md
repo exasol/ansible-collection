@@ -59,12 +59,13 @@ Needs: impl
 ### Secret Redaction
 `dsn~secret-redaction~1`
 
-The collection marks password-bearing parameters as `no_log=True` and sanitizes authentication failures before returning module results to Ansible.
+The collection marks password-bearing parameters as `no_log=True`, redacts secret-bearing SQL before returning `executed_queries`, and sanitizes authentication failures before returning module results to Ansible.
 
 Status: draft
 
 Covers:
 - `scn~password-not-exposed-in-failure-output~1`
+- `scn~executed-queries-keep-object-names-but-redact-secrets~1`
 
 Needs: impl, utest
 
@@ -78,6 +79,30 @@ Status: draft
 Covers:
 - `scn~creation-only-password-update~1`
 - `scn~forced-password-update~1`
+
+Needs: impl, utest
+
+### Authorization State Reconciliation
+`dsn~authorization-state-reconciliation~1`
+
+The collection reads current Exasol metadata before planning user or role lifecycle SQL and emits statements only when the requested security-relevant state differs from the current state.
+
+Status: draft
+
+Covers:
+- `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
+
+Needs: impl, utest, itest
+
+### Encrypted Transport By Default
+`dsn~encrypted-transport-by-default~1`
+
+Shared connection handling always enables pyexasol encryption and keeps certificate validation enabled by default while still allowing explicit CA-certificate or fingerprint-based trust configuration.
+
+Status: draft
+
+Covers:
+- `scn~exasol-connections-use-encrypted-transport-by-default~1`
 
 Needs: impl, utest
 

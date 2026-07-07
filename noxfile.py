@@ -325,8 +325,8 @@ def requirements_trace(session: nox.Session) -> None:
     """Run OpenFastTrace locally or in CI without a shell wrapper."""
     jar_file = _openfasttrace_jar_file(session)
     default_args = ["trace", "."]
-    # Only include present artifact types until we trace into the code
-    default_args = default_args + ["--wanted-artifact-types", "feat,req,scn"]
+    # Only include artifact types currently present in the repository.
+    default_args = default_args + ["--wanted-artifact-types", "feat,req,scn,dsn"]
 
     trace_args = session.posargs or default_args
 

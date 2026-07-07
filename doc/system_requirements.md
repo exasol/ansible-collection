@@ -7,8 +7,10 @@ The Exasol Ansible Collection lets operators automate Exasol administration task
 ## Goals
 
 * Automate Exasol user administration without bypassing Exasol permissions.
+* Keep role and privilege administration predictable across repeated runs.
 * Prevent credentials and passwords from appearing in Ansible output or error messages.
 * Make password update behavior explicit where Exasol does not allow password comparison.
+* Protect Exasol connections with encrypted transport and explicit certificate controls.
 
 ## Evidence Base
 
@@ -16,6 +18,7 @@ This draft was reverse-engineered from:
 
 * `doc/user_guide.rst`
 * the legacy Exasol user security design note migrated into this document
+* the current `exasol_user` and `exasol_role` module behavior
 
 ## Notation
 
@@ -106,6 +109,54 @@ Covers:
 
 Needs: scn
 
+### Keep Authorization Changes Predictable
+`req~keep-authorization-changes-predictable~1`
+
+User, role, and future grant-management operations must reconcile only the requested authorization state so that repeated runs do not create silent privilege drift or misleading `changed` reporting.
+
+Rationale:
+
+Security-sensitive automation must be safe to repeat. Operators need clear signals about whether a run created, altered, or removed authorization state.
+
+Status: draft
+
+Covers:
+- `feat~secure-exasol-user-administration~1`
+
+Needs: scn
+
+### Protect Exasol Transport
+`req~protect-exasol-transport~1`
+
+Connections to Exasol must use encrypted transport by default and honor certificate-validation settings so that credentials and administrative traffic are not exposed in transit.
+
+Rationale:
+
+Database administration often crosses shared networks or automation tiers. The collection must default to transport protection and make trust overrides explicit.
+
+Status: draft
+
+Covers:
+- `feat~secure-exasol-user-administration~1`
+
+Needs: scn
+
+### Keep Audit Output Secret-Safe
+`req~keep-audit-output-secret-safe~1`
+
+Module results must preserve enough object identity for auditing while redacting passwords, LDAP distinguished names, connection credentials, and other secret values.
+
+Rationale:
+
+Operators need actionable `executed_queries` and failure messages, but those outputs are often stored in CI logs and automation records.
+
+Status: draft
+
+Covers:
+- `feat~secure-exasol-user-administration~1`
+
+Needs: scn
+
 ## Acceptance Scenarios
 
 The following scenarios describe observable behavior in Given-When-Then form.
@@ -166,6 +217,51 @@ Status: draft
 
 Covers:
 - `req~explain-password-update-limits~1`
+
+Needs: dsn
+
+### Repeated Runs Do Not Add Unrequested Authorization Changes
+`scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
+
+**Given** a user or role already matches the requested state
+**When** an Ansible Operator repeats the same administration task
+**Then** the collection emits no additional authorization-changing SQL
+**And** the result reports `changed=false`
+
+Status: draft
+
+Covers:
+- `req~keep-authorization-changes-predictable~1`
+
+Needs: dsn
+
+### Exasol Connections Use Encrypted Transport By Default
+`scn~exasol-connections-use-encrypted-transport-by-default~1`
+
+**Given** an Ansible Operator connects to Exasol with the shared connection options
+**When** the collection opens the pyexasol connection
+**Then** transport encryption is enabled
+**And** certificate validation stays enabled unless the operator explicitly relaxes it or pins a trusted certificate or fingerprint
+
+Status: draft
+
+Covers:
+- `req~protect-exasol-transport~1`
+
+Needs: dsn
+
+### Executed Queries Keep Object Names But Redact Secrets
+`scn~executed-queries-keep-object-names-but-redact-secrets~1`
+
+**Given** a task creates or updates a user with secret-bearing parameters
+**When** the module reports its executed queries or failure message
+**Then** user or role names remain visible for auditing
+**And** passwords, LDAP distinguished names, and connection secrets are redacted
+
+Status: draft
+
+Covers:
+- `req~keep-audit-output-secret-safe~1`
 
 Needs: dsn
 

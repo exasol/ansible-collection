@@ -21,24 +21,46 @@ Runtime design requirements `dsn` should cover one scenario or constraint at a t
 
 ## Code Quality
 
-`<Summarize code quality rules inferred from contributing docs, linters, formatters, build settings, or code style.>`
+Collection modules must validate inputs before generating SQL, reuse shared connection and redaction helpers, and keep secret-bearing parameters under `no_log=True`.
+
+Python code targets 3.11+, uses Black line length 88, isort's Black profile, Ruff for selected lint rules, Pylint, and mypy with explicit package bases.
+
+Security-sensitive behavior such as connection setup, SQL rendering, and error sanitization belongs in reusable runtime helpers so user and role modules do not drift.
 
 ## Test Quality
 
-`<Summarize test framework, naming conventions, assertion style, coverage rules, and test data conventions.>`
+Use `pytest` for unit and integration coverage.
+
+Unit tests should exercise SQL planning, input validation, error sanitization, check mode, and `changed` / `exists` reporting with fake connections.
+
+Acceptance tests in `test/integration/acceptance/` should prove backend behavior for repeated-run safety, secret redaction, and security-relevant state transitions against a real Exasol backend.
 
 ## Dependency Policy
 
-`<Summarize dependency constraints, vulnerability checks, lock files, verification metadata, allowed dependency categories, and approval rules.>`
+Keep runtime dependencies minimal. The current runtime package depends on `pyexasol` and `sqlglot`; collection modules require `exasol-ansible-modules` in the Ansible execution environment.
+
+New dependencies must be justified by implementation need, versioned in project metadata, and reviewed for security impact on authentication, transport, or SQL handling paths.
 
 ## Static Analysis and Security Gates
 
-`<Summarize linters, static analysis, security checks, CI gates, and release blockers.>`
+Required local verification consists of:
+
+* `nox -s requirements:trace` for OFT consistency
+* `nox -s collection:sanity` for Ansible sanity checks
+* `nox -s collection:doc` for module documentation validity
+
+Secret leakage in module output, tests, or release automation is a release blocker. SonarQube secrets scanning are part of the expected static-analysis and security review flow.
 
 ## Testability and Coverage
 
-`<Summarize coverage thresholds, test layers, integration test strategy, and areas that require manual verification.>`
+Coverage should focus on security-relevant decision points rather than line totals.
+
+Required verification for this administration surface includes:
+
+* unit tests for redaction, transport-option mapping, identifier validation, and idempotent SQL planning
+* backend acceptance tests for repeated-run safety, password-update behavior, and role/user lifecycle transitions
+* manual or automated confirmation that release artifacts install the runtime dependency set needed by collection modules
 
 ## Open Issues
 
-* `<quality-rule contradiction, missing gate, or unclear verification expectation>`
+* The repo does not yet trace `impl`, `utest`, or `itest` items into code and tests.

@@ -2,7 +2,9 @@
 
 This change expands the collection's database-administration surface. The main assets are Exasol credentials, authorization state, Ansible logs, and the integrity of automated schema, user, role, grant, and script execution workflows.
 
-## Affects Authentication / Authorization
+## Security Assessment
+
+### Affects Authentication / Authorization
 
 Yes.
 
@@ -31,7 +33,7 @@ Applicable questions:
 * Can the connector operate with least-privilege permissions?
 * How are privilege changes controlled and audited?
 
-## Introduces or Modifies Sensitive Data Handling, Security-Relevant Processing, or Data Access Behavior
+### Introduces or Modifies Sensitive Data Handling, Security-Relevant Processing, or Data Access Behavior
 
 Yes.
 
@@ -59,7 +61,7 @@ Applicable questions:
 * Is PII exposure in logs, monitoring, or error messages prevented?
 * Is only the minimum required data shared or displayed?
 
-## Impacts External Interfaces / APIs
+### Impacts External Interfaces / APIs
 
 Yes.
 
@@ -88,7 +90,7 @@ Applicable questions:
 * Is output data sanitized before use or display?
 * Is communication with the third-party system encrypted using TLS?
 
-## Involves New Dependencies or Services
+### Involves New Dependencies or Services
 
 Yes.
 
@@ -113,7 +115,7 @@ Applicable questions:
 * Does the integration affect compliance scope?
 * What permissions are required by the connector in the third-party system?
 
-## Affects Infrastructure or Configuration
+### Affects Infrastructure or Configuration
 
 Yes.
 
@@ -140,6 +142,51 @@ Applicable questions:
 * Does the connector require direct access to sensitive systems or databases?
 * Are firewall rules restricted to only necessary endpoints and ports?
 * How are secrets rotated and revoked?
+
+## Other Security Considerations
+
+### Data At Rest, PII, and Local Persistence
+
+The collection is not intended to become a secret store. Passwords, LDAP distinguished names, and connection credentials enter through Ansible variables and are forwarded to Exasol or `pyexasol` only for the lifetime of a task.
+
+Required controls:
+
+* keep secret values in Vault or equivalent external secret management
+* do not persist credentials, raw SQL containing secrets, or cached identity data in collection-owned files
+* keep returned data limited to object identifiers and redacted statements
+* treat LDAP distinguished names as sensitive because they can expose directory structure and personal identifiers
+
+### Accountability, Compliance, and Auditability
+
+The collection should make security-relevant actions reviewable without disclosing secrets.
+
+Required controls:
+
+* keep `executed_queries` redacted but object-specific
+* keep `changed` reporting aligned with emitted SQL so repeated runs are explainable
+* preserve Exasol as the system of record for authentication, authorization, and server-side auditing
+* treat secret leakage in task output, CI logs, or release logs as a release blocker
+
+### Availability and Failure Handling
+
+The administration surface is operational tooling, not a high-availability control plane. Availability therefore depends on Exasol reachability, valid credentials, and predictable failure behavior.
+
+Required controls:
+
+* fail fast on authentication, validation, and SQL-construction errors
+* keep repeated runs safe after partial operational failures
+* avoid background retries or local reconciliation loops that could amplify privilege changes
+* keep check mode and idempotent planning available so operators can assess impact before applying changes
+
+### Tier Segregation and Trusted-Operator Boundary
+
+These modules are designed for trusted operators running in controlled automation environments. The collection does not sandbox SQL semantics or downgrade the authority of the authenticated Exasol account.
+
+Required controls:
+
+* run the collection only from tiers that are allowed to reach Exasol administration endpoints
+* use separate low-privilege connection accounts for distinct automation roles where possible
+* treat any future `exasol_grants`, `exasol_schema`, or `exasol_script` surface as subject to the same least-privilege, redaction, and repeated-run-safety rules
 
 ## Residual Risk
 
