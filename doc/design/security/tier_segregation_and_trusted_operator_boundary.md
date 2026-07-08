@@ -84,7 +84,7 @@ Needs: uman
 ### Apply The Security Model To Future Administrative Modules
 `dsn~apply-the-security-model-to-future-administrative-modules~1`
 
-Current `exasol_query` and any future administrative module such as `exasol_grants`, `exasol_schema`, or `exasol_script` must follow the same rules established here where they apply: no local privilege bypass, encrypted transport only, secret-safe output, and least-privilege operation. Modules that reconcile declarative authorization or schema state from observed metadata, such as `exasol_grants` or `exasol_schema`, must also use repeatable planning based on observed database state. Direct SQL surfaces such as `exasol_query` remain trusted-operator interfaces and are explicitly exempt from that state-reconciliation rule.
+Current `exasol_query` and any future administrative module such as `exasol_grants`, `exasol_schema`, or `exasol_script` must follow the same rules established here where they apply: no local privilege bypass, encrypted transport only, and least-privilege operation. Modules with structured outputs must keep those outputs secret-safe. Direct SQL surfaces such as `exasol_query` remain trusted-operator interfaces: they are explicitly exempt from both automatic redaction of arbitrary operator-supplied SQL text and the state-reconciliation rule. Modules that reconcile declarative authorization or schema state from observed metadata, such as `exasol_grants` or `exasol_schema`, must use repeatable planning based on observed database state.
 
 Status: draft
 

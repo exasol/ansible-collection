@@ -2,7 +2,7 @@
 orphan: true
 ---
 
-# GH-69 Security design consistency fixes
+# GH-69 Security Design Consistency Fixes
 
 ## Goal
 

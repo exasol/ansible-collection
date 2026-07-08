@@ -85,7 +85,7 @@ Needs: impl, utest
 ### Authorization State Reconciliation
 `dsn~authorization-state-reconciliation~1`
 
-The collection reads current Exasol metadata before planning user, role, or grant lifecycle SQL and emits statements only when the requested security-relevant state differs from the current state.
+The collection reads current Exasol metadata before planning user, role, or grant lifecycle SQL and emits statements only when the requested security-relevant state differs from the current state. Password changes are an explicit exception: when `update_password=always`, the collection must still plan `ALTER USER` for existing users because Exasol does not expose the current password for comparison.
 
 Status: draft
 
