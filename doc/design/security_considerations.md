@@ -514,9 +514,9 @@ Needs: impl
 
 The collection is not intended to become a secret store. Passwords, LDAP distinguished names, and connection credentials enter through Ansible variables and are forwarded to Exasol or `pyexasol` only for the lifetime of a task.
 
-Main threats:
+#### Main Threats
 
-#### Persisted Credentials Or SQL Leak Secrets At Rest
+##### Persisted Credentials Or SQL Leak Secrets At Rest
 `thrt~persisted-credentials-or-sql-leak-secrets-at-rest~1`
 
 Locally persisted credentials, secret-bearing SQL, or cached identity data could expose secrets outside the task lifetime through files, caches, or artifacts.
@@ -525,7 +525,7 @@ Status: draft
 
 Needs: dsn
 
-#### Sensitive Identifiers Leak Directory Or Personal Data
+##### Sensitive Identifiers Leak Directory Or Personal Data
 `thrt~sensitive-identifiers-leak-directory-or-personal-data~1`
 
 LDAP distinguished names or similar identifiers could reveal directory structure, personal data, or sensitive organizational details if exposed unnecessarily.
@@ -534,16 +534,16 @@ Status: draft
 
 Needs: dsn
 
-Required controls:
+#### Required controls
 
 * keep secret values in Vault or equivalent external secret management
 * do not persist credentials, raw SQL containing secrets, or cached identity data in collection-owned files
 * keep returned data limited to object identifiers and redacted statements
 * treat LDAP distinguished names as sensitive because they can expose directory structure and personal identifiers
 
-Mitigations:
+#### Mitigations
 
-#### Redact Sensitive Identifiers Unless Auditability Requires Them
+##### Redact Sensitive Identifiers Unless Auditability Requires Them
 `dsn~redact-sensitive-identifiers-unless-auditability-requires-them~1`
 
 Redact sensitive identifiers from outputs where they are not needed for auditability.
@@ -557,7 +557,7 @@ Covers:
 
 Needs: impl, utest
 
-#### Keep Secret Handling Transient Within Task Execution
+##### Keep Secret Handling Transient Within Task Execution
 `dsn~keep-secret-handling-transient-within-task-execution~1`
 
 Keep secret handling transient within the task lifecycle, without local credential caches or collection-owned secret stores.
@@ -574,9 +574,9 @@ Needs: impl
 
 The collection should make security-relevant actions reviewable without disclosing secrets.
 
-Main threats:
+#### Main threats
 
-#### Audit Output Exposes Secrets Or Sensitive Details
+##### Audit Output Exposes Secrets Or Sensitive Details
 `thrt~audit-output-exposes-secrets-or-sensitive-details~1`
 
 Security-relevant output intended for auditability could reveal secrets or other sensitive details in logs, CI records, or operator-visible results.
@@ -585,7 +585,7 @@ Status: draft
 
 Needs: dsn
 
-#### Misleading Changed Reporting Obscures Security Impact
+##### Misleading Changed Reporting Obscures Security Impact
 `thrt~misleading-changed-reporting-obscures-security-impact~1`
 
 `changed` reporting that does not match emitted SQL could mislead operators about whether security-relevant state actually changed.
@@ -594,7 +594,7 @@ Status: draft
 
 Needs: dsn
 
-#### Local Reporting Competes With Authoritative Database Audit Trails
+##### Local Reporting Competes With Authoritative Database Audit Trails
 `thrt~local-reporting-competes-with-authoritative-database-audit-trails~1`
 
 Collection-side reporting could be mistaken for the source of truth and weaken reliance on Exasol's authoritative audit trail for database actions.
@@ -603,16 +603,16 @@ Status: draft
 
 Needs: dsn
 
-Required controls:
+#### Required controls
 
 * keep `executed_queries` redacted but object-specific
 * keep `changed` reporting aligned with emitted SQL so repeated runs are explainable
 * preserve Exasol as the system of record for authentication, authorization, and server-side auditing
 * treat secret leakage in task output, CI logs, or release logs as a release blocker
 
-Mitigations:
+#### Mitigations
 
-#### Expose Normalized Object Names Without Secret Values
+##### Expose Normalized Object Names Without Secret Values
 `dsn~expose-normalized-object-names-without-secret-values~1`
 
 Expose normalized object names while hiding secret values.
@@ -627,7 +627,7 @@ Covers:
 
 Needs: impl, utest
 
-#### Derive `changed` From Planned SQL
+##### Derive `changed` From Planned SQL
 `dsn~derive-changed-from-planned-sql~1`
 
 Set `changed=true` only when the planner has determined that the collection must emit state-changing SQL. If the requested state already matches Exasol metadata and no SQL should run, report `changed=false` so operators can trust repeated-run behavior and audit output.
@@ -643,7 +643,7 @@ Covers:
 
 Needs: impl, utest, itest
 
-#### Rely On Exasol For Authoritative Audit Trails
+##### Rely On Exasol For Authoritative Audit Trails
 `dsn~rely-on-exasol-for-authoritative-audit-trails~1`
 
 Rely on Exasol for authoritative audit trails of database-side actions.
@@ -660,9 +660,9 @@ Needs: impl
 
 The administration surface is operational tooling, not a high-availability control plane. Availability therefore depends on Exasol reachability, valid credentials, and predictable failure behavior.
 
-Main threats:
+#### Main threats
 
-#### Invalid Inputs Or SQL Paths Cause Unsafe Failures
+##### Invalid Inputs Or SQL Paths Cause Unsafe Failures
 `thrt~invalid-inputs-or-sql-paths-cause-unsafe-failures~1`
 
 Authentication, validation, or SQL-construction failures could trigger unsafe execution paths or make operational failures harder to recover from.
@@ -671,7 +671,7 @@ Status: draft
 
 Needs: dsn
 
-#### Partial Failures Leave State Unsafe For Repeated Runs
+##### Partial Failures Leave State Unsafe For Repeated Runs
 `thrt~partial-failures-leave-state-unsafe-for-repeated-runs~1`
 
 Operational failures during multi-step changes could leave state in a condition that makes subsequent runs unsafe or misleading.
@@ -680,7 +680,7 @@ Status: draft
 
 Needs: dsn
 
-#### Autonomous Retries Repeat Privileged Actions
+##### Autonomous Retries Repeat Privileged Actions
 `thrt~autonomous-retries-repeat-privileged-actions~1`
 
 Background retries or local retry loops could reissue privileged SQL and amplify unintended changes.
@@ -689,7 +689,7 @@ Status: draft
 
 Needs: dsn
 
-#### Check Mode Diverges From Real Execution
+##### Check Mode Diverges From Real Execution
 `thrt~check-mode-diverges-from-real-execution~1`
 
 Check mode that does not follow the same planning logic as normal execution could mislead operators about pending security-relevant effects.
@@ -698,16 +698,16 @@ Status: draft
 
 Needs: dsn
 
-Required controls:
+#### Required controls
 
 * fail fast on authentication, validation, and SQL-construction errors
 * keep repeated runs safe after partial operational failures
 * avoid background retries or local reconciliation loops that could amplify privilege changes
 * keep check mode and idempotent planning available so operators can assess impact before applying changes
 
-Mitigations:
+#### Mitigations
 
-#### Validate Inputs Before Risky SQL Paths
+##### Validate Inputs Before Risky SQL Paths
 `dsn~validate-inputs-before-risky-sql-paths~1`
 
 Reject invalid or conflicting module inputs before building or executing administrative SQL. This includes malformed identifiers, unsupported option combinations, and inputs that would make the target operation ambiguous or unsafe.
@@ -721,7 +721,7 @@ Covers:
 
 Needs: impl, utest
 
-#### Keep Check-Mode Planning Deterministic And Side-Effect Free
+##### Keep Check-Mode Planning Deterministic And Side-Effect Free
 `dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1`
 
 Make check mode run the same planning logic as normal execution, but stop before any state-changing SQL is sent. Given the same requested state and database metadata, check mode should produce the same decision and reporting without creating side effects.
@@ -737,7 +737,7 @@ Covers:
 
 Needs: impl, utest
 
-#### Avoid Autonomous Retry Of Privileged Actions
+##### Avoid Autonomous Retry Of Privileged Actions
 `dsn~avoid-autonomous-retry-of-privileged-actions~1`
 
 Avoid autonomous retry behavior that could repeat privileged actions.
@@ -754,9 +754,9 @@ Needs: impl
 
 These modules are designed for trusted operators running in controlled automation environments. In particular, `exasol_query` already executes operator-supplied SQL directly against Exasol, and any future `exasol_script` surface would extend the same trust model. The collection does not sandbox SQL semantics or downgrade the authority of the authenticated Exasol account.
 
-Main threats:
+#### Main threats
 
-#### Untrusted Tiers Reach Administrative Interfaces
+##### Untrusted Tiers Reach Administrative Interfaces
 `thrt~untrusted-tiers-reach-administrative-interfaces~1`
 
 Running the collection from uncontrolled or overly broad automation tiers could expose Exasol administrative interfaces to untrusted environments.
@@ -765,7 +765,7 @@ Status: draft
 
 Needs: dsn
 
-#### Shared Or Over-Privileged Accounts Cross Role Boundaries
+##### Shared Or Over-Privileged Accounts Cross Role Boundaries
 `thrt~shared-or-over-privileged-accounts-cross-role-boundaries~1`
 
 Using shared or overly privileged service accounts across automation roles could blur security boundaries and expand the impact of mistakes or misuse.
@@ -774,7 +774,7 @@ Status: draft
 
 Needs: dsn
 
-#### Direct SQL Surfaces Are Mistaken For Sandboxed Interfaces
+##### Direct SQL Surfaces Are Mistaken For Sandboxed Interfaces
 `thrt~direct-sql-surfaces-are-mistaken-for-sandboxed-interfaces~1`
 
 Operators could incorrectly assume that direct SQL interfaces such as `exasol_query` or future script modules constrain SQL semantics or reduce account authority.
@@ -783,7 +783,7 @@ Status: draft
 
 Needs: dsn
 
-#### Declarative Modules Drift From The Trusted-Operator Security Model
+##### Declarative Modules Drift From The Trusted-Operator Security Model
 `thrt~declarative-modules-drift-from-the-trusted-operator-security-model~1`
 
 Future administrative modules could diverge from the established least-privilege, redaction, transport, and repeatable-planning model.
@@ -792,16 +792,16 @@ Status: draft
 
 Needs: dsn
 
-Required controls:
+#### Required controls
 
 * run the collection only from tiers that are allowed to reach Exasol administration endpoints
 * use separate low-privilege connection accounts for distinct automation roles where possible
 * treat `exasol_query` and any future `exasol_grants`, `exasol_schema`, or `exasol_script` surface as subject to the same least-privilege, redaction, and transport-protection rules
 * require repeatable state-reconciliation planning only for modules that reconcile declarative authorization or schema state from observed metadata
 
-Mitigations:
+#### Mitigations
 
-#### Keep The Trust Boundary At The Authenticated Account And Operator Environment
+##### Keep The Trust Boundary At The Authenticated Account And Operator Environment
 `dsn~keep-the-trust-boundary-at-the-authenticated-account-and-operator-environment~1`
 
 Treat the authenticated Exasol account and the automation environment running the playbook as the security boundary. The collection must not try to dilute, extend, or reinterpret that authority with its own privilege model.
@@ -815,7 +815,7 @@ Covers:
 
 Needs: impl
 
-#### Require Least-Privilege Service Accounts For Automation Tiers
+##### Require Least-Privilege Service Accounts For Automation Tiers
 `dsn~require-least-privilege-service-accounts-for-automation-tiers~1`
 
 Use separate service accounts for separate automation roles and grant each account only the Exasol privileges required for its job. A playbook that manages users should not automatically inherit the rights needed for broader scripting or schema administration if it does not need them.
@@ -833,7 +833,7 @@ Covers:
 
 Needs: uman
 
-#### Apply The Security Model To Future Administrative Modules
+##### Apply The Security Model To Future Administrative Modules
 `dsn~apply-the-security-model-to-future-administrative-modules~1`
 
 Current `exasol_query` and any future administrative module such as `exasol_grants`, `exasol_schema`, or `exasol_script` must follow the same rules established here where they apply: no local privilege bypass, encrypted transport only, secret-safe output, and least-privilege operation. Modules that reconcile declarative authorization or schema state from observed metadata, such as `exasol_grants` or `exasol_schema`, must also use repeatable planning based on observed database state. Direct SQL surfaces such as `exasol_query` remain trusted-operator interfaces and are explicitly exempt from that state-reconciliation rule.
