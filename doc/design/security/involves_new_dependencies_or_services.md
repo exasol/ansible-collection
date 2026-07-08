@@ -2,7 +2,7 @@
 
 Yes.
 
-The scope depends on `pyexasol` for SQL script execution support and on Ansible Galaxy packaging for a usable release artifact.
+This design set documents a completely new project, so all runtime dependencies and release services are considered new from the project-security perspective. In that context, the scope depends on `pyexasol` for SQL script execution support and on Ansible Galaxy packaging for a usable release artifact.
 
 ## Main Threats
 

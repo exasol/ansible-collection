@@ -17,8 +17,11 @@ Use this OFT hierarchy unless the project already defines a different one:
 7. `impl`: implementation
 8. `utest`: unit test
 9. `itest`: integration test
+10. `uman`: user manual or operator guidance
 
 Security threat items `thrt` should express one concrete threat at a time and use `Needs: dsn`. Runtime design requirements `dsn` should cover one scenario, threat, or constraint at a time. Use OFT forwarding notation if a design layer adds no new information.
+
+Use `uman` when a requirement or mitigation is fulfilled through documented operator workflow, privilege guidance, or other user-facing manual content rather than executable code.
 
 ## Code Quality
 
