@@ -6,41 +6,41 @@ This change expands the collection's database-administration surface. The main a
 
 ### Affects Authentication / Authorization
 
-See [Affects Authentication / Authorization](security_considerations/affects_authentication_authorization.md).
+See [Affects Authentication / Authorization](security/affects_authentication_authorization.md).
 
 ### Introduces or Modifies Sensitive Data Handling, Security-Relevant Processing, or Data Access Behavior
 
-See [Introduces or Modifies Sensitive Data Handling, Security-Relevant Processing, or Data Access Behavior](security_considerations/introduces_or_modifies_sensitive_data_handling_security_relevant_processing_or_data_access_behavior.md).
+See [Introduces or Modifies Sensitive Data Handling, Security-Relevant Processing, or Data Access Behavior](security/introduces_or_modifies_sensitive_data_handling_security_relevant_processing_or_data_access_behavior.md).
 
 ### Impacts External Interfaces / APIs
 
-See [Impacts External Interfaces / APIs](security_considerations/impacts_external_interfaces_apis.md).
+See [Impacts External Interfaces / APIs](security/impacts_external_interfaces_apis.md).
 
 ### Involves New Dependencies or Services
 
-See [Involves New Dependencies or Services](security_considerations/involves_new_dependencies_or_services.md).
+See [Involves New Dependencies or Services](security/involves_new_dependencies_or_services.md).
 
 ### Affects Infrastructure or Configuration
 
-See [Affects Infrastructure or Configuration](security_considerations/affects_infrastructure_or_configuration.md).
+See [Affects Infrastructure or Configuration](security/affects_infrastructure_or_configuration.md).
 
 ## Other Security Considerations
 
 ### Data At Rest, PII, and Local Persistence
 
-See [Data At Rest, PII, and Local Persistence](security_considerations/data_at_rest_pii_and_local_persistence.md).
+See [Data At Rest, PII, and Local Persistence](security/data_at_rest_pii_and_local_persistence.md).
 
 ### Accountability, Compliance, and Auditability
 
-See [Accountability, Compliance, and Auditability](security_considerations/accountability_compliance_and_auditability.md).
+See [Accountability, Compliance, and Auditability](security/accountability_compliance_and_auditability.md).
 
 ### Availability and Failure Handling
 
-See [Availability and Failure Handling](security_considerations/availability_and_failure_handling.md).
+See [Availability and Failure Handling](security/availability_and_failure_handling.md).
 
 ### Tier Segregation and Trusted-Operator Boundary
 
-See [Tier Segregation and Trusted-Operator Boundary](security_considerations/tier_segregation_and_trusted_operator_boundary.md).
+See [Tier Segregation and Trusted-Operator Boundary](security/tier_segregation_and_trusted_operator_boundary.md).
 
 ## Residual Risk
 
