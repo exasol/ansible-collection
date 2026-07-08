@@ -1,4 +1,4 @@
-# GH-69 Security design document consistency fixes
+# GH-69 Security design consistency fixes
 
 ## Goal
 
@@ -12,7 +12,7 @@ In scope:
 * make certificate validation non-optional in requirements and design
 * cover grant-management repeated-run behavior in scenarios and design
 * include `exasol_schema` in the documented administration surface
-* record the documentation work in a per-issue changeset
+* record the documentation work in the per-issue changeset format used by this repository
 
 Out of scope:
 

@@ -12,7 +12,7 @@ This specification covers the current and planned database-administration surfac
 * Keep user, role, and grant administration predictable across repeated runs.
 * Prevent credentials and passwords from appearing in Ansible output or error messages.
 * Make password update behavior explicit where Exasol does not allow password comparison.
-* Protect Exasol connections with encrypted transport and mandatory certificate validation.
+* Keep Exasol administration traffic confidential and authenticated in transit.
 
 ## Evidence Base
 
