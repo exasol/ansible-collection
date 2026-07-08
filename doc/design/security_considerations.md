@@ -10,7 +10,7 @@ Yes.
 
 The collection authenticates to Exasol with `login_*` parameters and performs authorization-sensitive operations through `exasol_user`, `exasol_role`, `exasol_query`, planned grant-management and schema-management workflows, and future trusted-operator modules such as `exasol_grants`, `exasol_schema`, and `exasol_script`.
 
-#### Main threats
+#### Main Threats
 
 ##### Incorrect Idempotency Or Grant Logic Changes Privileges
 `thrt~incorrect-idempotency-or-grant-logic-changes-privileges~1`
@@ -48,7 +48,7 @@ Status: draft
 
 Needs: dsn
 
-#### Required controls
+#### Required Controls
 
 * keep authentication failure handling secret-safe
 * rely on Exasol authorization instead of local privilege bypass logic
@@ -99,7 +99,7 @@ Covers:
 
 Needs: impl
 
-#### Applicable questions
+#### Applicable Questions
 
 * How does the connector authenticate to the third-party system?
 * Where are credentials stored?
@@ -112,7 +112,7 @@ Yes.
 
 The change processes passwords, usernames, role names, privileges, and possibly SQL scripts that may embed sensitive values.
 
-#### Main threats
+#### Main Threats
 
 ##### Secrets Leak Through Logs, Results, Or Tracebacks
 `thrt~secrets-leak-through-logs-results-or-tracebacks~1`
@@ -159,7 +159,7 @@ Status: draft
 
 Needs: dsn
 
-#### Required controls
+#### Required Controls
 
 * reuse shared secret-redaction helpers for parameters and exceptions
 * avoid storing secrets locally in the collection
@@ -196,7 +196,7 @@ Covers:
 
 Needs: impl, utest
 
-#### Applicable questions
+#### Applicable Questions
 
 * Are secrets ever exposed in logs, monitoring systems, or configuration files?
 * Is PII exposure in logs, monitoring, or error messages prevented?
@@ -255,7 +255,7 @@ Status: draft
 
 Needs: dsn
 
-#### Required controls
+#### Required Controls
 
 * keep module parameters explicit and validate mutually unsafe combinations
 * construct SQL safely for identifiers, literals, and grant targets
@@ -306,7 +306,7 @@ Covers:
 
 Needs: impl, utest
 
-#### Applicable questions
+#### Applicable Questions
 
 * Are API endpoints authenticated and authorized?
 * Is input validation performed?
@@ -319,7 +319,7 @@ Yes.
 
 The scope depends on `pyexasol` for SQL script execution support and on Ansible Galaxy packaging for a usable release artifact.
 
-#### Main threats
+#### Main Threats
 
 ##### Dependency Changes Expand Supply-Chain Risk
 `thrt~dependency-changes-expand-supply-chain-risk~1`
@@ -357,7 +357,7 @@ Status: draft
 
 Needs: dsn
 
-#### Required controls
+#### Required Controls
 
 * keep dependencies minimal and versioned consistently
 * validate that collection installation pulls the required Python package automatically
@@ -404,7 +404,7 @@ Covers:
 
 Needs: impl
 
-#### Applicable questions
+#### Applicable Questions
 
 * Does the integration affect compliance scope?
 * What permissions are required by the connector in the third-party system?
@@ -415,7 +415,7 @@ Yes.
 
 The change affects connection configuration, secret provisioning, CI or release automation, and the operational guidance for running the modules.
 
-#### Main threats
+#### Main Threats
 
 ##### Plaintext Credentials Leak Through Inventory Or CI
 `thrt~plaintext-credentials-leak-through-inventory-or-ci~1`
@@ -453,7 +453,7 @@ Status: draft
 
 Needs: dsn
 
-#### Required controls
+#### Required Controls
 
 * keep Vault-based or equivalent secret management as the documented baseline
 * document required network reachability and approved endpoints only
@@ -501,7 +501,7 @@ Covers:
 
 Needs: impl
 
-#### Applicable questions
+#### Applicable Questions
 
 * In which network zone will the connector run?
 * Does the connector require direct access to sensitive systems or databases?
@@ -534,7 +534,7 @@ Status: draft
 
 Needs: dsn
 
-#### Required controls
+#### Required Controls
 
 * keep secret values in Vault or equivalent external secret management
 * do not persist credentials, raw SQL containing secrets, or cached identity data in collection-owned files
@@ -574,7 +574,7 @@ Needs: impl
 
 The collection should make security-relevant actions reviewable without disclosing secrets.
 
-#### Main threats
+#### Main Threats
 
 ##### Audit Output Exposes Secrets Or Sensitive Details
 `thrt~audit-output-exposes-secrets-or-sensitive-details~1`
@@ -603,7 +603,7 @@ Status: draft
 
 Needs: dsn
 
-#### Required controls
+#### Required Controls
 
 * keep `executed_queries` redacted but object-specific
 * keep `changed` reporting aligned with emitted SQL so repeated runs are explainable
@@ -660,7 +660,7 @@ Needs: impl
 
 The administration surface is operational tooling, not a high-availability control plane. Availability therefore depends on Exasol reachability, valid credentials, and predictable failure behavior.
 
-#### Main threats
+#### Main Threats
 
 ##### Invalid Inputs Or SQL Paths Cause Unsafe Failures
 `thrt~invalid-inputs-or-sql-paths-cause-unsafe-failures~1`
@@ -698,7 +698,7 @@ Status: draft
 
 Needs: dsn
 
-#### Required controls
+#### Required Controls
 
 * fail fast on authentication, validation, and SQL-construction errors
 * keep repeated runs safe after partial operational failures
@@ -754,7 +754,7 @@ Needs: impl
 
 These modules are designed for trusted operators running in controlled automation environments. In particular, `exasol_query` already executes operator-supplied SQL directly against Exasol, and any future `exasol_script` surface would extend the same trust model. The collection does not sandbox SQL semantics or downgrade the authority of the authenticated Exasol account.
 
-#### Main threats
+#### Main Threats
 
 ##### Untrusted Tiers Reach Administrative Interfaces
 `thrt~untrusted-tiers-reach-administrative-interfaces~1`
@@ -792,7 +792,7 @@ Status: draft
 
 Needs: dsn
 
-#### Required controls
+#### Required Controls
 
 * run the collection only from tiers that are allowed to reach Exasol administration endpoints
 * use separate low-privilege connection accounts for distinct automation roles where possible
