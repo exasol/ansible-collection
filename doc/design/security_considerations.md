@@ -12,15 +12,6 @@ The collection authenticates to Exasol with `login_*` parameters and performs au
 
 #### Main threats
 
-##### Credential Disclosure In Task Output Or Exceptions
-`thrt~credential-disclosure-in-task-output-or-exceptions~1`
-
-Authentication failures, surfaced authorization errors, or module exceptions could disclose passwords, connection credentials, or other secret-bearing inputs in logs and task results.
-
-Status: draft
-
-Needs: dsn
-
 ##### Incorrect Idempotency Or Grant Logic Changes Privileges
 `thrt~incorrect-idempotency-or-grant-logic-changes-privileges~1`
 
@@ -76,7 +67,7 @@ Status: draft
 
 Covers:
 - `scn~operation-uses-authenticated-exasol-permissions~1`
-- `thrt~credential-disclosure-in-task-output-or-exceptions~1`
+- `thrt~upstream-errors-surface-sensitive-data~1`
 
 Needs: impl, utest
 
@@ -202,19 +193,6 @@ Covers:
 - `scn~executed-queries-keep-object-names-but-redact-secrets~1`
 - `thrt~secrets-leak-through-logs-results-or-tracebacks~1`
 - `thrt~sql-diagnostics-expose-confidential-script-content~1`
-
-Needs: impl, utest
-
-##### Limit Results To Redacted Audit Fields
-`dsn~limit-results-to-redacted-audit-fields~1`
-
-Keep results limited to object identity, lifecycle state, and redacted statements.
-
-Status: draft
-
-Covers:
-- `scn~executed-queries-keep-object-names-but-redact-secrets~1`
-- `thrt~diffs-or-status-reporting-leak-sensitive-details~1`
 
 Needs: impl, utest
 
@@ -565,19 +543,6 @@ Required controls:
 
 Mitigations:
 
-#### Avoid Local Secret Persistence
-`dsn~avoid-local-secret-persistence~1`
-
-Avoid local credential caches or collection-owned secret stores.
-
-Status: draft
-
-Covers:
-- `thrt~secrets-leak-through-logs-results-or-tracebacks~1`
-- `thrt~persisted-credentials-or-sql-leak-secrets-at-rest~1`
-
-Needs: impl
-
 #### Redact Sensitive Identifiers Unless Auditability Requires Them
 `dsn~redact-sensitive-identifiers-unless-auditability-requires-them~1`
 
@@ -595,7 +560,7 @@ Needs: impl, utest
 #### Keep Secret Handling Transient Within Task Execution
 `dsn~keep-secret-handling-transient-within-task-execution~1`
 
-Keep secret handling transient within the task lifecycle.
+Keep secret handling transient within the task lifecycle, without local credential caches or collection-owned secret stores.
 
 Status: draft
 
