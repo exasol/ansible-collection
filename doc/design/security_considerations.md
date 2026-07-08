@@ -10,15 +10,54 @@ Yes.
 
 The collection authenticates to Exasol with `login_*` parameters and performs authorization-sensitive operations through `exasol_user`, `exasol_role`, `exasol_query`, planned grant-management and schema-management workflows, and future trusted-operator modules such as `exasol_grants`, `exasol_schema`, and `exasol_script`.
 
-Main threats:
+#### Main threats
 
-* credential disclosure in task output or exceptions
-* unintended privilege changes through incorrect idempotency or grant logic
-* unintended privilege revocation or destructive drift during reconciliation
-* use of over-privileged service accounts
-* partial failures leaving authorization state inconsistent
+##### Credential Disclosure In Task Output Or Exceptions
+`thrt~credential-disclosure-in-task-output-or-exceptions~1`
 
-Required controls:
+Authentication failures, surfaced authorization errors, or module exceptions could disclose passwords, connection credentials, or other secret-bearing inputs in logs and task results.
+
+Status: draft
+
+Needs: dsn
+
+##### Incorrect Idempotency Or Grant Logic Changes Privileges
+`thrt~incorrect-idempotency-or-grant-logic-changes-privileges~1`
+
+Incorrect planning or grant logic could add privileges or mutate authorization state that the operator did not request.
+
+Status: draft
+
+Needs: dsn
+
+##### Reconciliation Drift Revokes Or Changes Authorization Unexpectedly
+`thrt~reconciliation-drift-revokes-or-changes-authorization-unexpectedly~1`
+
+Blind reconciliation or incomplete metadata checks could revoke privileges or otherwise drift authorization state away from the requested target.
+
+Status: draft
+
+Needs: dsn
+
+##### Over-Privileged Service Accounts Expand Blast Radius
+`thrt~over-privileged-service-accounts-expand-blast-radius~1`
+
+Automation accounts with more Exasol privileges than necessary could turn routine playbook execution into broader security-impacting changes.
+
+Status: draft
+
+Needs: dsn
+
+##### Partial Authorization Failures Leave Inconsistent State
+`thrt~partial-authorization-failures-leave-inconsistent-state~1`
+
+Multi-step authorization changes that fail midway could leave user, role, or grant state inconsistent with the requested outcome.
+
+Status: draft
+
+Needs: dsn
+
+#### Required controls
 
 * keep authentication failure handling secret-safe
 * rely on Exasol authorization instead of local privilege bypass logic
@@ -26,9 +65,9 @@ Required controls:
 * verify repeated runs do not add, revoke, or report privileges incorrectly
 * make multi-step authorization changes fail predictably and visibly
 
-Mitigations:
+#### Mitigations
 
-#### Surface Exasol Authorization Rejections Without Local Privilege Logic
+##### Surface Exasol Authorization Rejections Without Local Privilege Logic
 `dsn~surface-exasol-authorization-rejections-without-local-privilege-logic~1`
 
 When Exasol rejects an operation because the authenticated account lacks the required privilege, surface that rejection in sanitized form and stop. The collection must not retry with alternate credentials, emulate privilege checks locally, or add fallback behavior that could bypass or reinterpret Exasol authorization decisions.
@@ -37,10 +76,11 @@ Status: draft
 
 Covers:
 - `scn~operation-uses-authenticated-exasol-permissions~1`
+- `thrt~credential-disclosure-in-task-output-or-exceptions~1`
 
 Needs: impl, utest
 
-#### Plan Authorization Lifecycle SQL From Metadata
+##### Plan Authorization Lifecycle SQL From Metadata
 `dsn~plan-authorization-lifecycle-sql-from-metadata~1`
 
 Read the current Exasol state first, compare it with the requested user, role, or grant state, and generate only the SQL statements required to close that gap. This avoids blind create, alter, revoke, or drop operations and keeps repeated runs predictable across grant-management flows as well as user and role lifecycle changes.
@@ -49,10 +89,13 @@ Status: draft
 
 Covers:
 - `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
+- `thrt~incorrect-idempotency-or-grant-logic-changes-privileges~1`
+- `thrt~reconciliation-drift-revokes-or-changes-authorization-unexpectedly~1`
+- `thrt~partial-authorization-failures-leave-inconsistent-state~1`
 
 Needs: impl, utest, itest
 
-#### Delegate Authorization Decisions To Exasol
+##### Delegate Authorization Decisions To Exasol
 `dsn~delegate-authorization-decisions-to-exasol~1`
 
 Keep authorization decisions delegated to Exasol instead of implementing local privilege logic.
@@ -61,10 +104,11 @@ Status: draft
 
 Covers:
 - `scn~operation-uses-authenticated-exasol-permissions~1`
+- `thrt~over-privileged-service-accounts-expand-blast-radius~1`
 
 Needs: impl
 
-Applicable questions:
+#### Applicable questions
 
 * How does the connector authenticate to the third-party system?
 * Where are credentials stored?
@@ -77,15 +121,54 @@ Yes.
 
 The change processes passwords, usernames, role names, privileges, and possibly SQL scripts that may embed sensitive values.
 
-Main threats:
+#### Main threats
 
-* secrets leaking via logs, return values, tracebacks, or test failures
-* SQL script content exposing confidential data in diagnostics
-* unsafe handling of grant and user state leading to unauthorized access changes
-* leakage through diffs, `changed` reporting, or debug output
-* duplicate or replayed execution causing repeated destructive effects
+##### Secrets Leak Through Logs, Results, Or Tracebacks
+`thrt~secrets-leak-through-logs-results-or-tracebacks~1`
 
-Required controls:
+Secret values could be exposed through task output, returned fields, exception traces, or test diagnostics.
+
+Status: draft
+
+Needs: dsn
+
+##### SQL Diagnostics Expose Confidential Script Content
+`thrt~sql-diagnostics-expose-confidential-script-content~1`
+
+Returned SQL or surfaced diagnostics could reveal confidential values embedded in administrative statements or operator-supplied scripts.
+
+Status: draft
+
+Needs: dsn
+
+##### Unsafe Authorization-State Handling Changes Access
+`thrt~unsafe-authorization-state-handling-changes-access~1`
+
+Incorrect handling of user, role, or grant state could create unauthorized access changes or fail to preserve the intended security posture.
+
+Status: draft
+
+Needs: dsn
+
+##### Diffs Or Status Reporting Leak Sensitive Details
+`thrt~diffs-or-status-reporting-leak-sensitive-details~1`
+
+Task diffs, `changed` reporting, or debug output could reveal sensitive information or mislead operators about security-relevant actions.
+
+Status: draft
+
+Needs: dsn
+
+##### Replayed Execution Repeats Destructive Effects
+`thrt~replayed-execution-repeats-destructive-effects~1`
+
+Repeated or replayed execution could reapply destructive or privilege-changing actions beyond the operator's intent.
+
+Status: draft
+
+Needs: dsn
+
+#### Required controls
 
 * reuse shared secret-redaction helpers for parameters and exceptions
 * avoid storing secrets locally in the collection
@@ -93,9 +176,9 @@ Required controls:
 * add tests for redaction and authorization-state correctness
 * ensure replayed runs do not expose additional data or corrupt state
 
-Mitigations:
+#### Mitigations
 
-#### Mark Secret-Bearing Parameters With `no_log=True`
+##### Mark Secret-Bearing Parameters With `no_log=True`
 `dsn~mark-secret-bearing-parameters-no-log~1`
 
 Mark secret-bearing module parameters with `no_log=True`.
@@ -104,10 +187,11 @@ Status: draft
 
 Covers:
 - `scn~password-not-exposed-in-failure-output~1`
+- `thrt~secrets-leak-through-logs-results-or-tracebacks~1`
 
 Needs: impl, utest
 
-#### Redact Secrets From SQL And Surfaced Failures
+##### Redact Secrets From SQL And Surfaced Failures
 `dsn~redact-secrets-from-sql-and-surfaced-failures~1`
 
 Redact passwords and LDAP distinguished names from returned SQL and surfaced failures.
@@ -116,10 +200,12 @@ Status: draft
 
 Covers:
 - `scn~executed-queries-keep-object-names-but-redact-secrets~1`
+- `thrt~secrets-leak-through-logs-results-or-tracebacks~1`
+- `thrt~sql-diagnostics-expose-confidential-script-content~1`
 
 Needs: impl, utest
 
-#### Limit Results To Redacted Audit Fields
+##### Limit Results To Redacted Audit Fields
 `dsn~limit-results-to-redacted-audit-fields~1`
 
 Keep results limited to object identity, lifecycle state, and redacted statements.
@@ -128,10 +214,11 @@ Status: draft
 
 Covers:
 - `scn~executed-queries-keep-object-names-but-redact-secrets~1`
+- `thrt~diffs-or-status-reporting-leak-sensitive-details~1`
 
 Needs: impl, utest
 
-Applicable questions:
+#### Applicable questions
 
 * Are secrets ever exposed in logs, monitoring systems, or configuration files?
 * Is PII exposure in logs, monitoring, or error messages prevented?
@@ -143,15 +230,54 @@ Yes.
 
 The change extends the module interface exposed to playbooks and increases the set of Exasol operations invoked through `pyexasol`.
 
-Main threats:
+#### Main Threats
 
-* SQL injection or unsafe statement construction from module inputs
-* identifier quoting or escaping bugs targeting the wrong object
-* unsafe or ambiguous module inputs causing unintended SQL effects
-* upstream error messages surfacing sensitive data
-* insecure transport or certificate validation on outbound database connections
+##### Unsafe Inputs Enable SQL Injection Or Statement Abuse
+`thrt~unsafe-inputs-enable-sql-injection-or-statement-abuse~1`
 
-Required controls:
+Module inputs could be used to inject unsafe SQL or otherwise influence statement construction beyond the intended administrative action.
+
+Status: draft
+
+Needs: dsn
+
+##### Identifier Quoting Errors Target The Wrong Object
+`thrt~identifier-quoting-errors-target-the-wrong-object~1`
+
+Incorrect quoting, normalization, or escaping of identifiers could direct administrative SQL at the wrong Exasol object.
+
+Status: draft
+
+Needs: dsn
+
+##### Ambiguous Inputs Trigger Unintended SQL Effects
+`thrt~ambiguous-inputs-trigger-unintended-sql-effects~1`
+
+Unsafe or conflicting parameter combinations could cause unintended SQL operations or unclear runtime behavior.
+
+Status: draft
+
+Needs: dsn
+
+##### Upstream Errors Surface Sensitive Data
+`thrt~upstream-errors-surface-sensitive-data~1`
+
+Errors returned by drivers or Exasol could expose credentials, secrets, or confidential statement content when surfaced directly.
+
+Status: draft
+
+Needs: dsn
+
+##### Outbound Connections Accept Insecure Transport Or Trust
+`thrt~outbound-connections-accept-insecure-transport-or-trust~1`
+
+Connection setup could permit unencrypted transport or weakened certificate validation, enabling interception or impersonation.
+
+Status: draft
+
+Needs: dsn
+
+#### Required controls
 
 * keep module parameters explicit and validate mutually unsafe combinations
 * construct SQL safely for identifiers, literals, and grant targets
@@ -159,9 +285,9 @@ Required controls:
 * support only encrypted connections with correct certificate validation
 * treat `exasol_query` and any future `exasol_script` surface as trusted-operator interfaces, not sandboxes
 
-Mitigations:
+#### Mitigations
 
-#### Normalize And Validate Identifiers Before SQL Generation
+##### Normalize And Validate Identifiers Before SQL Generation
 `dsn~normalize-and-validate-identifiers-before-sql-generation~1`
 
 Normalize and validate identifiers before generating SQL for user, role, grant, and other administrative targets.
@@ -170,10 +296,12 @@ Status: draft
 
 Covers:
 - `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
+- `thrt~unsafe-inputs-enable-sql-injection-or-statement-abuse~1`
+- `thrt~identifier-quoting-errors-target-the-wrong-object~1`
 
 Needs: impl, utest
 
-#### Centralize Connection Parameter Mapping And Secret Sanitization
+##### Centralize Connection Parameter Mapping And Secret Sanitization
 `dsn~centralize-connection-parameter-mapping-and-secret-sanitization~1`
 
 Centralize connection-parameter mapping and secret sanitization in shared runtime helpers.
@@ -183,10 +311,11 @@ Status: draft
 Covers:
 - `scn~password-not-exposed-in-failure-output~1`
 - `scn~executed-queries-keep-object-names-but-redact-secrets~1`
+- `thrt~upstream-errors-surface-sensitive-data~1`
 
 Needs: impl, utest
 
-#### Encrypt Exasol Connections By Default
+##### Encrypt Exasol Connections By Default
 `dsn~encrypt-exasol-connections-by-default~1`
 
 Open Exasol connections only over encrypted transport. Unencrypted connections are not supported. Certificate validation is mandatory on every supported connection path, so operators must provide trust material that keeps the connection encrypted and authenticated instead of downgrading transport security.
@@ -195,10 +324,11 @@ Status: draft
 
 Covers:
 - `scn~exasol-connections-use-encrypted-transport-by-default~1`
+- `thrt~outbound-connections-accept-insecure-transport-or-trust~1`
 
 Needs: impl, utest
 
-Applicable questions:
+#### Applicable questions
 
 * Are API endpoints authenticated and authorized?
 * Is input validation performed?
@@ -211,50 +341,92 @@ Yes.
 
 The scope depends on `pyexasol` for SQL script execution support and on Ansible Galaxy packaging for a usable release artifact.
 
-Main threats:
+#### Main threats
 
-* supply-chain risk from new or changed package dependencies
-* malicious, substituted, or compromised packages in the install path
-* version drift between collection and required Python package
-* release artifacts that install successfully but fail securely or insecurely at runtime
+##### Dependency Changes Expand Supply-Chain Risk
+`thrt~dependency-changes-expand-supply-chain-risk~1`
 
-Required controls:
+New or changed dependencies could introduce vulnerable or higher-risk code paths into authentication, transport, or SQL handling.
+
+Status: draft
+
+Needs: dsn
+
+##### Compromised Packages Enter The Install Path
+`thrt~compromised-packages-enter-the-install-path~1`
+
+Substituted, malicious, or otherwise compromised packages could enter the installation path and undermine collection security.
+
+Status: draft
+
+Needs: dsn
+
+##### Runtime Package Version Drift Breaks Security Expectations
+`thrt~runtime-package-version-drift-breaks-security-expectations~1`
+
+Version drift between the collection and its required runtime packages could silently change security-relevant behavior.
+
+Status: draft
+
+Needs: dsn
+
+##### Release Artifacts Misinstall Runtime Dependencies
+`thrt~release-artifacts-misinstall-runtime-dependencies~1`
+
+Release artifacts could install successfully while omitting or mismatching runtime dependencies needed for secure behavior.
+
+Status: draft
+
+Needs: dsn
+
+#### Required controls
 
 * keep dependencies minimal and versioned consistently
 * validate that collection installation pulls the required Python package automatically
 * review upstream `pyexasol` changes that affect authentication, transport, or script execution behavior
 * verify release artifacts resolve dependencies from the intended source only
 
-Mitigations:
+#### Mitigations
 
-#### Limit The Runtime Dependency Set
+##### Limit The Runtime Dependency Set
 `dsn~limit-the-runtime-dependency-set~1`
 
 Keep the runtime dependency set limited to `pyexasol` and `sqlglot`.
 
 Status: draft
 
+Covers:
+- `thrt~dependency-changes-expand-supply-chain-risk~1`
+
 Needs: impl
 
-#### Verify Packaging Installs Runtime Dependencies
+##### Verify Packaging Installs Runtime Dependencies
 `dsn~verify-packaging-installs-runtime-dependencies~1`
 
 Verify packaging and installation through collection build and documentation checks.
 
 Status: draft
 
+Covers:
+- `thrt~runtime-package-version-drift-breaks-security-expectations~1`
+- `thrt~release-artifacts-misinstall-runtime-dependencies~1`
+
 Needs: impl
 
-#### Review Dependency Changes During Release Verification
+##### Review Dependency Changes During Release Verification
 `dsn~review-dependency-changes-during-release-verification~1`
 
 Review dependency changes as part of release verification for security-sensitive paths.
 
 Status: draft
 
+Covers:
+- `thrt~dependency-changes-expand-supply-chain-risk~1`
+- `thrt~compromised-packages-enter-the-install-path~1`
+
 Needs: impl
 
-Applicable questions:
+#### Applicable questions
 
 * Does the integration affect compliance scope?
 * What permissions are required by the connector in the third-party system?
@@ -265,14 +437,45 @@ Yes.
 
 The change affects connection configuration, secret provisioning, CI or release automation, and the operational guidance for running the modules.
 
-Main threats:
+#### Main threats
 
-* credentials placed in plaintext inventory or CI configuration
-* overly broad network reach from automation environments to Exasol
-* insecure defaults or missing documentation for TLS and secret handling
-* publication to the wrong or compromised Galaxy namespace
+##### Plaintext Credentials Leak Through Inventory Or CI
+`thrt~plaintext-credentials-leak-through-inventory-or-ci~1`
 
-Required controls:
+Operators or automation could place credentials in plaintext inventory, CI configuration, or other unsafe inputs that later leak through logs or artifact metadata.
+
+Status: draft
+
+Needs: dsn
+
+##### Overly Broad Network Reach Exposes Exasol Endpoints
+`thrt~overly-broad-network-reach-exposes-exasol-endpoints~1`
+
+Automation environments with unnecessary network reach could expose Exasol administration endpoints to more systems or operators than intended.
+
+Status: draft
+
+Needs: dsn
+
+##### Missing Guidance Weakens TLS Or Secret Handling
+`thrt~missing-guidance-weakens-tls-or-secret-handling~1`
+
+Insecure defaults or incomplete operator guidance could normalize unsafe TLS trust configuration or weak secret-handling practices.
+
+Status: draft
+
+Needs: dsn
+
+##### Compromised Publishing Paths Ship Untrusted Artifacts
+`thrt~compromised-publishing-paths-ship-untrusted-artifacts~1`
+
+Misconfigured or compromised Galaxy publishing paths could release untrusted artifacts or disclose publishing credentials.
+
+Status: draft
+
+Needs: dsn
+
+#### Required controls
 
 * keep Vault-based or equivalent secret management as the documented baseline
 * document required network reachability and approved endpoints only
@@ -280,36 +483,47 @@ Required controls:
 * verify release and test automation do not print secrets
 * protect namespace ownership and release-publishing credentials
 
-Mitigations:
+#### Mitigations
 
-#### Document Vault-Backed Secret Handling
+##### Document Vault-Backed Secret Handling
 `dsn~document-vault-backed-secret-handling~1`
 
 Document Vault-backed secret handling as the normal operator workflow.
 
 Status: draft
 
+Covers:
+- `thrt~plaintext-credentials-leak-through-inventory-or-ci~1`
+- `thrt~missing-guidance-weakens-tls-or-secret-handling~1`
+
 Needs: uman
 
-#### Avoid Extra Control-Plane Services
+##### Avoid Extra Control-Plane Services
 `dsn~avoid-extra-control-plane-services~1`
 
 Keep the collection as a direct client of Exasol. Do not add brokers, agents, background reconcilers, or long-lived helper services that cache credentials, queue privileged actions, or create another place where authorization and secret handling can drift from the database.
 
 Status: draft
 
+Covers:
+- `thrt~overly-broad-network-reach-exposes-exasol-endpoints~1`
+
 Needs: impl
 
-#### Treat CI Redaction And Publishing-Credential Protection As Release Gates
+##### Treat CI Redaction And Publishing-Credential Protection As Release Gates
 `dsn~treat-ci-redaction-and-publishing-credential-protection-as-release-gates~1`
 
 Do not ship a release if CI logs can expose secrets or if Galaxy publishing credentials are not adequately protected. Secret-safe logs and protected release credentials are mandatory conditions for publishing, not best-effort hygiene.
 
 Status: draft
 
+Covers:
+- `thrt~plaintext-credentials-leak-through-inventory-or-ci~1`
+- `thrt~compromised-publishing-paths-ship-untrusted-artifacts~1`
+
 Needs: impl
 
-Applicable questions:
+#### Applicable questions
 
 * In which network zone will the connector run?
 * Does the connector require direct access to sensitive systems or databases?
@@ -338,6 +552,9 @@ Avoid local credential caches or collection-owned secret stores.
 
 Status: draft
 
+Covers:
+- `thrt~secrets-leak-through-logs-results-or-tracebacks~1`
+
 Needs: impl
 
 #### Redact Sensitive Identifiers Unless Auditability Requires Them
@@ -349,6 +566,7 @@ Status: draft
 
 Covers:
 - `scn~executed-queries-keep-object-names-but-redact-secrets~1`
+- `thrt~sql-diagnostics-expose-confidential-script-content~1`
 
 Needs: impl, utest
 
@@ -358,6 +576,9 @@ Needs: impl, utest
 Keep secret handling transient within the task lifecycle.
 
 Status: draft
+
+Covers:
+- `thrt~secrets-leak-through-logs-results-or-tracebacks~1`
 
 Needs: impl
 
@@ -383,6 +604,8 @@ Status: draft
 
 Covers:
 - `scn~executed-queries-keep-object-names-but-redact-secrets~1`
+- `thrt~sql-diagnostics-expose-confidential-script-content~1`
+- `thrt~diffs-or-status-reporting-leak-sensitive-details~1`
 
 Needs: impl, utest
 
@@ -395,6 +618,9 @@ Status: draft
 
 Covers:
 - `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
+- `thrt~unsafe-authorization-state-handling-changes-access~1`
+- `thrt~diffs-or-status-reporting-leak-sensitive-details~1`
+- `thrt~replayed-execution-repeats-destructive-effects~1`
 
 Needs: impl, utest, itest
 
@@ -404,6 +630,9 @@ Needs: impl, utest, itest
 Rely on Exasol for authoritative audit trails of database-side actions.
 
 Status: draft
+
+Covers:
+- `thrt~unsafe-authorization-state-handling-changes-access~1`
 
 Needs: impl
 
@@ -427,6 +656,10 @@ Reject invalid or conflicting module inputs before building or executing adminis
 
 Status: draft
 
+Covers:
+- `thrt~unsafe-inputs-enable-sql-injection-or-statement-abuse~1`
+- `thrt~ambiguous-inputs-trigger-unintended-sql-effects~1`
+
 Needs: impl, utest
 
 #### Keep Check-Mode Planning Deterministic And Side-Effect Free
@@ -438,6 +671,8 @@ Status: draft
 
 Covers:
 - `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
+- `thrt~partial-authorization-failures-leave-inconsistent-state~1`
+- `thrt~replayed-execution-repeats-destructive-effects~1`
 
 Needs: impl, utest
 
@@ -447,6 +682,9 @@ Needs: impl, utest
 Avoid autonomous retry behavior that could repeat privileged actions.
 
 Status: draft
+
+Covers:
+- `thrt~replayed-execution-repeats-destructive-effects~1`
 
 Needs: impl
 
@@ -472,6 +710,7 @@ Status: draft
 
 Covers:
 - `scn~operation-uses-authenticated-exasol-permissions~1`
+- `thrt~over-privileged-service-accounts-expand-blast-radius~1`
 
 Needs: impl
 
@@ -486,6 +725,10 @@ In practice, this is enforced mainly through documentation, operational guidance
 
 Status: draft
 
+Covers:
+- `thrt~over-privileged-service-accounts-expand-blast-radius~1`
+- `thrt~overly-broad-network-reach-exposes-exasol-endpoints~1`
+
 Needs: uman
 
 #### Apply The Security Model To Future Administrative Modules
@@ -494,6 +737,9 @@ Needs: uman
 Current `exasol_query` and any future administrative module such as `exasol_grants`, `exasol_schema`, or `exasol_script` must follow the same rules established here where they apply: no local privilege bypass, encrypted transport only, secret-safe output, and least-privilege operation. Modules that reconcile declarative authorization or schema state from observed metadata, such as `exasol_grants` or `exasol_schema`, must also use repeatable planning based on observed database state. Direct SQL surfaces such as `exasol_query` remain trusted-operator interfaces and are explicitly exempt from that state-reconciliation rule.
 
 Status: draft
+
+Covers:
+- `thrt~missing-guidance-weakens-tls-or-secret-handling~1`
 
 Needs: impl
 

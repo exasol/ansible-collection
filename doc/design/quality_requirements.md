@@ -11,13 +11,14 @@ Use this OFT hierarchy unless the project already defines a different one:
 1. `feat`: top-level feature
 2. `req`: user requirement
 3. `scn`: Given-When-Then acceptance scenario
-4. `constr`: architecture constraint
-5. `dsn`: design requirement covering scenarios and constraints
-6. `impl`: implementation
-7. `utest`: unit test
-8. `itest`: integration test
+4. `thrt`: security threat that the design must mitigate
+5. `constr`: architecture constraint
+6. `dsn`: design requirement covering scenarios, threats, and constraints
+7. `impl`: implementation
+8. `utest`: unit test
+9. `itest`: integration test
 
-Runtime design requirements `dsn` should cover one scenario or constraint at a time. Use OFT forwarding notation if a design layer adds no new information.
+Security threat items `thrt` should express one concrete threat at a time and use `Needs: dsn`. Runtime design requirements `dsn` should cover one scenario, threat, or constraint at a time. Use OFT forwarding notation if a design layer adds no new information.
 
 ## Code Quality
 

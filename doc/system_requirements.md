@@ -27,7 +27,7 @@ This draft was reverse-engineered from:
 
 This document uses OpenFastTrace specification items to express product features, user requirements, and acceptance scenarios. Each specification item has a unique identifier in the form `<artifact-type>~<name>~<revision>`.
 
-In this document, feature items use the artifact type `feat`, user requirements use `req`, and acceptance scenarios use `scn`. Design items in `doc/design.md` and `doc/design/` cover the scenarios with artifact type `dsn`. Architecture constraints in `doc/design/constraints.md` use artifact type `constr` and are also covered by `dsn` items.
+In this document, feature items use the artifact type `feat`, user requirements use `req`, and acceptance scenarios use `scn`. Security threat items in `doc/design/security_considerations.md` use the artifact type `thrt` and are covered by design items with artifact type `dsn`. Design items in `doc/design.md` and `doc/design/` also cover architecture constraints, which use artifact type `constr` in `doc/design/constraints.md`.
 
 Informative text explains background, scope, and intent. Specification items define the normative content of the document. Relationships between items are expressed with OpenFastTrace keywords such as `Needs` and `Covers`.
 

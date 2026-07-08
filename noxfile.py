@@ -326,7 +326,7 @@ def requirements_trace(session: nox.Session) -> None:
     jar_file = _openfasttrace_jar_file(session)
     default_args = ["trace", "."]
     # Only include artifact types currently present in the repository.
-    default_args = default_args + ["--wanted-artifact-types", "feat,req,scn,dsn"]
+    default_args = default_args + ["--wanted-artifact-types", "feat,req,scn,thrt,dsn"]
 
     trace_args = session.posargs or default_args
 
