@@ -536,6 +536,26 @@ Needs: impl
 
 The collection is not intended to become a secret store. Passwords, LDAP distinguished names, and connection credentials enter through Ansible variables and are forwarded to Exasol or `pyexasol` only for the lifetime of a task.
 
+Main threats:
+
+#### Persisted Credentials Or SQL Leak Secrets At Rest
+`thrt~persisted-credentials-or-sql-leak-secrets-at-rest~1`
+
+Locally persisted credentials, secret-bearing SQL, or cached identity data could expose secrets outside the task lifetime through files, caches, or artifacts.
+
+Status: draft
+
+Needs: dsn
+
+#### Sensitive Identifiers Leak Directory Or Personal Data
+`thrt~sensitive-identifiers-leak-directory-or-personal-data~1`
+
+LDAP distinguished names or similar identifiers could reveal directory structure, personal data, or sensitive organizational details if exposed unnecessarily.
+
+Status: draft
+
+Needs: dsn
+
 Required controls:
 
 * keep secret values in Vault or equivalent external secret management
@@ -554,6 +574,7 @@ Status: draft
 
 Covers:
 - `thrt~secrets-leak-through-logs-results-or-tracebacks~1`
+- `thrt~persisted-credentials-or-sql-leak-secrets-at-rest~1`
 
 Needs: impl
 
@@ -567,6 +588,7 @@ Status: draft
 Covers:
 - `scn~executed-queries-keep-object-names-but-redact-secrets~1`
 - `thrt~sql-diagnostics-expose-confidential-script-content~1`
+- `thrt~sensitive-identifiers-leak-directory-or-personal-data~1`
 
 Needs: impl, utest
 
@@ -579,12 +601,42 @@ Status: draft
 
 Covers:
 - `thrt~secrets-leak-through-logs-results-or-tracebacks~1`
+- `thrt~persisted-credentials-or-sql-leak-secrets-at-rest~1`
 
 Needs: impl
 
 ### Accountability, Compliance, and Auditability
 
 The collection should make security-relevant actions reviewable without disclosing secrets.
+
+Main threats:
+
+#### Audit Output Exposes Secrets Or Sensitive Details
+`thrt~audit-output-exposes-secrets-or-sensitive-details~1`
+
+Security-relevant output intended for auditability could reveal secrets or other sensitive details in logs, CI records, or operator-visible results.
+
+Status: draft
+
+Needs: dsn
+
+#### Misleading Changed Reporting Obscures Security Impact
+`thrt~misleading-changed-reporting-obscures-security-impact~1`
+
+`changed` reporting that does not match emitted SQL could mislead operators about whether security-relevant state actually changed.
+
+Status: draft
+
+Needs: dsn
+
+#### Local Reporting Competes With Authoritative Database Audit Trails
+`thrt~local-reporting-competes-with-authoritative-database-audit-trails~1`
+
+Collection-side reporting could be mistaken for the source of truth and weaken reliance on Exasol's authoritative audit trail for database actions.
+
+Status: draft
+
+Needs: dsn
 
 Required controls:
 
@@ -606,6 +658,7 @@ Covers:
 - `scn~executed-queries-keep-object-names-but-redact-secrets~1`
 - `thrt~sql-diagnostics-expose-confidential-script-content~1`
 - `thrt~diffs-or-status-reporting-leak-sensitive-details~1`
+- `thrt~audit-output-exposes-secrets-or-sensitive-details~1`
 
 Needs: impl, utest
 
@@ -621,6 +674,7 @@ Covers:
 - `thrt~unsafe-authorization-state-handling-changes-access~1`
 - `thrt~diffs-or-status-reporting-leak-sensitive-details~1`
 - `thrt~replayed-execution-repeats-destructive-effects~1`
+- `thrt~misleading-changed-reporting-obscures-security-impact~1`
 
 Needs: impl, utest, itest
 
@@ -633,12 +687,51 @@ Status: draft
 
 Covers:
 - `thrt~unsafe-authorization-state-handling-changes-access~1`
+- `thrt~local-reporting-competes-with-authoritative-database-audit-trails~1`
 
 Needs: impl
 
 ### Availability and Failure Handling
 
 The administration surface is operational tooling, not a high-availability control plane. Availability therefore depends on Exasol reachability, valid credentials, and predictable failure behavior.
+
+Main threats:
+
+#### Invalid Inputs Or SQL Paths Cause Unsafe Failures
+`thrt~invalid-inputs-or-sql-paths-cause-unsafe-failures~1`
+
+Authentication, validation, or SQL-construction failures could trigger unsafe execution paths or make operational failures harder to recover from.
+
+Status: draft
+
+Needs: dsn
+
+#### Partial Failures Leave State Unsafe For Repeated Runs
+`thrt~partial-failures-leave-state-unsafe-for-repeated-runs~1`
+
+Operational failures during multi-step changes could leave state in a condition that makes subsequent runs unsafe or misleading.
+
+Status: draft
+
+Needs: dsn
+
+#### Autonomous Retries Repeat Privileged Actions
+`thrt~autonomous-retries-repeat-privileged-actions~1`
+
+Background retries or local retry loops could reissue privileged SQL and amplify unintended changes.
+
+Status: draft
+
+Needs: dsn
+
+#### Check Mode Diverges From Real Execution
+`thrt~check-mode-diverges-from-real-execution~1`
+
+Check mode that does not follow the same planning logic as normal execution could mislead operators about pending security-relevant effects.
+
+Status: draft
+
+Needs: dsn
 
 Required controls:
 
@@ -659,6 +752,7 @@ Status: draft
 Covers:
 - `thrt~unsafe-inputs-enable-sql-injection-or-statement-abuse~1`
 - `thrt~ambiguous-inputs-trigger-unintended-sql-effects~1`
+- `thrt~invalid-inputs-or-sql-paths-cause-unsafe-failures~1`
 
 Needs: impl, utest
 
@@ -673,6 +767,8 @@ Covers:
 - `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
 - `thrt~partial-authorization-failures-leave-inconsistent-state~1`
 - `thrt~replayed-execution-repeats-destructive-effects~1`
+- `thrt~partial-failures-leave-state-unsafe-for-repeated-runs~1`
+- `thrt~check-mode-diverges-from-real-execution~1`
 
 Needs: impl, utest
 
@@ -685,12 +781,51 @@ Status: draft
 
 Covers:
 - `thrt~replayed-execution-repeats-destructive-effects~1`
+- `thrt~autonomous-retries-repeat-privileged-actions~1`
 
 Needs: impl
 
 ### Tier Segregation and Trusted-Operator Boundary
 
 These modules are designed for trusted operators running in controlled automation environments. In particular, `exasol_query` already executes operator-supplied SQL directly against Exasol, and any future `exasol_script` surface would extend the same trust model. The collection does not sandbox SQL semantics or downgrade the authority of the authenticated Exasol account.
+
+Main threats:
+
+#### Untrusted Tiers Reach Administrative Interfaces
+`thrt~untrusted-tiers-reach-administrative-interfaces~1`
+
+Running the collection from uncontrolled or overly broad automation tiers could expose Exasol administrative interfaces to untrusted environments.
+
+Status: draft
+
+Needs: dsn
+
+#### Shared Or Over-Privileged Accounts Cross Role Boundaries
+`thrt~shared-or-over-privileged-accounts-cross-role-boundaries~1`
+
+Using shared or overly privileged service accounts across automation roles could blur security boundaries and expand the impact of mistakes or misuse.
+
+Status: draft
+
+Needs: dsn
+
+#### Direct SQL Surfaces Are Mistaken For Sandboxed Interfaces
+`thrt~direct-sql-surfaces-are-mistaken-for-sandboxed-interfaces~1`
+
+Operators could incorrectly assume that direct SQL interfaces such as `exasol_query` or future script modules constrain SQL semantics or reduce account authority.
+
+Status: draft
+
+Needs: dsn
+
+#### Declarative Modules Drift From The Trusted-Operator Security Model
+`thrt~declarative-modules-drift-from-the-trusted-operator-security-model~1`
+
+Future administrative modules could diverge from the established least-privilege, redaction, transport, and repeatable-planning model.
+
+Status: draft
+
+Needs: dsn
 
 Required controls:
 
@@ -711,6 +846,7 @@ Status: draft
 Covers:
 - `scn~operation-uses-authenticated-exasol-permissions~1`
 - `thrt~over-privileged-service-accounts-expand-blast-radius~1`
+- `thrt~untrusted-tiers-reach-administrative-interfaces~1`
 
 Needs: impl
 
@@ -728,6 +864,7 @@ Status: draft
 Covers:
 - `thrt~over-privileged-service-accounts-expand-blast-radius~1`
 - `thrt~overly-broad-network-reach-exposes-exasol-endpoints~1`
+- `thrt~shared-or-over-privileged-accounts-cross-role-boundaries~1`
 
 Needs: uman
 
@@ -740,6 +877,8 @@ Status: draft
 
 Covers:
 - `thrt~missing-guidance-weakens-tls-or-secret-handling~1`
+- `thrt~direct-sql-surfaces-are-mistaken-for-sandboxed-interfaces~1`
+- `thrt~declarative-modules-drift-from-the-trusted-operator-security-model~1`
 
 Needs: impl
 
