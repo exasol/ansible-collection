@@ -57,3 +57,7 @@ Covers:
 - `thrt~persisted-credentials-or-sql-leak-secrets-at-rest~1`
 
 Needs: impl
+
+## Applicable Questions
+
+* Where are credentials stored?

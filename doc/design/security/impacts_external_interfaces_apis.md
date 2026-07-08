@@ -104,7 +104,6 @@ Needs: impl, utest
 
 ## Applicable Questions
 
-* Are API endpoints authenticated and authorized?
 * Is input validation performed?
 * Is output data sanitized before use or display?
 * Is communication with the third-party system encrypted using TLS?

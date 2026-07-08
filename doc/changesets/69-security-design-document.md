@@ -17,6 +17,8 @@ In scope:
 * cover grant-management repeated-run behavior in scenarios and design
 * include `exasol_schema` in the documented administration surface
 * add explicit security threat items and trace them to design mitigations
+* align security-chapter applicable questions with the sections that answer them
+* add threat and mitigation coverage for any remaining unanswered security questions
 * record the documentation work in the per-issue changeset format used by this repository
 
 Out of scope:
@@ -45,6 +47,8 @@ Repair the traced requirements first, then update the architecture chapters so t
 - [x] Cover grant-management repeated-run behavior in acceptance scenarios and design items
 - [x] Align the design chapters with the updated requirements scope and transport policy
 - [x] Add `thrt` items to `doc/design/security_considerations.md` and trace mitigations to them
+- [x] Move security questions to the sections that answer them when local coverage is not the best fit
+- [x] Add `thrt` and `dsn` items for remaining unanswered security questions
 
 ### Verification
 

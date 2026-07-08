@@ -33,6 +33,15 @@ Status: draft
 
 Needs: dsn
 
+### Privilege Changes Lack Reviewable Audit Context
+`thrt~privilege-changes-lack-reviewable-audit-context~1`
+
+If authorization changes are planned or reported unclearly, operators may not be able to verify what privilege change was attempted or rely on Exasol audit records to review it.
+
+Status: draft
+
+Needs: dsn
+
 ### Partial Authorization Failures Leave Inconsistent State
 `thrt~partial-authorization-failures-leave-inconsistent-state~1`
 
@@ -93,9 +102,24 @@ Covers:
 
 Needs: impl
 
+### Make Privilege Changes Reviewable Through Planned SQL And Exasol Audit Trails
+`dsn~make-privilege-changes-reviewable-through-planned-sql-and-exasol-audit-trails~1`
+
+Make privilege changes reviewable by deriving authorization-changing SQL from observed metadata, surfacing sanitized object-specific statements and `changed` reporting to the operator, and treating Exasol as the authoritative audit trail for the executed database actions.
+
+Status: draft
+
+Covers:
+- `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
+- `thrt~privilege-changes-lack-reviewable-audit-context~1`
+- `thrt~local-reporting-competes-with-authoritative-database-audit-trails~1`
+
+Needs: impl, utest, itest
+
 ## Applicable Questions
 
 * How does the connector authenticate to the third-party system?
-* Where are credentials stored?
+* Are API endpoints authenticated and authorized?
 * Can the connector operate with least-privilege permissions?
 * How are privilege changes controlled and audited?
+* What permissions are required by the connector in the third-party system?

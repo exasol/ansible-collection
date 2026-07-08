@@ -92,4 +92,3 @@ Needs: impl, utest
 
 * Are secrets ever exposed in logs, monitoring systems, or configuration files?
 * Is PII exposure in logs, monitoring, or error messages prevented?
-* Is only the minimum required data shared or displayed?

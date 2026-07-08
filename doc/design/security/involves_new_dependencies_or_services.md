@@ -88,8 +88,3 @@ Covers:
 - `thrt~compromised-packages-enter-the-install-path~1`
 
 Needs: impl
-
-## Applicable Questions
-
-* Does the integration affect compliance scope?
-* What permissions are required by the connector in the third-party system?

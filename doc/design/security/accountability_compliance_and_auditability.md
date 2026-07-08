@@ -22,6 +22,15 @@ Status: draft
 
 Needs: dsn
 
+### Compliance-Relevant Integration Changes Go Unreviewed
+`thrt~compliance-relevant-integration-changes-go-unreviewed~1`
+
+If new integrations, release paths, or data-handling behavior are added without explicit compliance review, the project could miss obligations for audit, provenance, retention, or policy control.
+
+Status: draft
+
+Needs: dsn
+
 ### Local Reporting Competes With Authoritative Database Audit Trails
 `thrt~local-reporting-competes-with-authoritative-database-audit-trails~1`
 
@@ -83,3 +92,21 @@ Covers:
 - `thrt~local-reporting-competes-with-authoritative-database-audit-trails~1`
 
 Needs: impl
+
+### Require Explicit Compliance Review For Security-Relevant Integrations
+`dsn~require-explicit-compliance-review-for-security-relevant-integrations~1`
+
+Treat explicit compliance review as a release gate when the collection adds or changes security-relevant integrations, release services, or data-handling paths. The release workflow must require a decision on whether the change affects audit, provenance, retention, or policy scope before publication.
+
+Status: draft
+
+Covers:
+- `thrt~compliance-relevant-integration-changes-go-unreviewed~1`
+
+Needs: impl
+
+## Applicable Questions
+
+* How are privilege changes controlled and audited?
+* Does the integration affect compliance scope?
+* Is only the minimum required data shared or displayed?

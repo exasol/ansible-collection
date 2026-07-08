@@ -33,6 +33,15 @@ Status: draft
 
 Needs: dsn
 
+### Stale Credentials Remain Usable After Rotation Or Revocation
+`thrt~stale-credentials-remain-usable-after-rotation-or-revocation~1`
+
+If automation caches credentials or rotation and revocation workflows are unclear, replaced or revoked secrets could remain usable longer than intended or fail unpredictably during operational handover.
+
+Status: draft
+
+Needs: dsn
+
 ### Compromised Publishing Paths Ship Untrusted Artifacts
 `thrt~compromised-publishing-paths-ship-untrusted-artifacts~1`
 
@@ -64,6 +73,19 @@ Covers:
 - `thrt~missing-guidance-weakens-tls-or-secret-handling~1`
 
 Needs: uman
+
+### Keep Secret Rotation And Revocation Outside The Collection
+`dsn~keep-secret-rotation-and-revocation-outside-the-collection~1`
+
+Keep secret rotation and revocation outside the collection through external secret management and Exasol account administration. The collection must not retain credentials across tasks, and operator guidance must assume that rotated or revoked credentials are supplied afresh on the next run.
+
+Status: draft
+
+Covers:
+- `thrt~stale-credentials-remain-usable-after-rotation-or-revocation~1`
+- `thrt~missing-guidance-weakens-tls-or-secret-handling~1`
+
+Needs: impl, uman
 
 ### Avoid Extra Control-Plane Services
 `dsn~avoid-extra-control-plane-services~1`
