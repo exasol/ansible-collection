@@ -28,10 +28,10 @@ Required controls:
 
 Mitigations:
 
-#### Sanitize Authentication and Authorization Failures
-`dsn~sanitize-authentication-and-authorization-failures~1`
+#### Surface Exasol Authorization Rejections Without Local Privilege Logic
+`dsn~surface-exasol-authorization-rejections-without-local-privilege-logic~1`
 
-Reuse sanitized user-facing error handling for authentication and authorization failures.
+When Exasol rejects an operation because the authenticated account lacks the required privilege, surface that rejection in sanitized form and stop. The collection must not retry with alternate credentials, emulate privilege checks locally, or add fallback behavior that could bypass or reinterpret Exasol authorization decisions.
 
 Status: draft
 
@@ -157,7 +157,7 @@ Required controls:
 * construct SQL safely for identifiers, literals, and grant targets
 * sanitize surfaced driver and database errors
 * support only encrypted connections with correct certificate validation
-* treat `exasol_script` as a trusted-operator interface, not a sandbox
+* treat `exasol_query` and any future `exasol_script` surface as trusted-operator interfaces, not sandboxes
 
 Mitigations:
 
@@ -452,13 +452,13 @@ Needs: impl
 
 ### Tier Segregation and Trusted-Operator Boundary
 
-These modules are designed for trusted operators running in controlled automation environments. The collection does not sandbox SQL semantics or downgrade the authority of the authenticated Exasol account.
+These modules are designed for trusted operators running in controlled automation environments. In particular, `exasol_query` already executes operator-supplied SQL directly against Exasol, and any future `exasol_script` surface would extend the same trust model. The collection does not sandbox SQL semantics or downgrade the authority of the authenticated Exasol account.
 
 Required controls:
 
 * run the collection only from tiers that are allowed to reach Exasol administration endpoints
 * use separate low-privilege connection accounts for distinct automation roles where possible
-* treat any future `exasol_grants`, `exasol_schema`, or `exasol_script` surface as subject to the same least-privilege, redaction, and repeated-run-safety rules
+* treat `exasol_query` and any future `exasol_grants`, `exasol_schema`, or `exasol_script` surface as subject to the same least-privilege, redaction, and repeated-run-safety rules
 
 Mitigations:
 
@@ -490,7 +490,7 @@ Needs: uman
 #### Apply The Security Model To Future Administrative Modules
 `dsn~apply-the-security-model-to-future-administrative-modules~1`
 
-Any future administrative module such as `exasol_grants`, `exasol_schema`, or `exasol_script` must follow the same rules established here: no local privilege bypass, encrypted transport only, secret-safe output, least-privilege operation, and repeatable planning based on observed database state.
+Current `exasol_query` and any future administrative module such as `exasol_grants`, `exasol_schema`, or `exasol_script` must follow the same rules established here: no local privilege bypass, encrypted transport only, secret-safe output, least-privilege operation, and repeatable planning based on observed database state.
 
 Status: draft
 
@@ -498,6 +498,6 @@ Needs: impl
 
 ## Residual Risk
 
-`exasol_script` intentionally enables arbitrary SQL execution for trusted operators. The security boundary is therefore operator authorization, secret-safe handling, and transport protection, not restriction of SQL semantics inside the module.
+`exasol_query` intentionally enables operator-supplied SQL execution today, and any future `exasol_script` module would do the same for a broader trusted-operator surface. The security boundary is therefore operator authorization, secret-safe handling, and transport protection, not restriction of SQL semantics inside the module.
 
 Trusted operators can still intentionally or accidentally execute destructive SQL. This risk is accepted as part of the module's purpose and must be managed operationally through least privilege, review of playbooks, and controlled execution environments.

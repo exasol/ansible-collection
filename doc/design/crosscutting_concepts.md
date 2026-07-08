@@ -8,7 +8,7 @@ The collection treats Exasol as the source of truth for users, roles, grants, au
 
 ## Configuration
 
-Connection credentials and user passwords are supplied through Ansible module parameters. The broader administration surface also carries role, grant-target, schema, and trusted-operator SQL inputs through module parameters. The user guide recommends storing secret values in Ansible Vault instead of plain playbook variables.
+Connection credentials and user passwords are supplied through Ansible module parameters. The broader administration surface also carries role, grant-target, schema, and trusted-operator SQL inputs through module parameters, including the current `exasol_query` interface and any future `exasol_script` surface. The user guide recommends storing secret values in Ansible Vault instead of plain playbook variables.
 
 Password update behavior is controlled by `update_password`:
 
