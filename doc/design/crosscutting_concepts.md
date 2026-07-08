@@ -4,11 +4,11 @@ This chapter captures concepts that affect multiple parts of the architecture.
 
 ## Domain Model
 
-The collection treats Exasol as the source of truth for users, authentication, authorization, and password state. An Ansible task supplies connection credentials and desired user state, while Exasol decides whether the authenticated account may perform the requested operation.
+The collection treats Exasol as the source of truth for users, roles, grants, authentication, authorization, and password state. An Ansible task supplies connection credentials and the desired administration state, while Exasol decides whether the authenticated account may perform the requested operation.
 
 ## Configuration
 
-Connection credentials and user passwords are supplied through Ansible module parameters. The user guide recommends storing secret values in Ansible Vault instead of plain playbook variables.
+Connection credentials and user passwords are supplied through Ansible module parameters. The broader administration surface also carries role, grant-target, schema, and trusted-operator SQL inputs through module parameters, including the current `exasol_query` interface and any future `exasol_script` surface. The user guide recommends storing secret values in Ansible Vault instead of plain playbook variables.
 
 Password update behavior is controlled by `update_password`:
 
@@ -59,12 +59,13 @@ Needs: impl
 ### Secret Redaction
 `dsn~secret-redaction~1`
 
-The collection marks password-bearing parameters as `no_log=True` and sanitizes authentication failures before returning module results to Ansible.
+The collection marks password-bearing parameters as `no_log=True`, redacts secret-bearing SQL before returning `executed_queries`, and sanitizes authentication failures before returning module results to Ansible.
 
 Status: draft
 
 Covers:
 - `scn~password-not-exposed-in-failure-output~1`
+- `scn~executed-queries-keep-object-names-but-redact-secrets~1`
 
 Needs: impl, utest
 
@@ -78,6 +79,30 @@ Status: draft
 Covers:
 - `scn~creation-only-password-update~1`
 - `scn~forced-password-update~1`
+
+Needs: impl, utest
+
+### Authorization State Reconciliation
+`dsn~authorization-state-reconciliation~1`
+
+The collection reads current Exasol metadata before planning user, role, or grant lifecycle SQL and emits statements only when the requested security-relevant state differs from the current state. Password changes are an explicit exception: when `update_password=always`, the collection must still plan `ALTER USER` for existing users because Exasol does not expose the current password for comparison.
+
+Status: draft
+
+Covers:
+- `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
+
+Needs: impl, utest, itest
+
+### Encrypted Transport By Default
+`dsn~encrypted-transport-by-default~1`
+
+Shared connection handling always enables pyexasol encryption and requires certificate validation for every supported connection path. Operators establish trust only through explicit CA-certificate or certificate-fingerprint configuration.
+
+Status: draft
+
+Covers:
+- `scn~exasol-connections-use-encrypted-transport-by-default~1`
 
 Needs: impl, utest
 

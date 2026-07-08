@@ -6,7 +6,8 @@
   https://github.com/itsallcode/openfasttrace/raw/refs/heads/main/.agents/skills/openfasttrace-spec-driven-development/SKILL.md
 - Treat `doc/system_requirements.md`, `doc/design_index.md`, referenced `doc/design/` chapters, and `doc/changesets/` as the source of truth for changes that affect requirements, design, behavior, tests, or verification.
 - Before substantial implementation for a new issue, create or update the matching changeset in `doc/changesets/` and derive its tasks from the requirements, design, and quality requirements.
-- Keep OpenFastTrace IDs stable unless semantics change, and keep traceability clean between requirements, scenarios, design items, implementation, and tests.
+- Keep OpenFastTrace IDs stable unless semantics change, and keep traceability clean between requirements, scenarios, threats, design items, implementation, and tests.
+- Run requirement tracing with `poetry run nox -s requirements:trace`.
 
 ## Running Tests
 
