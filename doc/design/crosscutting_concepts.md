@@ -4,11 +4,11 @@ This chapter captures concepts that affect multiple parts of the architecture.
 
 ## Domain Model
 
-The collection treats Exasol as the source of truth for users, authentication, authorization, and password state. An Ansible task supplies connection credentials and desired user state, while Exasol decides whether the authenticated account may perform the requested operation.
+The collection treats Exasol as the source of truth for users, roles, grants, authentication, authorization, and password state. An Ansible task supplies connection credentials and the desired administration state, while Exasol decides whether the authenticated account may perform the requested operation.
 
 ## Configuration
 
-Connection credentials and user passwords are supplied through Ansible module parameters. The user guide recommends storing secret values in Ansible Vault instead of plain playbook variables.
+Connection credentials and user passwords are supplied through Ansible module parameters. The broader administration surface also carries role, grant-target, schema, and trusted-operator SQL inputs through module parameters. The user guide recommends storing secret values in Ansible Vault instead of plain playbook variables.
 
 Password update behavior is controlled by `update_password`:
 
@@ -85,7 +85,7 @@ Needs: impl, utest
 ### Authorization State Reconciliation
 `dsn~authorization-state-reconciliation~1`
 
-The collection reads current Exasol metadata before planning user or role lifecycle SQL and emits statements only when the requested security-relevant state differs from the current state.
+The collection reads current Exasol metadata before planning user, role, or grant lifecycle SQL and emits statements only when the requested security-relevant state differs from the current state.
 
 Status: draft
 
@@ -97,7 +97,7 @@ Needs: impl, utest, itest
 ### Encrypted Transport By Default
 `dsn~encrypted-transport-by-default~1`
 
-Shared connection handling always enables pyexasol encryption and keeps certificate validation enabled by default while still allowing explicit CA-certificate or fingerprint-based trust configuration.
+Shared connection handling always enables pyexasol encryption and requires certificate validation for every supported connection path. Operators establish trust only through explicit CA-certificate or certificate-fingerprint configuration.
 
 Status: draft
 

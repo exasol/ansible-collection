@@ -4,13 +4,15 @@
 
 The Exasol Ansible Collection lets operators automate Exasol administration tasks with Ansible modules while relying on Exasol as the authoritative system for authentication and authorization.
 
+This specification covers the current and planned database-administration surface for Exasol automation, including `exasol_user`, `exasol_role`, `exasol_query`, planned grant-management and schema-management workflows, and future trusted-operator modules such as `exasol_grants`, `exasol_schema`, and `exasol_script`.
+
 ## Goals
 
-* Automate Exasol user administration without bypassing Exasol permissions.
-* Keep role and privilege administration predictable across repeated runs.
+* Automate Exasol administration without bypassing Exasol permissions.
+* Keep user, role, and grant administration predictable across repeated runs.
 * Prevent credentials and passwords from appearing in Ansible output or error messages.
 * Make password update behavior explicit where Exasol does not allow password comparison.
-* Protect Exasol connections with encrypted transport and explicit certificate controls.
+* Protect Exasol connections with encrypted transport and mandatory certificate validation.
 
 ## Evidence Base
 
@@ -18,7 +20,8 @@ This draft was reverse-engineered from:
 
 * `doc/user_guide.rst`
 * the legacy Exasol user security design note migrated into this document
-* the current `exasol_user` and `exasol_role` module behavior
+* the current `exasol_user`, `exasol_role`, and `exasol_query` module behavior
+* the planned grant-management, schema-management, and trusted-operator administration surface described in the design chapters
 
 ## Notation
 
@@ -112,7 +115,7 @@ Needs: scn
 ### Keep Authorization Changes Predictable
 `req~keep-authorization-changes-predictable~1`
 
-User, role, and future grant-management operations must reconcile only the requested authorization state so that repeated runs do not create silent privilege drift or misleading `changed` reporting.
+User, role, and grant-management operations must reconcile only the requested authorization state so that repeated runs do not create silent privilege drift or misleading `changed` reporting.
 
 Rationale:
 
@@ -128,11 +131,11 @@ Needs: scn
 ### Protect Exasol Transport
 `req~protect-exasol-transport~1`
 
-Connections to Exasol must use encrypted transport by default and honor certificate-validation settings so that credentials and administrative traffic are not exposed in transit.
+Connections to Exasol must use encrypted transport and mandatory certificate validation so that credentials and administrative traffic are not exposed in transit.
 
 Rationale:
 
-Database administration often crosses shared networks or automation tiers. The collection must default to transport protection and make trust overrides explicit.
+Database administration often crosses shared networks or automation tiers. The collection must require transport protection and explicit trust configuration without allowing certificate-validation downgrades.
 
 Status: draft
 
@@ -223,7 +226,7 @@ Needs: dsn
 ### Repeated Runs Do Not Add Unrequested Authorization Changes
 `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
 
-**Given** a user or role already matches the requested state
+**Given** a user, role, or grant state already matches the requested state
 **When** an Ansible Operator repeats the same administration task
 **Then** the collection emits no additional authorization-changing SQL
 **And** the result reports `changed=false`
@@ -241,7 +244,7 @@ Needs: dsn
 **Given** an Ansible Operator connects to Exasol with the shared connection options
 **When** the collection opens the pyexasol connection
 **Then** transport encryption is enabled
-**And** certificate validation stays enabled unless the operator explicitly relaxes it or pins a trusted certificate or fingerprint
+**And** certificate validation remains enabled, with trust established only through explicit CA-certificate or certificate-fingerprint configuration
 
 Status: draft
 
@@ -255,7 +258,7 @@ Needs: dsn
 
 **Given** a task creates or updates a user with secret-bearing parameters
 **When** the module reports its executed queries or failure message
-**Then** user or role names remain visible for auditing
+**Then** user, role, or grant target names remain visible for auditing
 **And** passwords, LDAP distinguished names, and connection secrets are redacted
 
 Status: draft

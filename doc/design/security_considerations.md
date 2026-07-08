@@ -8,7 +8,7 @@ This change expands the collection's database-administration surface. The main a
 
 Yes.
 
-The collection authenticates to Exasol with `login_*` parameters and performs authorization-sensitive operations through `exasol_user`, `exasol_role`, and `exasol_grants`.
+The collection authenticates to Exasol with `login_*` parameters and performs authorization-sensitive operations through `exasol_user`, `exasol_role`, `exasol_query`, planned grant-management and schema-management workflows, and future trusted-operator modules such as `exasol_grants`, `exasol_schema`, and `exasol_script`.
 
 Main threats:
 
@@ -43,7 +43,7 @@ Needs: impl, utest
 #### Plan Authorization Lifecycle SQL From Metadata
 `dsn~plan-authorization-lifecycle-sql-from-metadata~1`
 
-Read the current Exasol state first, compare it with the requested user, role, or grant state, and generate only the SQL statements required to close that gap. This avoids blind create, alter, revoke, or drop operations and keeps repeated runs predictable.
+Read the current Exasol state first, compare it with the requested user, role, or grant state, and generate only the SQL statements required to close that gap. This avoids blind create, alter, revoke, or drop operations and keeps repeated runs predictable across grant-management flows as well as user and role lifecycle changes.
 
 Status: draft
 
@@ -164,7 +164,7 @@ Mitigations:
 #### Normalize And Validate Identifiers Before SQL Generation
 `dsn~normalize-and-validate-identifiers-before-sql-generation~1`
 
-Normalize and validate identifiers before generating SQL.
+Normalize and validate identifiers before generating SQL for user, role, grant, and other administrative targets.
 
 Status: draft
 
@@ -189,7 +189,7 @@ Needs: impl, utest
 #### Encrypt Exasol Connections By Default
 `dsn~encrypt-exasol-connections-by-default~1`
 
-Open Exasol connections only over encrypted transport. Unencrypted connections are not supported. Certificate validation remains part of the supported connection path, so operators must provide trust material that keeps the connection encrypted and authenticated instead of downgrading transport security.
+Open Exasol connections only over encrypted transport. Unencrypted connections are not supported. Certificate validation is mandatory on every supported connection path, so operators must provide trust material that keeps the connection encrypted and authenticated instead of downgrading transport security.
 
 Status: draft
 
