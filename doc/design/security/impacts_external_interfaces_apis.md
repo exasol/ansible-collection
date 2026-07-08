@@ -1,12 +1,12 @@
-### Impacts External Interfaces / APIs
+# Impacts External Interfaces / APIs
 
 Yes.
 
 The change extends the module interface exposed to playbooks and increases the set of Exasol operations invoked through `pyexasol`.
 
-#### Main Threats
+## Main Threats
 
-##### Unsafe Inputs Enable SQL Injection Or Statement Abuse
+### Unsafe Inputs Enable SQL Injection Or Statement Abuse
 `thrt~unsafe-inputs-enable-sql-injection-or-statement-abuse~1`
 
 Module inputs could be used to inject unsafe SQL or otherwise influence statement construction beyond the intended administrative action.
@@ -15,7 +15,7 @@ Status: draft
 
 Needs: dsn
 
-##### Identifier Quoting Errors Target The Wrong Object
+### Identifier Quoting Errors Target The Wrong Object
 `thrt~identifier-quoting-errors-target-the-wrong-object~1`
 
 Incorrect quoting, normalization, or escaping of identifiers could direct administrative SQL at the wrong Exasol object.
@@ -24,7 +24,7 @@ Status: draft
 
 Needs: dsn
 
-##### Ambiguous Inputs Trigger Unintended SQL Effects
+### Ambiguous Inputs Trigger Unintended SQL Effects
 `thrt~ambiguous-inputs-trigger-unintended-sql-effects~1`
 
 Unsafe or conflicting parameter combinations could cause unintended SQL operations or unclear runtime behavior.
@@ -33,7 +33,7 @@ Status: draft
 
 Needs: dsn
 
-##### Upstream Errors Surface Sensitive Data
+### Upstream Errors Surface Sensitive Data
 `thrt~upstream-errors-surface-sensitive-data~1`
 
 Errors returned by drivers or Exasol could expose credentials, secrets, or confidential statement content when surfaced directly.
@@ -42,7 +42,7 @@ Status: draft
 
 Needs: dsn
 
-##### Outbound Connections Accept Insecure Transport Or Trust
+### Outbound Connections Accept Insecure Transport Or Trust
 `thrt~outbound-connections-accept-insecure-transport-or-trust~1`
 
 Connection setup could permit unencrypted transport or weakened certificate validation, enabling interception or impersonation.
@@ -51,7 +51,7 @@ Status: draft
 
 Needs: dsn
 
-#### Required Controls
+## Required Controls
 
 * keep module parameters explicit and validate mutually unsafe combinations
 * construct SQL safely for identifiers, literals, and grant targets
@@ -59,9 +59,9 @@ Needs: dsn
 * support only encrypted connections with correct certificate validation
 * treat `exasol_query` and any future `exasol_script` surface as trusted-operator interfaces, not sandboxes
 
-#### Mitigations
+## Mitigations
 
-##### Normalize And Validate Identifiers Before SQL Generation
+### Normalize And Validate Identifiers Before SQL Generation
 `dsn~normalize-and-validate-identifiers-before-sql-generation~1`
 
 Normalize and validate identifiers before generating SQL for user, role, grant, and other administrative targets.
@@ -75,7 +75,7 @@ Covers:
 
 Needs: impl, utest
 
-##### Centralize Connection Parameter Mapping And Secret Sanitization
+### Centralize Connection Parameter Mapping And Secret Sanitization
 `dsn~centralize-connection-parameter-mapping-and-secret-sanitization~1`
 
 Centralize connection-parameter mapping and secret sanitization in shared runtime helpers.
@@ -89,7 +89,7 @@ Covers:
 
 Needs: impl, utest
 
-##### Encrypt Exasol Connections By Default
+### Encrypt Exasol Connections By Default
 `dsn~encrypt-exasol-connections-by-default~1`
 
 Open Exasol connections only over encrypted transport. Unencrypted connections are not supported. Certificate validation is mandatory on every supported connection path, so operators must provide trust material that keeps the connection encrypted and authenticated instead of downgrading transport security.
@@ -102,7 +102,7 @@ Covers:
 
 Needs: impl, utest
 
-#### Applicable Questions
+## Applicable Questions
 
 * Are API endpoints authenticated and authorized?
 * Is input validation performed?

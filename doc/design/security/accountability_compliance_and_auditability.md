@@ -1,10 +1,10 @@
-### Accountability, Compliance, and Auditability
+# Accountability, Compliance, and Auditability
 
 The collection should make security-relevant actions reviewable without disclosing secrets.
 
-#### Main Threats
+## Main Threats
 
-##### Audit Output Exposes Secrets Or Sensitive Details
+### Audit Output Exposes Secrets Or Sensitive Details
 `thrt~audit-output-exposes-secrets-or-sensitive-details~1`
 
 Security-relevant output intended for auditability could reveal secrets or other sensitive details in logs, CI records, or operator-visible results.
@@ -13,7 +13,7 @@ Status: draft
 
 Needs: dsn
 
-##### Misleading Changed Reporting Obscures Security Impact
+### Misleading Changed Reporting Obscures Security Impact
 `thrt~misleading-changed-reporting-obscures-security-impact~1`
 
 `changed` reporting that does not match emitted SQL could mislead operators about whether security-relevant state actually changed.
@@ -22,7 +22,7 @@ Status: draft
 
 Needs: dsn
 
-##### Local Reporting Competes With Authoritative Database Audit Trails
+### Local Reporting Competes With Authoritative Database Audit Trails
 `thrt~local-reporting-competes-with-authoritative-database-audit-trails~1`
 
 Collection-side reporting could be mistaken for the source of truth and weaken reliance on Exasol's authoritative audit trail for database actions.
@@ -31,16 +31,16 @@ Status: draft
 
 Needs: dsn
 
-#### Required Controls
+## Required Controls
 
 * keep `executed_queries` redacted but object-specific
 * keep `changed` reporting aligned with emitted SQL so repeated runs are explainable
 * preserve Exasol as the system of record for authentication, authorization, and server-side auditing
 * treat secret leakage in task output, CI logs, or release logs as a release blocker
 
-#### Mitigations
+## Mitigations
 
-##### Expose Normalized Object Names Without Secret Values
+### Expose Normalized Object Names Without Secret Values
 `dsn~expose-normalized-object-names-without-secret-values~1`
 
 Expose normalized object names while hiding secret values.
@@ -55,7 +55,7 @@ Covers:
 
 Needs: impl, utest
 
-##### Derive `changed` From Planned SQL
+### Derive `changed` From Planned SQL
 `dsn~derive-changed-from-planned-sql~1`
 
 Set `changed=true` only when the planner has determined that the collection must emit state-changing SQL. If the requested state already matches Exasol metadata and no SQL should run, report `changed=false` so operators can trust repeated-run behavior and audit output.
@@ -71,7 +71,7 @@ Covers:
 
 Needs: impl, utest, itest
 
-##### Rely On Exasol For Authoritative Audit Trails
+### Rely On Exasol For Authoritative Audit Trails
 `dsn~rely-on-exasol-for-authoritative-audit-trails~1`
 
 Rely on Exasol for authoritative audit trails of database-side actions.
