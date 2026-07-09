@@ -16,6 +16,21 @@ Feature: exasol-role specification
       | CREATE ROLE "READER" |
     And EXA_ALL_ROLES contains one row where ROLE_NAME equals "READER"
 
+  @exasol-role-preserves-exact-identifier
+  Scenario: Create role with exact identifier semantics
+    Given an Exasol database is reachable at localhost
+    And exact-identifier role "Reader+/=Role" does not exist in EXA_ALL_ROLES
+    When exasol_role runs with:
+      | name          | state   |
+      | "Reader+/=Role" | present |
+    Then changed is true
+    And role equals "\"Reader+/=Role\""
+    And exists is true
+    And executed_queries equals:
+      | sql                           |
+      | CREATE ROLE "Reader+/=Role"   |
+    And EXA_ALL_ROLES contains one row where ROLE_NAME equals "Reader+/=Role"
+
   @exasol-role-present-idempotent
   Scenario: Present role is idempotent
     Given an Exasol database is reachable at localhost
@@ -26,6 +41,19 @@ Feature: exasol-role specification
     Then changed is false
     And exists is true
     And executed_queries equals []
+
+  @exasol-role-present-idempotent-with-different-case-spelling
+  Scenario: Present role stays idempotent across case-only spelling changes
+    Given an Exasol database is reachable at localhost
+    And exact-identifier role "Reader+/=Role" already exists in EXA_ALL_ROLES
+    When exasol_role runs with:
+      | name              | state   |
+      | "reader+/=role"   | present |
+    Then changed is false
+    And role equals "\"reader+/=role\""
+    And exists is true
+    And executed_queries equals []
+    And EXA_ALL_ROLES contains one row where ROLE_NAME equals "Reader+/=Role"
 
   @exasol-role-check-mode-create
   Scenario: Check mode predicts create
