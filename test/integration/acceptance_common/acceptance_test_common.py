@@ -13,7 +13,10 @@ from typing import Any
 
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
-from exasol.ansible_modules.common_identifier_validation import quote_identifier
+from exasol.ansible_modules.common_identifier_validation import (
+    quote_exact_identifier,
+    quote_identifier,
+)
 from exasol.ansible_modules.common_query import (
     build_exasol_connect_kwargs,
     normalized_exasol_error_message,
@@ -29,11 +32,11 @@ SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 DISPOSABLE_SCHEMA_PATTERN = re.compile(r"^ANSIBLE_SCHEMA_[0-9A-F]{32}(?:_CHECK_MODE)?$")
 DISPOSABLE_USER_PATTERN = re.compile(
     r"^(?:ANSIBLE_USER(?:_CHECK)?_[0-9A-F]{32}|"
-    r"ANSIBLE_USER_EXACT\+/=User_[0-9A-F]{32})$"
+    r"ANSIBLE_USER_EXACT\+/=(?:User|USER)_[0-9A-F]{32})$"
 )
 DISPOSABLE_ROLE_PATTERN = re.compile(
     r"^(?:ANSIBLE_ROLE(?:_CHECK)?_[0-9A-F]{32}|"
-    r"ANSIBLE_ROLE_EXACT\+/=Role_[0-9A-F]{32})$"
+    r"ANSIBLE_ROLE_EXACT\+/=(?:Role|ROLE)_[0-9A-F]{32})$"
 )
 
 
@@ -327,12 +330,16 @@ def cleanup_disposable_database_objects(login_vars: dict[str, object]) -> None:
         try:
             for schema_name in _matching_schema_names(connection):
                 connection.execute(
-                    f"DROP SCHEMA {quote_identifier(schema_name)} CASCADE"
+                    f"DROP SCHEMA {_quote_cleanup_identifier(schema_name)} CASCADE"
                 )
             for user_name in _matching_user_names(connection):
-                connection.execute(f"DROP USER {quote_identifier(user_name)} CASCADE")
+                connection.execute(
+                    f"DROP USER {_quote_cleanup_identifier(user_name)} CASCADE"
+                )
             for role_name in _matching_role_names(connection):
-                connection.execute(f"DROP ROLE {quote_identifier(role_name)} CASCADE")
+                connection.execute(
+                    f"DROP ROLE {_quote_cleanup_identifier(role_name)} CASCADE"
+                )
         finally:
             connection.close()
     except Exception as error:
@@ -405,6 +412,13 @@ def _matching_object_names(
             raise AssertionError(msg)
         names.append(name)
     return tuple(names)
+
+
+def _quote_cleanup_identifier(name: str) -> str:
+    try:
+        return quote_identifier(name)
+    except ValueError:
+        return quote_exact_identifier(name)
 
 
 def _row_value(row: object, key: str, index: int) -> object:

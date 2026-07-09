@@ -146,7 +146,17 @@ def test_exact_acceptance_principal_names_use_disposable_prefixes() -> None:
         == "ANSIBLE_ROLE_EXACT+/=Role_0123456789ABCDEF0123456789ABCDEF"
     )
     assert acceptance_common.DISPOSABLE_USER_PATTERN.fullmatch(context.exact_test_user)
+    assert acceptance_common.DISPOSABLE_USER_PATTERN.fullmatch(
+        context.exact_test_user.upper()
+    )
     assert acceptance_common.DISPOSABLE_ROLE_PATTERN.fullmatch(context.exact_test_role)
+    assert acceptance_common.DISPOSABLE_ROLE_PATTERN.fullmatch(
+        context.exact_test_role.upper()
+    )
+    assert (
+        acceptance_common._quote_cleanup_identifier(context.exact_test_role.upper())
+        == f'"{context.exact_test_role.upper()}"'
+    )
 
 
 class FakeConnection:

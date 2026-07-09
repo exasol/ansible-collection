@@ -16,7 +16,7 @@ from exasol.ansible_modules.common_identifier_validation import quote_exact_iden
 from exasol.ansible_modules.common_query import normalized_exasol_error_message
 
 MODULE_NAME = "exasol_role"
-DISPOSABLE_ROLE_PATTERN = re.compile(r"^ANSIBLE_ROLE(?:_CHECK)?_[0-9A-F]{32}$")
+DISPOSABLE_ROLE_PATTERN = re.compile(r"^ANSIBLE_ROLE_.+$")
 
 
 @pytest.mark.integration
