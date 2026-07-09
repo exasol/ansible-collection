@@ -502,25 +502,7 @@ def test_quote_sql_string_literal_escapes_single_quotes() -> None:
 
 
 def _quoted_identifier(query: str) -> str:
-    value: list[str] = []
-    start = query.index('"')
-    index = start + 1
-    while index < len(query):
-        char = query[index]
-        if char != '"':
-            value.append(char)
-            index += 1
-            continue
-
-        if index + 1 < len(query) and query[index + 1] == '"':
-            value.append('"')
-            index += 2
-            continue
-
-        return "".join(value)
-
-    raise AssertionError(f"missing quoted identifier terminator in query: {query}")
-    return "".join(value)
+    return query.split('"', 2)[1]
 
 
 def _matching_identifier(values: set[str], identifier: str) -> str | None:
