@@ -14,7 +14,7 @@ from exasol.ansible_modules.exasol_query import (
     build_exasol_connect_kwargs,
     to_json_safe,
 )
-from exasol.ansible_modules.exasol_user import quote_identifier
+from exasol.ansible_modules.common_identifier_validation import quote_identifier
 
 CONNECTION_PARAMETER_NAMES = (
     "login_host",
