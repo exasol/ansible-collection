@@ -8,15 +8,11 @@ module: exasol_user
 short_description: Manage Exasol database users
 description:
   - Creates, updates, and drops Exasol database users using pyexasol.
-  - User names are restricted to conservative SQL identifiers
-    (letters, digits, underscore) and are normalized to Exasol's
-    case-insensitive uppercase form for idempotent operations.
-  - This restriction ensures predictable Ansible idempotency and avoids
-    ambiguity between quoted and unquoted Exasol identifiers.
-  - Quoted or special-character user names are not supported by this module
-    in order to maintain consistent behavior across environments.
-  - This restriction may be revised in the future; see
-      https://github.com/exasol/ansible-collection/issues/38
+  - User names are treated as exact Exasol identifier values.
+  - The module preserves case and special characters by rendering user names
+    as delimited SQL identifiers.
+  - Values that are already written using Exasol's delimited-identifier syntax
+    are accepted and normalized to the same exact identifier value.
   - Passwords are quoted for Exasol's C(IDENTIFIED BY) syntax and are never
     returned in module results.
   - LDAP-authenticated users use Exasol's C(IDENTIFIED AT LDAP AS) syntax.
@@ -29,6 +25,9 @@ options:
   name:
     description:
       - Name of the Exasol user to manage.
+      - This value is used exactly as provided when the module generates SQL.
+      - To target a name that already uses Exasol's delimited-identifier
+        syntax, you can also pass the SQL form directly.
     type: str
     required: true
     aliases:
@@ -131,18 +130,12 @@ EXAMPLES = r"""
 RETURN = r"""
 user:
   description:
-    - Normalized Exasol user name.
-    - The value is converted to Exasol's canonical form, which means it is
-      uppercased and used in a consistent format for idempotent operations.
-      This ensures that different input forms (e.g. mixed or lowercase) are
-      treated as the same database user.
-    - Quoted or special-character user names are not supported by this module
-      in order to maintain consistent behavior across environments.
-    - This behavior may be revised in the future; see
-      https://github.com/exasol/ansible-collection/issues/38
+    - Exact Exasol user name targeted by the module.
+    - The value preserves case and special characters after parsing optional
+      delimited-identifier syntax.
   returned: always
   type: str
-  sample: APP_USER
+  sample: App+/=User
 state:
   description:
     - Requested state.
@@ -164,7 +157,7 @@ executed_queries:
   type: list
   elements: str
   sample:
-    - CREATE USER "APP_USER" IDENTIFIED BY "********"
+    - CREATE USER "App+/=User" IDENTIFIED BY "********"
 """
 
 from typing import Any

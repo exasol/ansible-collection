@@ -1,33 +1,29 @@
 # Building Block View
 
-This chapter describes the static decomposition of the system into building blocks and responsibilities.
+This chapter describes the static decomposition of the collection runtime and the responsibilities relevant to user and role administration.
 
 ## Component Overview
 
-`<Describe the main modules, packages, services, commands, UI areas, or deployable units.>`
+The collection is split into:
 
-```text
-@startuml
-component "<System>" as System
-component "<Component>" as Component
-System --> Component
-@enduml
-```
+* Ansible module entry points in `plugins/modules/` that declare the public contract and delegate runtime work.
+* Shared runtime helpers in `exasol/ansible_modules/` that validate parameters, quote identifiers, sanitize errors, connect through `pyexasol`, and plan SQL statements.
+* Acceptance and unit tests that validate SQL planning, idempotency, and backend behavior.
 
 ## Component Design Items
 
-### `<Component Name>`
-`dsn~<component-id>~1`
+### Exact Principal Identifier Handling
+`dsn~exact-principal-identifier-handling~1`
 
-`<Describe the component responsibility, important collaborators, and why this design covers the linked scenario.>`
+The shared runtime identifier helper is responsible for parsing exact user and role identifiers from either raw values or delimited SQL identifier syntax and for rendering those values back into escaped delimited SQL identifiers. The `exasol_user` and `exasol_role` runtimes reuse that helper for metadata probes and lifecycle SQL planning so both modules preserve the same identifier semantics.
 
 Status: draft
 
 Covers:
-- `scn~<scenario-id>~1`
+- `scn~exact-principal-identifiers-are-preserved~1`
 
 Needs: impl
 
 ## Open Issues
 
-* `<missing component responsibility, unclear dependency direction, or mismatch between code and requirements>`
+* Extend the same exact-identifier handling model to future modules that manage additional Exasol object types.

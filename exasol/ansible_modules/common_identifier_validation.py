@@ -53,17 +53,53 @@ def quote_identifier(name: str, allow_qualified: bool = False) -> str:
     return ".".join(f'"{part.upper()}"' for part in parts)
 
 
+def validate_exact_identifier(
+    name: str,
+    identifier_type: str = "identifier",
+) -> str:
+    """Validate an exact identifier value or delimited SQL identifier syntax."""
+    if not isinstance(name, str):
+        raise ValueError(f"Exasol {identifier_type} name must be a string.")
+
+    if name == "":
+        raise ValueError(f"Exasol {identifier_type} name must not be empty.")
+
+    value = _exact_identifier_value(name, identifier_type)
+
+    if value == "":
+        raise ValueError(f"Exasol {identifier_type} name must not be empty.")
+
+    if "\x00" in value:
+        raise ValueError(
+            f"Exasol {identifier_type} name must not contain NUL characters."
+        )
+
+    if len(value) > MAX_IDENTIFIER_LENGTH:
+        raise ValueError(
+            f"Exasol {identifier_type} identifier parts must not exceed "
+            f"{MAX_IDENTIFIER_LENGTH} characters."
+        )
+
+    return value
+
+
+def quote_exact_identifier(name: str, identifier_type: str = "identifier") -> str:
+    """Quote an exact identifier value without uppercasing it."""
+    value = validate_exact_identifier(name, identifier_type=identifier_type)
+    return f'"{value.replace("\"", "\"\"")}"'
+
+
 # ---- specialized wrappers (thin, consistent API surface) ----
 
 
 def validate_user_name(name: str) -> str:
-    """Validate an Exasol user identifier."""
-    return validate_identifier(name, identifier_type="user")
+    """Validate an exact Exasol user identifier."""
+    return validate_exact_identifier(name, identifier_type="user")
 
 
 def validate_role_name(name: str) -> str:
-    """Validate an Exasol role identifier."""
-    return validate_identifier(name, identifier_type="role")
+    """Validate an exact Exasol role identifier."""
+    return validate_exact_identifier(name, identifier_type="role")
 
 
 def validate_schema_name(name: str) -> str:
@@ -94,3 +130,40 @@ def _validate_identifier_part(part: str, identifier_type: str) -> None:
         raise ValueError(
             f"Exasol {identifier_type} name '{part}' is not a valid regular identifier."
         )
+
+
+def _exact_identifier_value(name: str, identifier_type: str) -> str:
+    if not name.startswith('"'):
+        if name.endswith('"'):
+            raise ValueError(
+                f"Exasol {identifier_type} name uses malformed delimited identifier "
+                "syntax."
+            )
+        return name
+
+    if not name.endswith('"') or len(name) < 2:
+        raise ValueError(
+            f"Exasol {identifier_type} name uses malformed delimited identifier "
+            "syntax."
+        )
+
+    value: list[str] = []
+    inner = name[1:-1]
+    index = 0
+    while index < len(inner):
+        char = inner[index]
+        if char != '"':
+            value.append(char)
+            index += 1
+            continue
+
+        if index + 1 >= len(inner) or inner[index + 1] != '"':
+            raise ValueError(
+                f"Exasol {identifier_type} name uses malformed delimited identifier "
+                "syntax."
+            )
+
+        value.append('"')
+        index += 2
+
+    return "".join(value)

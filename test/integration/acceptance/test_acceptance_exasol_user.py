@@ -64,6 +64,57 @@ def test_exasol_user_create_missing_user(
 
 @pytest.mark.integration
 @pytest.mark.slow
+def test_exasol_user_preserves_exact_identifier(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+) -> None:
+    scenario_id = "exasol-user-preserves-exact-identifier"
+
+    playbook = """
+    - name: Preserve exact user identifier
+      block:
+        - name: Given an exact-identifier user does not exist
+          exasol.exasol.exasol_user:
+            name: "{{ exact_test_user }}"
+            state: absent
+            cascade: true
+
+        - name: When the exasol_user module runs with an exact identifier value
+          exasol.exasol.exasol_user:
+            name: "{{ exact_test_user }}"
+            password: "{{ test_user_password }}"
+          register: exasol_user_exact_identifier
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ exasol_user_exact_identifier }}"
+            cacheable: true
+    """
+
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+
+    result = when_module_scenario_runs(
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
+    )
+
+    _assert_user_module_result(
+        result["module_result"],
+        changed=True,
+        user=context.exact_test_user,
+        exists=True,
+        executed_queries_len=2,
+    )
+    assert result["module_result"]["executed_queries"][0].startswith(
+        f'CREATE USER "{context.exact_test_user}"'
+    )
+
+    then_secret_is_not_exposed(result, context.test_user_password)
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 def test_exasol_user_apply_unchanged(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -105,6 +156,64 @@ def test_exasol_user_apply_unchanged(
         exists=True,
         executed_queries_len=0,
     )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_exasol_user_apply_unchanged_with_different_case_spelling(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+) -> None:
+    scenario_id = "exasol-user-apply-unchanged-with-different-case-spelling"
+
+    playbook = """
+    - name: Applying same user with different case spelling stays idempotent
+      block:
+        - name: Given an exact-identifier Exasol user already exists
+          exasol.exasol.exasol_user:
+            name: "{{ exact_test_user }}"
+            password: "{{ test_user_password }}"
+
+        - name: When the exasol_user module runs with a different case spelling
+          exasol.exasol.exasol_user:
+            name: "{{ exact_test_user | lower }}"
+            password: "{{ test_user_password }}"
+            update_password: on_create
+          register: exasol_user_existing_different_case
+
+        - name: Read user metadata after the case-variant run
+          exasol.exasol.exasol_query:
+            query: >-
+              SELECT USER_NAME
+              FROM EXA_DBA_USERS
+              WHERE UPPER(USER_NAME) = UPPER(:user_name)
+            named_args:
+              user_name: "{{ exact_test_user }}"
+          register: exasol_user_case_metadata
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ exasol_user_existing_different_case }}"
+              metadata_result: "{{ exasol_user_case_metadata }}"
+            cacheable: true
+    """
+
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+
+    result = when_module_scenario_runs(
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
+    )
+
+    _assert_user_module_result(
+        result["module_result"],
+        changed=False,
+        user=context.exact_test_user.lower(),
+        exists=True,
+        executed_queries_len=0,
+    )
+    _assert_stored_user_name(result["metadata_result"], context.exact_test_user.upper())
 
 
 @pytest.mark.integration
@@ -478,3 +587,8 @@ def _assert_user_module_result(
     executed_queries = result["executed_queries"]
     assert isinstance(executed_queries, list)
     assert len(executed_queries) == executed_queries_len
+
+
+def _assert_stored_user_name(result: dict[str, Any], expected_user_name: str) -> None:
+    assert result["failed"] is False
+    assert result["query_result"] == [{"USER_NAME": expected_user_name}]

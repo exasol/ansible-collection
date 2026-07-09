@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from exasol.ansible_modules import common_query
 from exasol.ansible_modules.common_identifier_validation import (
-    quote_identifier,
+    quote_exact_identifier,
     validate_user_name,
 )
 from exasol.ansible_modules.common_param_validation import (
@@ -23,7 +23,7 @@ REDACTED = "********"
 USER_METADATA_QUERY = """
 SELECT USER_NAME, DISTINGUISHED_NAME
 FROM EXA_DBA_USERS
-WHERE USER_NAME = :user_name
+WHERE UPPER(USER_NAME) = UPPER(:user_name)
 """
 STATES = frozenset({"present", "absent"})
 UPDATE_MODES = frozenset({"always", "on_create"})
@@ -52,7 +52,7 @@ def ensure_user(
     check_mode: bool = False,
 ) -> dict[str, object]:
     """Ensure an Exasol user is present or absent."""
-    user_name = _normalized_user_name(validate_required_param(params, "name"))
+    user_name = _exact_user_name(validate_required_param(params, "name"))
     state = _state(params)
     metadata = _user_metadata(connection, user_name)
     statements = _planned_user_statements(
@@ -97,15 +97,15 @@ def normalized_exasol_error_message(
     )
 
 
-def _normalized_user_name(name: str) -> str:
-    return validate_user_name(name).upper()
+def _exact_user_name(name: str) -> str:
+    return validate_user_name(name)
 
 
 def _user_metadata(connection: object, name: str) -> UserMetadata | None:
     result = common_query.execute_queries(
         connection,
         USER_METADATA_QUERY,
-        named_args={"user_name": _normalized_user_name(name)},
+        named_args={"user_name": name},
     )
     rows = result["query_result"]
     if not rows:
@@ -116,7 +116,7 @@ def _user_metadata(connection: object, name: str) -> UserMetadata | None:
         raise ValueError("unexpected row shape for Exasol user metadata.")
 
     return UserMetadata(
-        name=str(row["USER_NAME"]).upper(),
+        name=str(row["USER_NAME"]),
         ldap_dn=_optional_string(row.get("DISTINGUISHED_NAME")),
     )
 
@@ -193,7 +193,7 @@ def _create_user_statements(
     authentication: UserStatement,
     create_session: bool,
 ) -> list[UserStatement]:
-    quoted_user = quote_identifier(user_name)
+    quoted_user = quote_exact_identifier(user_name, identifier_type="user")
     statements = [
         UserStatement(
             actual=f"CREATE USER {quoted_user} {authentication.actual}",
@@ -213,7 +213,7 @@ def _create_user_statements(
 
 
 def _alter_user_password_statement(user_name: str, password: str) -> UserStatement:
-    quoted_user = quote_identifier(user_name)
+    quoted_user = quote_exact_identifier(user_name, identifier_type="user")
     quoted_password = _quote_password_identifier(password)
 
     return UserStatement(
@@ -223,7 +223,7 @@ def _alter_user_password_statement(user_name: str, password: str) -> UserStateme
 
 
 def _alter_user_ldap_statement(user_name: str, ldap_dn: str) -> UserStatement:
-    quoted_user = quote_identifier(user_name)
+    quoted_user = quote_exact_identifier(user_name, identifier_type="user")
     quoted_ldap_dn = _quote_sql_string_literal(ldap_dn)
 
     return UserStatement(
@@ -233,7 +233,7 @@ def _alter_user_ldap_statement(user_name: str, ldap_dn: str) -> UserStatement:
 
 
 def _drop_user_statement(user_name: str, cascade: bool) -> UserStatement:
-    query = f"DROP USER {quote_identifier(user_name)}"
+    query = f"DROP USER {quote_exact_identifier(user_name, identifier_type='user')}"
     if cascade:
         query = f"{query} CASCADE"
 

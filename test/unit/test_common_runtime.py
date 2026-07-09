@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from exasol.ansible_modules.common_identifier_validation import (
+    quote_exact_identifier,
     quote_identifier,
     validate_identifier,
     validate_object_name,
@@ -65,9 +66,12 @@ def test_required_string_rejects_invalid_values(value: object) -> None:
 def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
     """Verify schema, user, role, and object identifier helpers."""
     assert validate_schema_name("APP_SCHEMA") == "APP_SCHEMA"
-    assert validate_user_name("APP_USER1") == "APP_USER1"
-    assert validate_role_name("APP_ROLE") == "APP_ROLE"
+    assert validate_user_name("App+/=User") == "App+/=User"
+    assert validate_user_name('"App+/=User"') == "App+/=User"
+    assert validate_role_name("App+/=Role") == "App+/=Role"
+    assert validate_role_name('"App+/=Role"') == "App+/=Role"
     assert validate_object_name("APP_SCHEMA.TABLE1") == "APP_SCHEMA.TABLE1"
+    assert quote_exact_identifier('ab"c', identifier_type="user") == '"ab""c"'
     assert (
         quote_identifier(
             "app_schema.table1",
@@ -99,6 +103,13 @@ def test_validate_identifier_rejects_names_not_matching_regular_pattern() -> Non
     """Verify identifiers must match the conservative regular identifier pattern."""
     with pytest.raises(ValueError, match="not a valid regular identifier"):
         validate_schema_name("APP-SCHEMA")
+
+
+@pytest.mark.parametrize("name", ['"unterminated', '"bad"quote"'])
+def test_validate_user_name_rejects_malformed_delimited_syntax(name: str) -> None:
+    """Verify malformed quoted user identifiers fail with a clear error."""
+    with pytest.raises(ValueError, match="malformed delimited identifier syntax"):
+        validate_user_name(name)
 
 
 def test_object_identifier_validation_rejects_too_many_parts() -> None:

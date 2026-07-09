@@ -59,6 +59,14 @@ class AcceptanceContext:
         return f"ANSIBLE_ROLE_CHECK_{self.suffix}"
 
     @property
+    def exact_test_user(self) -> str:
+        return f"Ansible+/=User_{self.suffix}"
+
+    @property
+    def exact_test_role(self) -> str:
+        return f"Ansible+/=Role_{self.suffix}"
+
+    @property
     def test_user_password(self) -> str:
         return f"Initial_{self.suffix}"
 
@@ -90,8 +98,10 @@ class AcceptanceContext:
             "test_schema": self.test_schema,
             "test_user": self.test_user,
             "check_mode_user": self.check_mode_user,
+            "exact_test_user": self.exact_test_user,
             "test_role": self.test_role,
             "check_mode_role": self.check_mode_role,
+            "exact_test_role": self.exact_test_role,
             "test_user_password": self.test_user_password,
             "test_user_rotated_password": self.test_user_rotated_password,
             "check_mode_user_password": self.check_mode_user_password,

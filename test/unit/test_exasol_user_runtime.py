@@ -53,17 +53,16 @@ class FakeConnection:
         self.executed.append((normalized_query, query_params))
 
         if normalized_query.startswith("SELECT USER_NAME, DISTINGUISHED_NAME"):
-            user_name = str((query_params or {})["user_name"]).upper()
-            rows = (
-                [
+            user_name = str((query_params or {})["user_name"])
+            matched_name = _matching_identifier(self.users, user_name)
+            rows = []
+            if matched_name is not None:
+                rows = [
                     {
-                        "USER_NAME": user_name,
-                        "DISTINGUISHED_NAME": self.ldap_dns.get(user_name),
+                        "USER_NAME": matched_name,
+                        "DISTINGUISHED_NAME": self.ldap_dns.get(matched_name),
                     }
                 ]
-                if user_name in self.users
-                else []
-            )
             return FakeStatement(rows=rows, rowcount=len(rows))
 
         if normalized_query.startswith("CREATE USER"):
@@ -83,7 +82,12 @@ class FakeConnection:
             return FakeStatement(result_type="rowCount")
 
         if normalized_query.startswith("DROP USER"):
-            self.users.discard(_quoted_identifier(normalized_query))
+            matched_name = _matching_identifier(
+                self.users,
+                _quoted_identifier(normalized_query),
+            )
+            if matched_name is not None:
+                self.users.discard(matched_name)
             return FakeStatement(result_type="rowCount")
 
         raise RuntimeError(f"unexpected query: {query}")
@@ -112,17 +116,17 @@ def test_ensure_user_creates_missing_user_and_grants_session() -> None:
 
     assert result == {
         "changed": True,
-        "user": "APP_USER",
+        "user": "app_user",
         "state": "present",
         "exists": True,
         "executed_queries": [
-            'CREATE USER "APP_USER" IDENTIFIED BY "********"',
-            'GRANT CREATE SESSION TO "APP_USER"',
+            'CREATE USER "app_user" IDENTIFIED BY "********"',
+            'GRANT CREATE SESSION TO "app_user"',
         ],
     }
-    assert "APP_USER" in connection.users
-    assert "APP_USER" in connection.grantees
-    assert connection.executed[1][0] == 'CREATE USER "APP_USER" IDENTIFIED BY "h12_Xhz"'
+    assert "app_user" in connection.users
+    assert "app_user" in connection.grantees
+    assert connection.executed[1][0] == 'CREATE USER "app_user" IDENTIFIED BY "h12_Xhz"'
 
 
 def test_ensure_user_creates_missing_ldap_user() -> None:
@@ -140,16 +144,16 @@ def test_ensure_user_creates_missing_ldap_user() -> None:
 
     assert result == {
         "changed": True,
-        "user": "APP_USER",
+        "user": "app_user",
         "state": "present",
         "exists": True,
         "executed_queries": [
-            "CREATE USER \"APP_USER\" IDENTIFIED AT LDAP AS '********'",
-            'GRANT CREATE SESSION TO "APP_USER"',
+            "CREATE USER \"app_user\" IDENTIFIED AT LDAP AS '********'",
+            'GRANT CREATE SESSION TO "app_user"',
         ],
     }
     assert connection.executed[1][0] == (
-        'CREATE USER "APP_USER" IDENTIFIED AT LDAP AS '
+        'CREATE USER "app_user" IDENTIFIED AT LDAP AS '
         "'cn=app_user,dc=authorization,dc=exasol,dc=com'"
     )
 
@@ -184,13 +188,13 @@ def test_ensure_user_alters_existing_password_when_requested() -> None:
 
     assert result == {
         "changed": True,
-        "user": "APP_USER",
+        "user": "app_user",
         "state": "present",
         "exists": True,
-        "executed_queries": ['ALTER USER "APP_USER" IDENTIFIED BY "********"'],
+        "executed_queries": ['ALTER USER "app_user" IDENTIFIED BY "********"'],
     }
     assert connection.executed[1][0] == (
-        'ALTER USER "APP_USER" IDENTIFIED BY "new-secret"'
+        'ALTER USER "app_user" IDENTIFIED BY "new-secret"'
     )
 
 
@@ -209,15 +213,15 @@ def test_ensure_user_changes_existing_user_to_ldap() -> None:
 
     assert result == {
         "changed": True,
-        "user": "APP_USER",
+        "user": "app_user",
         "state": "present",
         "exists": True,
         "executed_queries": [
-            "ALTER USER \"APP_USER\" IDENTIFIED AT LDAP AS '********'"
+            "ALTER USER \"app_user\" IDENTIFIED AT LDAP AS '********'"
         ],
     }
     assert connection.executed[1][0] == (
-        'ALTER USER "APP_USER" IDENTIFIED AT LDAP AS '
+        'ALTER USER "app_user" IDENTIFIED AT LDAP AS '
         "'cn=app_user,dc=authorization,dc=exasol,dc=com'"
     )
 
@@ -253,12 +257,12 @@ def test_ensure_user_absent_drops_existing_user_with_cascade() -> None:
 
     assert result == {
         "changed": True,
-        "user": "APP_USER",
+        "user": "app_user",
         "state": "absent",
         "exists": False,
-        "executed_queries": ['DROP USER "APP_USER" CASCADE'],
+        "executed_queries": ['DROP USER "app_user" CASCADE'],
     }
-    assert "APP_USER" not in connection.users
+    assert "app_user" not in connection.users
 
 
 def test_ensure_user_missing_user_absent_is_unchanged() -> None:
@@ -289,8 +293,8 @@ def test_ensure_user_check_mode_predicts_without_writing() -> None:
     assert result["changed"] is True
     assert result["exists"] is True
     assert result["executed_queries"] == [
-        'CREATE USER "APP_USER" IDENTIFIED BY "********"',
-        'GRANT CREATE SESSION TO "APP_USER"',
+        'CREATE USER "app_user" IDENTIFIED BY "********"',
+        'GRANT CREATE SESSION TO "app_user"',
     ]
     assert connection.users == set()
     assert len(connection.executed) == 1
@@ -313,7 +317,7 @@ def test_ensure_user_check_mode_predicts_ldap_update_without_writing() -> None:
     assert result["changed"] is True
     assert result["exists"] is True
     assert result["executed_queries"] == [
-        "ALTER USER \"APP_USER\" IDENTIFIED AT LDAP AS '********'"
+        "ALTER USER \"app_user\" IDENTIFIED AT LDAP AS '********'"
     ]
     assert connection.ldap_dns == {}
     assert len(connection.executed) == 1
@@ -331,7 +335,7 @@ def test_ensure_user_check_mode_predicts_drop_without_writing() -> None:
 
     assert result["changed"] is True
     assert result["exists"] is False
-    assert result["executed_queries"] == ['DROP USER "APP_USER" CASCADE']
+    assert result["executed_queries"] == ['DROP USER "app_user" CASCADE']
     assert connection.users == {"APP_USER"}
     assert len(connection.executed) == 1
 
@@ -372,6 +376,10 @@ def test_ensure_user_missing_password_for_alter_fails() -> None:
             {"name": "app_user", "authentication_method": "ldap"},
             "ldap_dn is required",
         ),
+        (
+            {"name": "app_user\x00"},
+            "must not contain NUL characters",
+        ),
     ],
 )
 def test_ensure_user_rejects_invalid_lifecycle_parameters(
@@ -395,6 +403,22 @@ def test_user_metadata_rejects_unexpected_row_shape(
 
     with pytest.raises(ValueError, match="unexpected row"):
         exasol_user._user_metadata(object(), "app_user")
+
+
+def test_ensure_user_accepts_delimited_identifier_input() -> None:
+    """Verify delimited SQL identifier syntax is normalized to the exact value."""
+    connection = FakeConnection()
+
+    result = exasol_user.ensure_user(
+        connection,
+        {"name": '"App+/=User"', "password": "h12_Xhz"},
+    )
+
+    assert result["user"] == "App+/=User"
+    assert result["executed_queries"][0] == (
+        'CREATE USER "App+/=User" IDENTIFIED BY "********"'
+    )
+    assert "App+/=User" in connection.users
 
 
 def test_normalized_error_message_redacts_user_secrets(
@@ -478,4 +502,29 @@ def test_quote_sql_string_literal_escapes_single_quotes() -> None:
 
 
 def _quoted_identifier(query: str) -> str:
-    return query.split('"', 2)[1]
+    value: list[str] = []
+    start = query.index('"')
+    index = start + 1
+    while index < len(query):
+        char = query[index]
+        if char != '"':
+            value.append(char)
+            index += 1
+            continue
+
+        if index + 1 < len(query) and query[index + 1] == '"':
+            value.append('"')
+            index += 2
+            continue
+
+        return "".join(value)
+
+    raise AssertionError(f"missing quoted identifier terminator in query: {query}")
+    return "".join(value)
+
+
+def _matching_identifier(values: set[str], identifier: str) -> str | None:
+    for value in values:
+        if value.casefold() == identifier.casefold():
+            return value
+    return None

@@ -12,11 +12,12 @@ from acceptance_common.acceptance_test_common import (
     when_module_scenario_runs,
 )
 
-from exasol.ansible_modules.common_identifier_validation import quote_identifier
+from exasol.ansible_modules.common_identifier_validation import quote_exact_identifier
 from exasol.ansible_modules.common_query import normalized_exasol_error_message
 
 MODULE_NAME = "exasol_role"
 DISPOSABLE_ROLE_PATTERN = re.compile(r"^ANSIBLE_ROLE(?:_CHECK)?_[0-9A-F]{32}$")
+DISPOSABLE_EXACT_ROLE_PATTERN = re.compile(r"^Ansible\+/=Role_[0-9A-F]{32}$")
 
 
 @pytest.mark.integration
@@ -76,6 +77,61 @@ def test_exasol_role_create_missing_role(
 
 @pytest.mark.integration
 @pytest.mark.slow
+def test_exasol_role_preserves_exact_identifier(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Scenario: Create role with exact identifier semantics."""
+    scenario_id = "exasol-role-preserves-exact-identifier"
+    playbook = """
+    - name: Preserve exact role identifier
+      block:
+        - name: Given an exact-identifier Exasol role does not exist
+          exasol.exasol.exasol_role:
+            name: "{{ exact_test_role }}"
+            state: absent
+            cascade: true
+
+        - name: When the exasol_role module runs with an exact identifier value
+          exasol.exasol.exasol_role:
+            name: "{{ exact_test_role }}"
+          register: exasol_role_exact
+
+        - name: Read role metadata
+          exasol.exasol.exasol_query:
+            query: >-
+              SELECT COUNT(*) AS ROLE_COUNT
+              FROM EXA_ALL_ROLES
+              WHERE UPPER(ROLE_NAME) = UPPER(:role_name)
+            named_args:
+              role_name: "{{ exact_test_role }}"
+          register: exasol_role_exact_metadata
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ exasol_role_exact }}"
+              metadata_result: "{{ exasol_role_exact_metadata }}"
+            cacheable: true
+    """
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+
+    result = _when_role_scenario_runs(context, scenario_id, playbook)
+
+    _assert_role_module_result(
+        result["module_result"],
+        changed=True,
+        role=context.exact_test_role,
+        state="present",
+        exists=True,
+        executed_queries=[_create_role_query(context.exact_test_role)],
+    )
+    _assert_role_count(result["metadata_result"], 1)
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 def test_exasol_role_present_idempotent(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -113,6 +169,59 @@ def test_exasol_role_present_idempotent(
         exists=True,
         executed_queries=[],
     )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_exasol_role_present_idempotent_with_different_case_spelling(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Scenario: Present role stays idempotent across case-only spelling changes."""
+    scenario_id = "exasol-role-present-idempotent-with-different-case-spelling"
+    playbook = """
+    - name: Present role with different case spelling is idempotent
+      block:
+        - name: Given an exact-identifier Exasol role already exists
+          exasol.exasol.exasol_role:
+            name: "{{ exact_test_role }}"
+
+        - name: When the exasol_role module is re-run with a different case spelling
+          exasol.exasol.exasol_role:
+            name: "{{ exact_test_role | lower }}"
+          register: exasol_role_existing_different_case
+
+        - name: Read role metadata after the case-variant run
+          exasol.exasol.exasol_query:
+            query: >-
+              SELECT ROLE_NAME
+              FROM EXA_ALL_ROLES
+              WHERE UPPER(ROLE_NAME) = UPPER(:role_name)
+            named_args:
+              role_name: "{{ exact_test_role }}"
+          register: exasol_role_case_metadata
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ exasol_role_existing_different_case }}"
+              metadata_result: "{{ exasol_role_case_metadata }}"
+            cacheable: true
+    """
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+
+    result = _when_role_scenario_runs(context, scenario_id, playbook)
+
+    _assert_role_module_result(
+        result["module_result"],
+        changed=False,
+        role=context.exact_test_role.lower(),
+        state="present",
+        exists=True,
+        executed_queries=[],
+    )
+    _assert_stored_role_name(result["metadata_result"], context.exact_test_role.upper())
 
 
 @pytest.mark.integration
@@ -372,8 +481,13 @@ def _assert_role_count(result: dict[str, Any], expected: int) -> None:
     assert int(result["query_result"][0]["ROLE_COUNT"]) == expected
 
 
+def _assert_stored_role_name(result: dict[str, Any], expected_role_name: str) -> None:
+    assert result["failed"] is False
+    assert result["query_result"] == [{"ROLE_NAME": expected_role_name}]
+
+
 def _cleanup_disposable_roles(context: Any) -> None:
-    role_names = (context.test_role, context.check_mode_role)
+    role_names = (context.test_role, context.check_mode_role, context.exact_test_role)
     for role_name in role_names:
         _assert_disposable_role_name(role_name)
 
@@ -383,7 +497,7 @@ def _cleanup_disposable_roles(context: Any) -> None:
             for role_name in role_names:
                 if _role_exists(connection, role_name):
                     connection.execute(
-                        f"DROP ROLE {quote_identifier(role_name)} CASCADE"
+                        f"DROP ROLE {quote_exact_identifier(role_name)} CASCADE"
                     )
         finally:
             connection.close()
@@ -400,23 +514,26 @@ def _role_exists(connection: Any, role_name: str) -> bool:
     rows = connection.execute(f"""
         SELECT COUNT(*) AS ROLE_COUNT
         FROM EXA_ALL_ROLES
-        WHERE ROLE_NAME = '{role_name}'
+        WHERE UPPER(ROLE_NAME) = UPPER('{role_name}')
         """).fetchall()
     return int(_row_value(rows[0], "ROLE_COUNT", 0)) > 0
 
 
 def _assert_disposable_role_name(role_name: str) -> None:
-    if not DISPOSABLE_ROLE_PATTERN.fullmatch(role_name):
+    if not (
+        DISPOSABLE_ROLE_PATTERN.fullmatch(role_name)
+        or DISPOSABLE_EXACT_ROLE_PATTERN.fullmatch(role_name)
+    ):
         msg = f"Unsafe disposable acceptance role name: {role_name}"
         raise AssertionError(msg)
 
 
 def _create_role_query(role_name: str) -> str:
-    return f"CREATE ROLE {quote_identifier(role_name)}"
+    return f"CREATE ROLE {quote_exact_identifier(role_name)}"
 
 
 def _drop_role_query(role_name: str) -> str:
-    return f"DROP ROLE {quote_identifier(role_name)} CASCADE"
+    return f"DROP ROLE {quote_exact_identifier(role_name)} CASCADE"
 
 
 def _row_value(row: Any, key: str, index: int) -> Any:
