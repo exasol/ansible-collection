@@ -14,6 +14,7 @@ from acceptance_common.acceptance_test_common import (
     when_module_scenario_runs,
 )
 from conftest import InstalledCollectionEnvironment
+
 from exasol.ansible_modules.common_identifier_validation import quote_identifier
 
 

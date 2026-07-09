@@ -6,7 +6,6 @@ import subprocess
 import tarfile
 
 import pytest
-
 from conftest import InstalledCollectionEnvironment
 
 
