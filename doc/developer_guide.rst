@@ -106,9 +106,9 @@ error sanitization without requiring a running Exasol database.
 Non-Mocked Exasol Integration Tests
 -----------------------------------
 
-The pytest-driven integration tests can start an actual Exasol database backend
-through ``pytest-exasol-backend`` instead of using the mocked ``pyexasol`` module
-from the Ansible collection target tests. They execute Ansible playbooks through
+The pytest-driven integration tests can start an actual on-prem Exasol database
+backend through ITDE instead of using the mocked ``pyexasol`` module from the
+Ansible collection target tests. They execute Ansible playbooks through
 ``exasol-ansible-runner-wrapper``.
 
 .. code-block:: bash

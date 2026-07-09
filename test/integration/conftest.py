@@ -8,12 +8,24 @@ import site
 import ssl
 import subprocess
 import sys
+import time
+import uuid
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import pytest
 import yaml
+from exasol_integration_test_docker_environment.cli.options import (
+    test_environment_options as itde_cli,
+)
+from exasol_integration_test_docker_environment.lib import api as itde_api
+from exasol_integration_test_docker_environment.lib.models.data import (
+    environment_info as itde_environment_info,
+)
+from exasol_integration_test_docker_environment.lib.test_environment.ports import Ports
 
 from collection_manifest import ignore_collection_manifest_paths
 from noxconfig import PROJECT_CONFIG
@@ -22,11 +34,123 @@ PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 INTEGRATION_ROOT = Path(__file__).resolve().parent
 COLLECTION_NAMESPACE = "exasol"
 COLLECTION_NAME = "exasol"
+ONPREM_BACKEND = "onprem"
+ALL_BACKENDS = "all"
+SUPPORTED_BACKENDS = {ONPREM_BACKEND, ALL_BACKENDS}
+EXTERNAL_ITDE_VERSION = "external"
+DEFAULT_ITDE_DB_VERSION = itde_cli.LATEST_DB_VERSION
+DEFAULT_ITDE_DB_MEM_SIZE = itde_cli.DEFAULT_MEM_SIZE
+DEFAULT_ITDE_DB_DISK_SIZE = itde_cli.DEFAULT_DISK_SIZE
 
 if str(INTEGRATION_ROOT) not in sys.path:
     sys.path.insert(0, str(INTEGRATION_ROOT))
 
 from acceptance_common.acceptance_test_common import cleanup_disposable_database_objects
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Register on-prem backend options for integration tests."""
+    backend_group = parser.getgroup("exasol backend")
+    backend_group.addoption(
+        "--backend",
+        action="append",
+        default=[],
+        help="Integration backend to use. Supported values: onprem, all.",
+    )
+
+    exasol_group = parser.getgroup("exasol")
+    exasol_group.addoption(
+        "--exasol-host",
+        default=os.environ.get("EXASOL_HOST", "localhost"),
+        help="Host to connect to.",
+    )
+    exasol_group.addoption(
+        "--exasol-port",
+        default=int(os.environ.get("EXASOL_PORT", Ports.forward.database)),
+        type=int,
+        help="Port on which the Exasol database is listening.",
+    )
+    exasol_group.addoption(
+        "--exasol-username",
+        default=os.environ.get("EXASOL_USERNAME", "SYS"),
+        help="Username used to authenticate against the Exasol database.",
+    )
+    exasol_group.addoption(
+        "--exasol-password",
+        default=os.environ.get("EXASOL_PASSWORD", "exasol"),
+        help="Password used to authenticate against the Exasol database.",
+    )
+
+    bucketfs_group = parser.getgroup("bucketfs")
+    bucketfs_group.addoption(
+        "--bucketfs-url",
+        default=os.environ.get(
+            "BUCKETFS_URL",
+            f"http://127.0.0.1:{Ports.forward.bucketfs_http}",
+        ),
+        help="Base URL used to connect to BucketFS.",
+    )
+    bucketfs_group.addoption(
+        "--bucketfs-username",
+        default=os.environ.get("BUCKETFS_USERNAME", "w"),
+        help="Username used to authenticate against BucketFS.",
+    )
+    bucketfs_group.addoption(
+        "--bucketfs-password",
+        default=os.environ.get("BUCKETFS_PASSWORD", "write"),
+        help="Password used to authenticate against BucketFS.",
+    )
+
+    itde_group = parser.getgroup("itde")
+    itde_group.addoption(
+        "--itde-db-version",
+        default=os.environ.get("ITDE_DB_VERSION", DEFAULT_ITDE_DB_VERSION),
+        help="Database version to start, or 'external' to use an existing database.",
+    )
+    itde_group.addoption(
+        "--itde-db-mem-size",
+        default=os.environ.get("ITDE_DB_MEM_SIZE", DEFAULT_ITDE_DB_MEM_SIZE),
+        help="Main memory used by the database, for example '1 GiB'.",
+    )
+    itde_group.addoption(
+        "--itde-db-disk-size",
+        default=os.environ.get("ITDE_DB_DISK_SIZE", DEFAULT_ITDE_DB_DISK_SIZE),
+        help="Disk size available for the database, for example '10 GiB'.",
+    )
+    itde_group.addoption(
+        "--itde-nameserver",
+        action="append",
+        default=[],
+        help="DNS nameserver to add to the Docker DB. Can be repeated.",
+    )
+    itde_group.addoption(
+        "--itde-additional-db-parameter",
+        action="append",
+        default=[],
+        help="Additional database parameter injected into EXAConf. Can be repeated.",
+    )
+
+    ssh_group = parser.getgroup("ssh")
+    ssh_group.addoption(
+        "--ssh-port",
+        default=int(os.environ.get("SSH_PORT", Ports.forward.ssh)),
+        type=int,
+        help="Port on which external processes can access the database through SSH.",
+    )
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Pin integration tests to the on-prem Exasol backend."""
+    if hasattr(config.option, "backend"):
+        selected_backends = set(config.option.backend or [ONPREM_BACKEND])
+        unsupported_backends = sorted(selected_backends - SUPPORTED_BACKENDS)
+        if unsupported_backends:
+            raise pytest.UsageError(
+                "Unsupported backend(s): "
+                f"{', '.join(unsupported_backends)}. "
+                f"This project supports only {ONPREM_BACKEND} integration tests."
+            )
+        config.option.backend = [ONPREM_BACKEND]
 
 
 @dataclass(frozen=True)
@@ -64,6 +188,166 @@ class ExasolConnection:
         if self.certificate_fingerprint:
             result["certificate_fingerprint"] = self.certificate_fingerprint
         return result
+
+
+@dataclass(frozen=True)
+class OnpremDatabaseConfig:
+    """Exasol database configuration for on-prem integration tests."""
+
+    host: str
+    port: int
+    username: str
+    password: str
+
+
+@dataclass(frozen=True)
+class OnpremBucketfsConfig:
+    """BucketFS configuration for on-prem integration tests."""
+
+    url: str
+    username: str
+    password: str
+
+
+@dataclass(frozen=True)
+class ItdeConfig:
+    """ITDE configuration for managed on-prem integration tests."""
+
+    db_version: str
+    db_mem_size: str
+    db_disk_size: str
+    nameserver: list[str]
+    additional_db_parameter: list[str]
+
+
+@dataclass(frozen=True)
+class SshConfig:
+    """SSH port configuration for managed on-prem integration tests."""
+
+    port: int
+
+
+@pytest.fixture(scope="session")
+def backend() -> str:
+    """Return the single backend supported by this test suite."""
+    return ONPREM_BACKEND
+
+
+@pytest.fixture(scope="session")
+def exasol_config(request: pytest.FixtureRequest) -> OnpremDatabaseConfig:
+    """Return on-prem database connection configuration."""
+    return OnpremDatabaseConfig(
+        host=request.config.option.exasol_host,
+        port=request.config.option.exasol_port,
+        username=request.config.option.exasol_username,
+        password=request.config.option.exasol_password,
+    )
+
+
+@pytest.fixture(scope="session")
+def bucketfs_config(request: pytest.FixtureRequest) -> OnpremBucketfsConfig:
+    """Return on-prem BucketFS connection configuration."""
+    return OnpremBucketfsConfig(
+        url=request.config.option.bucketfs_url,
+        username=request.config.option.bucketfs_username,
+        password=request.config.option.bucketfs_password,
+    )
+
+
+@pytest.fixture(scope="session")
+def itde_config(request: pytest.FixtureRequest) -> ItdeConfig:
+    """Return managed ITDE configuration."""
+    return ItdeConfig(
+        db_version=request.config.option.itde_db_version,
+        db_mem_size=request.config.option.itde_db_mem_size,
+        db_disk_size=request.config.option.itde_db_disk_size,
+        nameserver=request.config.option.itde_nameserver,
+        additional_db_parameter=request.config.option.itde_additional_db_parameter,
+    )
+
+
+@pytest.fixture(scope="session")
+def ssh_config(request: pytest.FixtureRequest) -> SshConfig:
+    """Return SSH port configuration for managed ITDE."""
+    return SshConfig(port=request.config.option.ssh_port)
+
+
+@pytest.fixture(scope="session")
+def itde_database_name() -> str:
+    """Return a unique name for the managed ITDE database."""
+    return f"ansible-collection-{time.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8]}"
+
+
+@pytest.fixture(scope="session")
+def backend_aware_onprem_database(
+    itde_config: ItdeConfig,
+    exasol_config: OnpremDatabaseConfig,
+    bucketfs_config: OnpremBucketfsConfig,
+    ssh_config: SshConfig,
+    itde_database_name: str,
+) -> Iterator[itde_environment_info.EnvironmentInfo | None]:
+    """Start a managed on-prem backend unless tests target an external database."""
+    if itde_config.db_version == EXTERNAL_ITDE_VERSION:
+        yield None
+        return
+
+    bucketfs_url = urlparse(bucketfs_config.url)
+    environment_info, cleanup = itde_api.spawn_test_environment(
+        environment_name=itde_database_name,
+        database_port_forward=exasol_config.port,
+        bucketfs_port_forward=bucketfs_url.port or Ports.forward.bucketfs_http,
+        ssh_port_forward=ssh_config.port,
+        db_mem_size=itde_config.db_mem_size,
+        db_disk_size=itde_config.db_disk_size,
+        nameserver=tuple(itde_config.nameserver),
+        additional_db_parameter=tuple(itde_config.additional_db_parameter),
+        docker_db_image_version=itde_config.db_version,
+    )
+    try:
+        yield environment_info
+    finally:
+        cleanup()
+
+
+@pytest.fixture(scope="session")
+def backend_aware_database_params(
+    backend: str,
+    backend_aware_onprem_database: itde_environment_info.EnvironmentInfo | None,
+    exasol_config: OnpremDatabaseConfig,
+) -> dict[str, Any]:
+    """Return pyexasol connection parameters for the selected on-prem backend."""
+    _ = backend_aware_onprem_database
+    if backend != ONPREM_BACKEND:
+        raise ValueError(f"Unknown backend {backend}")
+
+    return {
+        "dsn": f"{exasol_config.host}:{exasol_config.port}",
+        "user": exasol_config.username,
+        "password": exasol_config.password,
+        "websocket_sslopt": {"cert_reqs": ssl.CERT_NONE},
+    }
+
+
+@pytest.fixture(scope="session")
+def backend_aware_bucketfs_params(
+    backend: str,
+    backend_aware_onprem_database: itde_environment_info.EnvironmentInfo | None,
+    bucketfs_config: OnpremBucketfsConfig,
+) -> dict[str, Any]:
+    """Return BucketFS connection parameters for the selected on-prem backend."""
+    _ = backend_aware_onprem_database
+    if backend != ONPREM_BACKEND:
+        raise ValueError(f"Unknown backend {backend}")
+
+    return {
+        "backend": ONPREM_BACKEND,
+        "url": bucketfs_config.url,
+        "username": bucketfs_config.username,
+        "password": bucketfs_config.password,
+        "service_name": "bfsdefault",
+        "bucket_name": "default",
+        "verify": False,
+    }
 
 
 @dataclass(frozen=True)
