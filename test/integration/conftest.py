@@ -26,6 +26,8 @@ COLLECTION_NAME = "exasol"
 if str(INTEGRATION_ROOT) not in sys.path:
     sys.path.insert(0, str(INTEGRATION_ROOT))
 
+from acceptance_common.acceptance_test_common import cleanup_disposable_database_objects
+
 
 @dataclass(frozen=True)
 class AnsibleRunnerWorkspace:
@@ -287,6 +289,16 @@ def exasol_connection(
 def exasol_login_vars(exasol_connection: ExasolConnection) -> dict[str, object]:
     """Return backend connection details using collection module argument names."""
     return exasol_connection.login_vars
+
+
+@pytest.fixture(autouse=True)
+def cleanup_disposable_exasol_objects_before_test(
+    request: pytest.FixtureRequest,
+) -> None:
+    """Delete disposable Exasol objects before each DB-backed integration test."""
+    if "exasol_login_vars" not in request.fixturenames:
+        return
+    cleanup_disposable_database_objects(request.getfixturevalue("exasol_login_vars"))
 
 
 def _parse_pyexasol_dsn(dsn: str) -> tuple[str, str | None, int]:
