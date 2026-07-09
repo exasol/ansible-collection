@@ -37,6 +37,7 @@ class AcceptanceContext:
     project_dir: Path
     login_vars: dict[str, object]
     suffix: str
+    python_interpreter: Path | None = None
 
     @property
     def test_schema(self) -> str:
@@ -86,7 +87,11 @@ class AcceptanceContext:
     def playbook_vars(self) -> dict[str, object]:
         return {
             **self.login_vars,
-            "ansible_python_interpreter": sys.executable,
+            "ansible_python_interpreter": (
+                str(self.python_interpreter)
+                if self.python_interpreter
+                else sys.executable
+            ),
             "test_schema": self.test_schema,
             "test_user": self.test_user,
             "check_mode_user": self.check_mode_user,
@@ -104,6 +109,7 @@ class AcceptanceContext:
 def given_acceptance_context(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    python_interpreter: Path | None = None,
 ) -> AcceptanceContext:
     """Given a unique disposable acceptance-test namespace."""
     return AcceptanceContext(
@@ -111,6 +117,7 @@ def given_acceptance_context(
         project_dir=ansible_runner_workspace.project_dir,
         login_vars=exasol_login_vars,
         suffix=uuid.uuid4().hex.upper(),
+        python_interpreter=python_interpreter,
     )
 
 
