@@ -127,6 +127,28 @@ def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None
     assert parsed[0]["tasks"][1]["block"][0]["name"] == "Inline scenario"
 
 
+def test_exact_acceptance_principal_names_use_disposable_prefixes() -> None:
+    """Verify exact user and role test names still match disposable cleanup rules."""
+    acceptance_common = _acceptance_common_module()
+    context = acceptance_common.AcceptanceContext(
+        private_data_dir=Path("/tmp/private"),
+        project_dir=Path("/tmp/project"),
+        login_vars={},
+        suffix="0123456789ABCDEF0123456789ABCDEF",
+    )
+
+    assert (
+        context.exact_test_user
+        == "ANSIBLE_USER_EXACT+/=User_0123456789ABCDEF0123456789ABCDEF"
+    )
+    assert (
+        context.exact_test_role
+        == "ANSIBLE_ROLE_EXACT+/=Role_0123456789ABCDEF0123456789ABCDEF"
+    )
+    assert acceptance_common.DISPOSABLE_USER_PATTERN.fullmatch(context.exact_test_user)
+    assert acceptance_common.DISPOSABLE_ROLE_PATTERN.fullmatch(context.exact_test_role)
+
+
 class FakeConnection:
     """Small pyexasol connection stand-in for cleanup tests."""
 

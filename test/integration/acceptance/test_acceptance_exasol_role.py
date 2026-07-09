@@ -17,7 +17,6 @@ from exasol.ansible_modules.common_query import normalized_exasol_error_message
 
 MODULE_NAME = "exasol_role"
 DISPOSABLE_ROLE_PATTERN = re.compile(r"^ANSIBLE_ROLE(?:_CHECK)?_[0-9A-F]{32}$")
-DISPOSABLE_EXACT_ROLE_PATTERN = re.compile(r"^Ansible\+/=Role_[0-9A-F]{32}$")
 
 
 @pytest.mark.integration
@@ -520,10 +519,7 @@ def _role_exists(connection: Any, role_name: str) -> bool:
 
 
 def _assert_disposable_role_name(role_name: str) -> None:
-    if not (
-        DISPOSABLE_ROLE_PATTERN.fullmatch(role_name)
-        or DISPOSABLE_EXACT_ROLE_PATTERN.fullmatch(role_name)
-    ):
+    if not DISPOSABLE_ROLE_PATTERN.fullmatch(role_name):
         msg = f"Unsafe disposable acceptance role name: {role_name}"
         raise AssertionError(msg)
 

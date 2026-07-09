@@ -27,8 +27,14 @@ ACCEPTANCE_PLAYBOOK_TEMPLATE = (
 )
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 DISPOSABLE_SCHEMA_PATTERN = re.compile(r"^ANSIBLE_SCHEMA_[0-9A-F]{32}(?:_CHECK_MODE)?$")
-DISPOSABLE_USER_PATTERN = re.compile(r"^ANSIBLE_USER(?:_CHECK)?_[0-9A-F]{32}$")
-DISPOSABLE_ROLE_PATTERN = re.compile(r"^ANSIBLE_ROLE(?:_CHECK)?_[0-9A-F]{32}$")
+DISPOSABLE_USER_PATTERN = re.compile(
+    r"^(?:ANSIBLE_USER(?:_CHECK)?_[0-9A-F]{32}|"
+    r"ANSIBLE_USER_EXACT\+/=User_[0-9A-F]{32})$"
+)
+DISPOSABLE_ROLE_PATTERN = re.compile(
+    r"^(?:ANSIBLE_ROLE(?:_CHECK)?_[0-9A-F]{32}|"
+    r"ANSIBLE_ROLE_EXACT\+/=Role_[0-9A-F]{32})$"
+)
 
 
 @dataclass(frozen=True)
@@ -63,11 +69,11 @@ class AcceptanceContext:
 
     @property
     def exact_test_user(self) -> str:
-        return f"Ansible+/=User_{self.suffix}"
+        return f"ANSIBLE_USER_EXACT+/=User_{self.suffix}"
 
     @property
     def exact_test_role(self) -> str:
-        return f"Ansible+/=Role_{self.suffix}"
+        return f"ANSIBLE_ROLE_EXACT+/=Role_{self.suffix}"
 
     @property
     def test_user_password(self) -> str:
