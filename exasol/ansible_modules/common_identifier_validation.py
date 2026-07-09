@@ -86,7 +86,8 @@ def validate_exact_identifier(
 def quote_exact_identifier(name: str, identifier_type: str = "identifier") -> str:
     """Quote an exact identifier value without uppercasing it."""
     value = validate_exact_identifier(name, identifier_type=identifier_type)
-    return f'"{value.replace("\"", "\"\"")}"'
+    escaped_value = value.replace('"', '""')
+    return f'"{escaped_value}"'
 
 
 # ---- specialized wrappers (thin, consistent API surface) ----
