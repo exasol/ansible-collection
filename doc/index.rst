@@ -6,5 +6,5 @@ Exasol Ansible Collection
 
    user_guide
    developer_guide
+   design_index
    changes/changelog
-   design/exasol_user_security
