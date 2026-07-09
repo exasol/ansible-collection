@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from exasol.ansible_modules import common_query
 from exasol.ansible_modules.common_identifier_validation import (
-    quote_exact_identifier,
+    quote_exact_identifier_value,
     validate_user_name,
 )
 from exasol.ansible_modules.common_param_validation import (
@@ -193,7 +193,7 @@ def _create_user_statements(
     authentication: UserStatement,
     create_session: bool,
 ) -> list[UserStatement]:
-    quoted_user = quote_exact_identifier(user_name, identifier_type="user")
+    quoted_user = quote_exact_identifier_value(user_name, identifier_type="user")
     statements = [
         UserStatement(
             actual=f"CREATE USER {quoted_user} {authentication.actual}",
@@ -213,7 +213,7 @@ def _create_user_statements(
 
 
 def _alter_user_password_statement(user_name: str, password: str) -> UserStatement:
-    quoted_user = quote_exact_identifier(user_name, identifier_type="user")
+    quoted_user = quote_exact_identifier_value(user_name, identifier_type="user")
     quoted_password = _quote_password_identifier(password)
 
     return UserStatement(
@@ -223,7 +223,7 @@ def _alter_user_password_statement(user_name: str, password: str) -> UserStateme
 
 
 def _alter_user_ldap_statement(user_name: str, ldap_dn: str) -> UserStatement:
-    quoted_user = quote_exact_identifier(user_name, identifier_type="user")
+    quoted_user = quote_exact_identifier_value(user_name, identifier_type="user")
     quoted_ldap_dn = _quote_sql_string_literal(ldap_dn)
 
     return UserStatement(
@@ -233,7 +233,9 @@ def _alter_user_ldap_statement(user_name: str, ldap_dn: str) -> UserStatement:
 
 
 def _drop_user_statement(user_name: str, cascade: bool) -> UserStatement:
-    query = f"DROP USER {quote_exact_identifier(user_name, identifier_type='user')}"
+    query = (
+        f"DROP USER {quote_exact_identifier_value(user_name, identifier_type='user')}"
+    )
     if cascade:
         query = f"{query} CASCADE"
 

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from exasol.ansible_modules import common_query
 from exasol.ansible_modules.common_identifier_validation import (
-    quote_exact_identifier,
+    quote_exact_identifier_value,
     validate_role_name,
 )
 from exasol.ansible_modules.common_param_validation import (
@@ -127,13 +127,16 @@ def _planned_role_statements(
 
     return [
         RoleStatement(
-            f"CREATE ROLE {quote_exact_identifier(role_name, identifier_type='role')}"
+            "CREATE ROLE "
+            f"{quote_exact_identifier_value(role_name, identifier_type='role')}"
         )
     ]
 
 
 def _drop_role_query(role_name: str, cascade: bool) -> str:
-    query = f"DROP ROLE {quote_exact_identifier(role_name, identifier_type='role')}"
+    query = (
+        f"DROP ROLE {quote_exact_identifier_value(role_name, identifier_type='role')}"
+    )
     return f"{query} CASCADE" if cascade else query
 
 

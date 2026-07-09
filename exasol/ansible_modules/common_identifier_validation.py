@@ -65,27 +65,22 @@ def validate_exact_identifier(
         raise ValueError(f"Exasol {identifier_type} name must not be empty.")
 
     value = _exact_identifier_value(name, identifier_type)
-
-    if value == "":
-        raise ValueError(f"Exasol {identifier_type} name must not be empty.")
-
-    if "\x00" in value:
-        raise ValueError(
-            f"Exasol {identifier_type} name must not contain NUL characters."
-        )
-
-    if len(value) > MAX_IDENTIFIER_LENGTH:
-        raise ValueError(
-            f"Exasol {identifier_type} identifier parts must not exceed "
-            f"{MAX_IDENTIFIER_LENGTH} characters."
-        )
-
+    _validate_exact_identifier_value(value, identifier_type=identifier_type)
     return value
 
 
 def quote_exact_identifier(name: str, identifier_type: str = "identifier") -> str:
     """Quote an exact identifier value without uppercasing it."""
     value = validate_exact_identifier(name, identifier_type=identifier_type)
+    return quote_exact_identifier_value(value, identifier_type=identifier_type)
+
+
+def quote_exact_identifier_value(
+    value: str,
+    identifier_type: str = "identifier",
+) -> str:
+    """Quote an already-normalized exact identifier value."""
+    _validate_exact_identifier_value(value, identifier_type=identifier_type)
     escaped_value = value.replace('"', '""')
     return f'"{escaped_value}"'
 
@@ -168,3 +163,19 @@ def _exact_identifier_value(name: str, identifier_type: str) -> str:
         index += 2
 
     return "".join(value)
+
+
+def _validate_exact_identifier_value(value: str, identifier_type: str) -> None:
+    if value == "":
+        raise ValueError(f"Exasol {identifier_type} name must not be empty.")
+
+    if "\x00" in value:
+        raise ValueError(
+            f"Exasol {identifier_type} name must not contain NUL characters."
+        )
+
+    if len(value) > MAX_IDENTIFIER_LENGTH:
+        raise ValueError(
+            f"Exasol {identifier_type} identifier parts must not exceed "
+            f"{MAX_IDENTIFIER_LENGTH} characters."
+        )

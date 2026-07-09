@@ -421,6 +421,22 @@ def test_ensure_user_accepts_delimited_identifier_input() -> None:
     assert "App+/=User" in connection.users
 
 
+def test_ensure_user_preserves_boundary_quotes_in_exact_identifier() -> None:
+    """Verify exact identifier values can start and end with a quote character."""
+    connection = FakeConnection()
+
+    result = exasol_user.ensure_user(
+        connection,
+        {"name": '"""abc"""', "password": "h12_Xhz"},
+    )
+
+    assert result["user"] == '"abc"'
+    assert result["executed_queries"][0] == (
+        'CREATE USER """abc""" IDENTIFIED BY "********"'
+    )
+    assert '"abc"' in connection.users
+
+
 def test_normalized_error_message_redacts_user_secrets(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -502,7 +518,24 @@ def test_quote_sql_string_literal_escapes_single_quotes() -> None:
 
 
 def _quoted_identifier(query: str) -> str:
-    return query.split('"', 2)[1]
+    value: list[str] = []
+    start = query.index('"')
+    index = start + 1
+    while index < len(query):
+        char = query[index]
+        if char != '"':
+            value.append(char)
+            index += 1
+            continue
+
+        if index + 1 < len(query) and query[index + 1] == '"':
+            value.append('"')
+            index += 2
+            continue
+
+        return "".join(value)
+
+    raise AssertionError(f"missing quoted identifier terminator in query: {query}")
 
 
 def _matching_identifier(values: set[str], identifier: str) -> str | None:

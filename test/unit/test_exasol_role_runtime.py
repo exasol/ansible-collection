@@ -201,6 +201,17 @@ def test_ensure_role_accepts_delimited_identifier_input() -> None:
     assert "App+/=Role" in connection.roles
 
 
+def test_ensure_role_preserves_boundary_quotes_in_exact_identifier() -> None:
+    """Verify exact identifier values can start and end with a quote character."""
+    connection = FakeConnection()
+
+    result = exasol_role.ensure_role(connection, {"name": '"""abc"""'})
+
+    assert result["role"] == '"abc"'
+    assert result["executed_queries"] == ['CREATE ROLE """abc"""']
+    assert '"abc"' in connection.roles
+
+
 def test_role_error_helpers_delegate_to_common_query(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
