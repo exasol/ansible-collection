@@ -26,7 +26,9 @@ ACCEPTANCE_PLAYBOOK_TEMPLATE = (
     ACCEPTANCE_COMMON_DIR / "acceptance_playbook_template.yml"
 )
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
-DISPOSABLE_SCHEMA_PATTERN = re.compile(r"^ANSIBLE_QUERY_[0-9A-F]{32}$")
+DISPOSABLE_SCHEMA_PATTERN = re.compile(r"^ANSIBLE_SCHEMA_[0-9A-F]{32}(?:_CHECK_MODE)?$")
+DISPOSABLE_USER_PATTERN = re.compile(r"^ANSIBLE_USER(?:_CHECK)?_[0-9A-F]{32}$")
+DISPOSABLE_ROLE_PATTERN = re.compile(r"^ANSIBLE_ROLE(?:_CHECK)?_[0-9A-F]{32}$")
 
 
 @dataclass(frozen=True)
@@ -37,10 +39,11 @@ class AcceptanceContext:
     project_dir: Path
     login_vars: dict[str, object]
     suffix: str
+    python_interpreter: Path | None = None
 
     @property
     def test_schema(self) -> str:
-        return f"ANSIBLE_QUERY_{self.suffix}"
+        return f"ANSIBLE_SCHEMA_{self.suffix}"
 
     @property
     def test_user(self) -> str:
@@ -86,7 +89,11 @@ class AcceptanceContext:
     def playbook_vars(self) -> dict[str, object]:
         return {
             **self.login_vars,
-            "ansible_python_interpreter": sys.executable,
+            "ansible_python_interpreter": (
+                str(self.python_interpreter)
+                if self.python_interpreter
+                else sys.executable
+            ),
             "test_schema": self.test_schema,
             "test_user": self.test_user,
             "check_mode_user": self.check_mode_user,
@@ -104,6 +111,7 @@ class AcceptanceContext:
 def given_acceptance_context(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    python_interpreter: Path | None = None,
 ) -> AcceptanceContext:
     """Given a unique disposable acceptance-test namespace."""
     return AcceptanceContext(
@@ -111,6 +119,7 @@ def given_acceptance_context(
         project_dir=ansible_runner_workspace.project_dir,
         login_vars=exasol_login_vars,
         suffix=uuid.uuid4().hex.upper(),
+        python_interpreter=python_interpreter,
     )
 
 
@@ -183,7 +192,6 @@ def when_template_scenario_runs(
         scenario_id,
         scenario_playbook,
     )
-    _cleanup_disposable_schemas(context)
     return _run_playbook(context, playbook, scenario_id, extra_vars=extra_vars)
 
 
@@ -296,23 +304,25 @@ def _without_scenario_id(result: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in result.items() if key != "scenario_id"}
 
 
-def _cleanup_disposable_schemas(
-    context: AcceptanceContext,
-) -> None:
-    schema_names = _disposable_schema_names(context)
+def cleanup_disposable_database_objects(login_vars: dict[str, object]) -> None:
+    """Delete disposable schemas, users, and roles created by integration tests."""
     try:
-        connection = connect_to_exasol(context.login_vars)
+        connection = connect_to_exasol(login_vars)
         try:
-            for schema_name in schema_names:
+            for schema_name in _matching_schema_names(connection):
                 connection.execute(
-                    f"DROP SCHEMA IF EXISTS {quote_identifier(schema_name)} CASCADE"
+                    f"DROP SCHEMA {quote_identifier(schema_name)} CASCADE"
                 )
+            for user_name in _matching_user_names(connection):
+                connection.execute(f"DROP USER {quote_identifier(user_name)} CASCADE")
+            for role_name in _matching_role_names(connection):
+                connection.execute(f"DROP ROLE {quote_identifier(role_name)} CASCADE")
         finally:
             connection.close()
     except Exception as error:
         message = normalized_exasol_error_message(
             error,
-            context.login_vars,
+            login_vars,
             operation="Acceptance cleanup",
         )
         raise AssertionError(message) from error
@@ -324,10 +334,64 @@ def connect_to_exasol(login_vars: dict[str, object]) -> Any:
     return pyexasol.connect(**build_exasol_connect_kwargs(login_vars))
 
 
-def _disposable_schema_names(context: AcceptanceContext) -> tuple[str, str]:
-    schema_name = context.test_schema
-    if not DISPOSABLE_SCHEMA_PATTERN.fullmatch(schema_name):
-        msg = f"Unsafe disposable acceptance schema name: {schema_name}"
-        raise AssertionError(msg)
+def _matching_schema_names(connection: Any) -> tuple[str, ...]:
+    return _matching_object_names(
+        connection,
+        catalog_column="SCHEMA_NAME",
+        catalog_table="EXA_ALL_SCHEMAS",
+        like_pattern="ANSIBLE_SCHEMA_%",
+        name_pattern=DISPOSABLE_SCHEMA_PATTERN,
+        object_kind="schema",
+    )
 
-    return schema_name, f"{schema_name}_CHECK_MODE"
+
+def _matching_user_names(connection: Any) -> tuple[str, ...]:
+    return _matching_object_names(
+        connection,
+        catalog_column="USER_NAME",
+        catalog_table="EXA_ALL_USERS",
+        like_pattern="ANSIBLE_USER%",
+        name_pattern=DISPOSABLE_USER_PATTERN,
+        object_kind="user",
+    )
+
+
+def _matching_role_names(connection: Any) -> tuple[str, ...]:
+    return _matching_object_names(
+        connection,
+        catalog_column="ROLE_NAME",
+        catalog_table="EXA_ALL_ROLES",
+        like_pattern="ANSIBLE_ROLE%",
+        name_pattern=DISPOSABLE_ROLE_PATTERN,
+        object_kind="role",
+    )
+
+
+def _matching_object_names(
+    connection: Any,
+    *,
+    catalog_column: str,
+    catalog_table: str,
+    like_pattern: str,
+    name_pattern: re.Pattern[str],
+    object_kind: str,
+) -> tuple[str, ...]:
+    rows = connection.execute(f"""
+        SELECT {catalog_column}
+        FROM {catalog_table}
+        WHERE {catalog_column} LIKE '{like_pattern}'
+        """).fetchall()
+    names = []
+    for row in rows:
+        name = str(_row_value(row, catalog_column, 0))
+        if not name_pattern.fullmatch(name):
+            msg = f"Unsafe disposable acceptance {object_kind} name: {name}"
+            raise AssertionError(msg)
+        names.append(name)
+    return tuple(names)
+
+
+def _row_value(row: object, key: str, index: int) -> object:
+    if isinstance(row, dict):
+        return row[key]
+    return row[index]

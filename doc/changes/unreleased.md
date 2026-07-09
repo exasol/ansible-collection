@@ -19,6 +19,7 @@
 * #55: Refactor acceptance tests to use inline playbook fragments 2
 * #54: Add exasol_query missing scenarios
 * #64: Refactor exasol_user aceptance tests to use inline playbook fragments
+* #56: Add end-to-end tests for Ansible collection and Python module
 
 ## Bug Fixes
 

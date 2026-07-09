@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import os
 import shutil
+import site
 import ssl
+import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,6 +25,8 @@ COLLECTION_NAME = "exasol"
 
 if str(INTEGRATION_ROOT) not in sys.path:
     sys.path.insert(0, str(INTEGRATION_ROOT))
+
+from acceptance_common.acceptance_test_common import cleanup_disposable_database_objects
 
 
 @dataclass(frozen=True)
@@ -60,6 +64,20 @@ class ExasolConnection:
         if self.certificate_fingerprint:
             result["certificate_fingerprint"] = self.certificate_fingerprint
         return result
+
+
+@dataclass(frozen=True)
+class InstalledCollectionEnvironment:
+    """Built collection plus isolated runtime installation for E2E tests."""
+
+    root: Path
+    archive_path: Path
+    collections_path: Path
+    run_dir: Path
+    remote_tmp: Path
+    env: dict[str, str]
+    venv_dir: Path
+    python_executable: Path
 
 
 def _ignore_collection_build_paths(directory: str, names: list[str]) -> set[str]:
@@ -130,6 +148,123 @@ def ansible_runner_workspace(tmp_path: Path) -> AnsibleRunnerWorkspace:
     )
 
 
+@pytest.fixture(scope="module")
+def installed_collection_environment(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> InstalledCollectionEnvironment:
+    """Build and install the collection plus runtime into isolated temp paths."""
+    root = tmp_path_factory.mktemp("installed-collection-environment")
+    build_dir = root / "build"
+    wheel_dir = root / "wheel"
+    collections_path = root / "collections"
+    run_dir = root / "run"
+    ansible_home = root / ".ansible"
+    ansible_local_tmp = ansible_home / "tmp"
+    ansible_remote_tmp = ansible_home / "remote-tmp"
+    galaxy_cache = root / "galaxy-cache"
+    venv_dir = root / "runtime-venv"
+
+    for directory in (
+        build_dir,
+        wheel_dir,
+        collections_path,
+        run_dir,
+        ansible_local_tmp,
+        ansible_remote_tmp,
+        galaxy_cache,
+    ):
+        directory.mkdir(parents=True)
+
+    env = {
+        **os.environ,
+        "ANSIBLE_COLLECTIONS_PATH": str(collections_path),
+        "ANSIBLE_GALAXY_CACHE_DIR": str(galaxy_cache),
+        "ANSIBLE_HOME": str(ansible_home),
+        "ANSIBLE_LOCAL_TEMP": str(ansible_local_tmp),
+    }
+
+    _run_command(
+        [
+            _required_executable("ansible-galaxy"),
+            "collection",
+            "build",
+            "--force",
+            "--output-path",
+            str(build_dir),
+            ".",
+        ],
+        cwd=PROJECT_ROOT,
+        env=env,
+    )
+    archive_path = _single_collection_archive(build_dir)
+
+    _run_command(
+        [
+            _required_executable("ansible-galaxy"),
+            "collection",
+            "install",
+            "--force",
+            "-p",
+            str(collections_path),
+            str(archive_path),
+        ],
+        cwd=run_dir,
+        env=env,
+    )
+
+    _run_command(
+        [
+            _required_executable("poetry"),
+            "build",
+            "--format",
+            "wheel",
+            "--output",
+            str(wheel_dir),
+        ],
+        cwd=PROJECT_ROOT,
+        env=env,
+    )
+    runtime_wheel = _single_runtime_wheel(wheel_dir)
+
+    _run_command(
+        [
+            sys.executable,
+            "-m",
+            "venv",
+            "--system-site-packages",
+            str(venv_dir),
+        ],
+        cwd=PROJECT_ROOT,
+        env=env,
+    )
+    python_executable = _venv_python(venv_dir)
+    _link_current_site_packages(venv_dir)
+    _run_command(
+        [
+            str(python_executable),
+            "-m",
+            "pip",
+            "install",
+            "--disable-pip-version-check",
+            "--no-deps",
+            str(runtime_wheel),
+        ],
+        cwd=PROJECT_ROOT,
+        env=env,
+    )
+
+    return InstalledCollectionEnvironment(
+        root=root,
+        archive_path=archive_path,
+        collections_path=collections_path,
+        run_dir=run_dir,
+        remote_tmp=ansible_remote_tmp,
+        env=env,
+        venv_dir=venv_dir,
+        python_executable=python_executable,
+    )
+
+
 @pytest.fixture
 def exasol_connection(
     backend_aware_database_params: dict[str, Any],
@@ -156,6 +291,16 @@ def exasol_login_vars(exasol_connection: ExasolConnection) -> dict[str, object]:
     return exasol_connection.login_vars
 
 
+@pytest.fixture(autouse=True)
+def cleanup_disposable_exasol_objects_before_test(
+    request: pytest.FixtureRequest,
+) -> None:
+    """Delete disposable Exasol objects before each DB-backed integration test."""
+    if "exasol_login_vars" not in request.fixturenames:
+        return
+    cleanup_disposable_database_objects(request.getfixturevalue("exasol_login_vars"))
+
+
 def _parse_pyexasol_dsn(dsn: str) -> tuple[str, str | None, int]:
     address, port_text = dsn.rsplit(":", 1)
     if "/" in address:
@@ -163,3 +308,65 @@ def _parse_pyexasol_dsn(dsn: str) -> tuple[str, str | None, int]:
     else:
         host, fingerprint = address, None
     return host, fingerprint, int(port_text)
+
+
+def _required_executable(name: str) -> str:
+    executable = shutil.which(name)
+    assert executable is not None
+    return executable
+
+
+def _run_command(command: list[str], cwd: Path, env: dict[str, str]) -> None:
+    subprocess.run(
+        command,
+        cwd=cwd,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+
+
+def _single_collection_archive(build_dir: Path) -> Path:
+    archives = list(build_dir.glob("exasol-exasol-*.tar.gz"))
+    assert len(archives) == 1
+    return archives[0]
+
+
+def _single_runtime_wheel(wheel_dir: Path) -> Path:
+    wheels = list(wheel_dir.glob("exasol_ansible_modules-*.whl"))
+    assert len(wheels) == 1
+    return wheels[0]
+
+
+def _venv_python(venv_dir: Path) -> Path:
+    if os.name == "nt":
+        return venv_dir / "Scripts" / "python.exe"
+    return venv_dir / "bin" / "python"
+
+
+def _link_current_site_packages(venv_dir: Path) -> None:
+    venv_site_packages = _venv_site_packages(venv_dir)
+    linked_paths = [
+        Path(path)
+        for path in dict.fromkeys(
+            [*site.getsitepackages(), site.getusersitepackages(), *sys.path]
+        )
+        if "site-packages" in path
+    ]
+    pth_file = venv_site_packages / "ansible_collection_test_deps.pth"
+    pth_file.write_text(
+        "".join(f"{path}\n" for path in linked_paths if path.is_dir()),
+        encoding="utf-8",
+    )
+
+
+def _venv_site_packages(venv_dir: Path) -> Path:
+    if os.name == "nt":
+        return venv_dir / "Lib" / "site-packages"
+    return (
+        venv_dir
+        / "lib"
+        / f"python{sys.version_info.major}.{sys.version_info.minor}"
+        / "site-packages"
+    )

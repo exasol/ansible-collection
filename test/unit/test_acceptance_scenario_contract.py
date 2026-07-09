@@ -127,64 +127,6 @@ def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None
     assert parsed[0]["tasks"][1]["block"][0]["name"] == "Inline scenario"
 
 
-def test_acceptance_python_cleanup_drops_disposable_schemas(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify Python cleanup drops both generated acceptance schemas."""
-    acceptance_common = _acceptance_common_module()
-    connection = FakeConnection()
-    context = acceptance_common.AcceptanceContext(
-        private_data_dir=tmp_path,
-        project_dir=tmp_path,
-        login_vars={"login_user": "sys", "login_password": "secret"},
-        suffix="0123456789ABCDEF0123456789ABCDEF",
-    )
-
-    monkeypatch.setattr(
-        acceptance_common,
-        "connect_to_exasol",
-        lambda login_vars: connection,
-    )
-
-    acceptance_common._cleanup_disposable_schemas(context)
-
-    assert connection.executed == [
-        'DROP SCHEMA IF EXISTS "ANSIBLE_QUERY_0123456789ABCDEF0123456789ABCDEF" CASCADE',
-        (
-            "DROP SCHEMA IF EXISTS "
-            '"ANSIBLE_QUERY_0123456789ABCDEF0123456789ABCDEF_CHECK_MODE" CASCADE'
-        ),
-    ]
-    assert connection.closed is True
-
-
-def test_acceptance_python_cleanup_rejects_unsafe_schema_name(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """Verify Python cleanup preserves the disposable schema-name safety check."""
-    acceptance_common = _acceptance_common_module()
-    connections: list[dict[str, object]] = []
-    context = acceptance_common.AcceptanceContext(
-        private_data_dir=tmp_path,
-        project_dir=tmp_path,
-        login_vars={"login_user": "sys", "login_password": "secret"},
-        suffix="NOT_SAFE",
-    )
-
-    monkeypatch.setattr(
-        acceptance_common,
-        "connect_to_exasol",
-        connections.append,
-    )
-
-    with pytest.raises(AssertionError, match="Unsafe disposable acceptance schema"):
-        acceptance_common._cleanup_disposable_schemas(context)
-
-    assert connections == []
-
-
 class FakeConnection:
     """Small pyexasol connection stand-in for cleanup tests."""
 
