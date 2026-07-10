@@ -113,7 +113,7 @@ Ansible collection target tests. They execute Ansible playbooks through
 
 .. code-block:: bash
 
-   poetry run -- nox -s test:integration -- --backend=onprem --itde-db-version 2025.1.8
+   poetry run -- nox -s test:integration -- --itde-db-version 2025.1.8
 
 Use ``--itde-db-version external`` together with the ``EXASOL_*`` environment
 variables when an already running database should be used instead of a managed

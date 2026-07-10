@@ -34,9 +34,6 @@ PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 INTEGRATION_ROOT = Path(__file__).resolve().parent
 COLLECTION_NAMESPACE = "exasol"
 COLLECTION_NAME = "exasol"
-ONPREM_BACKEND = "onprem"
-ALL_BACKENDS = "all"
-SUPPORTED_BACKENDS = {ONPREM_BACKEND, ALL_BACKENDS}
 EXTERNAL_ITDE_VERSION = "external"
 DEFAULT_ITDE_DB_VERSION = itde_cli.LATEST_DB_VERSION
 DEFAULT_ITDE_DB_MEM_SIZE = itde_cli.DEFAULT_MEM_SIZE
@@ -49,15 +46,7 @@ from acceptance_common.acceptance_test_common import cleanup_disposable_database
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    """Register on-prem backend options for integration tests."""
-    backend_group = parser.getgroup("exasol backend")
-    backend_group.addoption(
-        "--backend",
-        action="append",
-        default=[],
-        help="Integration backend to use. Supported values: onprem, all.",
-    )
-
+    """Register ITDE and Exasol options for integration tests."""
     exasol_group = parser.getgroup("exasol")
     exasol_group.addoption(
         "--exasol-host",
@@ -139,20 +128,6 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
-def pytest_configure(config: pytest.Config) -> None:
-    """Pin integration tests to the on-prem Exasol backend."""
-    if hasattr(config.option, "backend"):
-        selected_backends = set(config.option.backend or [ONPREM_BACKEND])
-        unsupported_backends = sorted(selected_backends - SUPPORTED_BACKENDS)
-        if unsupported_backends:
-            raise pytest.UsageError(
-                "Unsupported backend(s): "
-                f"{', '.join(unsupported_backends)}. "
-                f"This project supports only {ONPREM_BACKEND} integration tests."
-            )
-        config.option.backend = [ONPREM_BACKEND]
-
-
 @dataclass(frozen=True)
 class AnsibleRunnerWorkspace:
     """Temporary Ansible runner workspace rooted at a local collection checkout."""
@@ -228,12 +203,6 @@ class SshConfig:
 
 
 @pytest.fixture(scope="session")
-def backend() -> str:
-    """Return the single backend supported by this test suite."""
-    return ONPREM_BACKEND
-
-
-@pytest.fixture(scope="session")
 def exasol_config(request: pytest.FixtureRequest) -> OnpremDatabaseConfig:
     """Return on-prem database connection configuration."""
     return OnpremDatabaseConfig(
@@ -279,14 +248,14 @@ def itde_database_name() -> str:
 
 
 @pytest.fixture(scope="session")
-def backend_aware_onprem_database(
+def itde_database(
     itde_config: ItdeConfig,
     exasol_config: OnpremDatabaseConfig,
     bucketfs_config: OnpremBucketfsConfig,
     ssh_config: SshConfig,
     itde_database_name: str,
 ) -> Iterator[itde_environment_info.EnvironmentInfo | None]:
-    """Start a managed on-prem backend unless tests target an external database."""
+    """Start a managed ITDE database unless tests target an external database."""
     if itde_config.db_version == EXTERNAL_ITDE_VERSION:
         yield None
         return
@@ -310,16 +279,12 @@ def backend_aware_onprem_database(
 
 
 @pytest.fixture(scope="session")
-def backend_aware_database_params(
-    backend: str,
-    backend_aware_onprem_database: itde_environment_info.EnvironmentInfo | None,
+def exasol_database_params(
+    itde_database: itde_environment_info.EnvironmentInfo | None,
     exasol_config: OnpremDatabaseConfig,
 ) -> dict[str, Any]:
-    """Return pyexasol connection parameters for the selected on-prem backend."""
-    _ = backend_aware_onprem_database
-    if backend != ONPREM_BACKEND:
-        raise ValueError(f"Unknown backend {backend}")
-
+    """Return pyexasol connection parameters for the ITDE-backed database."""
+    _ = itde_database
     return {
         "dsn": f"{exasol_config.host}:{exasol_config.port}",
         "user": exasol_config.username,
@@ -329,18 +294,13 @@ def backend_aware_database_params(
 
 
 @pytest.fixture(scope="session")
-def backend_aware_bucketfs_params(
-    backend: str,
-    backend_aware_onprem_database: itde_environment_info.EnvironmentInfo | None,
+def bucketfs_params(
+    itde_database: itde_environment_info.EnvironmentInfo | None,
     bucketfs_config: OnpremBucketfsConfig,
 ) -> dict[str, Any]:
-    """Return BucketFS connection parameters for the selected on-prem backend."""
-    _ = backend_aware_onprem_database
-    if backend != ONPREM_BACKEND:
-        raise ValueError(f"Unknown backend {backend}")
-
+    """Return BucketFS connection parameters for the ITDE-backed database."""
+    _ = itde_database
     return {
-        "backend": ONPREM_BACKEND,
         "url": bucketfs_config.url,
         "username": bucketfs_config.username,
         "password": bucketfs_config.password,
@@ -551,19 +511,18 @@ def installed_collection_environment(
 
 @pytest.fixture
 def exasol_connection(
-    backend_aware_database_params: dict[str, Any],
+    exasol_database_params: dict[str, Any],
 ) -> ExasolConnection:
-    """Return backend connection details normalized for Ansible modules."""
-    dsn = backend_aware_database_params["dsn"]
+    """Return Exasol connection details normalized for Ansible modules."""
+    dsn = exasol_database_params["dsn"]
     host, fingerprint, port = _parse_pyexasol_dsn(dsn)
-    websocket_sslopt = backend_aware_database_params.get("websocket_sslopt") or {}
+    websocket_sslopt = exasol_database_params.get("websocket_sslopt") or {}
 
     return ExasolConnection(
         host=host,
         port=port,
-        user=backend_aware_database_params.get("user")
-        or backend_aware_database_params["username"],
-        password=backend_aware_database_params["password"],
+        user=exasol_database_params.get("user") or exasol_database_params["username"],
+        password=exasol_database_params["password"],
         validate_certs=websocket_sslopt.get("cert_reqs") != ssl.CERT_NONE,
         certificate_fingerprint=fingerprint,
     )
@@ -571,7 +530,7 @@ def exasol_connection(
 
 @pytest.fixture
 def exasol_login_vars(exasol_connection: ExasolConnection) -> dict[str, object]:
-    """Return backend connection details using collection module argument names."""
+    """Return Exasol connection details using collection module argument names."""
     return exasol_connection.login_vars
 
 
