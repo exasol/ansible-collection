@@ -14,7 +14,6 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
 
 import pytest
 import yaml
@@ -36,8 +35,6 @@ COLLECTION_NAMESPACE = "exasol"
 COLLECTION_NAME = "exasol"
 EXTERNAL_ITDE_VERSION = "external"
 DEFAULT_ITDE_DB_VERSION = itde_cli.LATEST_DB_VERSION
-DEFAULT_ITDE_DB_MEM_SIZE = itde_cli.DEFAULT_MEM_SIZE
-DEFAULT_ITDE_DB_DISK_SIZE = itde_cli.DEFAULT_DISK_SIZE
 
 if str(INTEGRATION_ROOT) not in sys.path:
     sys.path.insert(0, str(INTEGRATION_ROOT))
@@ -70,61 +67,11 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         help="Password used to authenticate against the Exasol database.",
     )
 
-    bucketfs_group = parser.getgroup("bucketfs")
-    bucketfs_group.addoption(
-        "--bucketfs-url",
-        default=os.environ.get(
-            "BUCKETFS_URL",
-            f"http://127.0.0.1:{Ports.forward.bucketfs_http}",
-        ),
-        help="Base URL used to connect to BucketFS.",
-    )
-    bucketfs_group.addoption(
-        "--bucketfs-username",
-        default=os.environ.get("BUCKETFS_USERNAME", "w"),
-        help="Username used to authenticate against BucketFS.",
-    )
-    bucketfs_group.addoption(
-        "--bucketfs-password",
-        default=os.environ.get("BUCKETFS_PASSWORD", "write"),
-        help="Password used to authenticate against BucketFS.",
-    )
-
     itde_group = parser.getgroup("itde")
     itde_group.addoption(
         "--itde-db-version",
         default=os.environ.get("ITDE_DB_VERSION", DEFAULT_ITDE_DB_VERSION),
         help="Database version to start, or 'external' to use an existing database.",
-    )
-    itde_group.addoption(
-        "--itde-db-mem-size",
-        default=os.environ.get("ITDE_DB_MEM_SIZE", DEFAULT_ITDE_DB_MEM_SIZE),
-        help="Main memory used by the database, for example '1 GiB'.",
-    )
-    itde_group.addoption(
-        "--itde-db-disk-size",
-        default=os.environ.get("ITDE_DB_DISK_SIZE", DEFAULT_ITDE_DB_DISK_SIZE),
-        help="Disk size available for the database, for example '10 GiB'.",
-    )
-    itde_group.addoption(
-        "--itde-nameserver",
-        action="append",
-        default=[],
-        help="DNS nameserver to add to the Docker DB. Can be repeated.",
-    )
-    itde_group.addoption(
-        "--itde-additional-db-parameter",
-        action="append",
-        default=[],
-        help="Additional database parameter injected into EXAConf. Can be repeated.",
-    )
-
-    ssh_group = parser.getgroup("ssh")
-    ssh_group.addoption(
-        "--ssh-port",
-        default=int(os.environ.get("SSH_PORT", Ports.forward.ssh)),
-        type=int,
-        help="Port on which external processes can access the database through SSH.",
     )
 
 
@@ -176,30 +123,10 @@ class OnpremDatabaseConfig:
 
 
 @dataclass(frozen=True)
-class OnpremBucketfsConfig:
-    """BucketFS configuration for on-prem integration tests."""
-
-    url: str
-    username: str
-    password: str
-
-
-@dataclass(frozen=True)
 class ItdeConfig:
     """ITDE configuration for managed on-prem integration tests."""
 
     db_version: str
-    db_mem_size: str
-    db_disk_size: str
-    nameserver: list[str]
-    additional_db_parameter: list[str]
-
-
-@dataclass(frozen=True)
-class SshConfig:
-    """SSH port configuration for managed on-prem integration tests."""
-
-    port: int
 
 
 @pytest.fixture(scope="session")
@@ -214,31 +141,11 @@ def exasol_config(request: pytest.FixtureRequest) -> OnpremDatabaseConfig:
 
 
 @pytest.fixture(scope="session")
-def bucketfs_config(request: pytest.FixtureRequest) -> OnpremBucketfsConfig:
-    """Return on-prem BucketFS connection configuration."""
-    return OnpremBucketfsConfig(
-        url=request.config.option.bucketfs_url,
-        username=request.config.option.bucketfs_username,
-        password=request.config.option.bucketfs_password,
-    )
-
-
-@pytest.fixture(scope="session")
 def itde_config(request: pytest.FixtureRequest) -> ItdeConfig:
     """Return managed ITDE configuration."""
     return ItdeConfig(
         db_version=request.config.option.itde_db_version,
-        db_mem_size=request.config.option.itde_db_mem_size,
-        db_disk_size=request.config.option.itde_db_disk_size,
-        nameserver=request.config.option.itde_nameserver,
-        additional_db_parameter=request.config.option.itde_additional_db_parameter,
     )
-
-
-@pytest.fixture(scope="session")
-def ssh_config(request: pytest.FixtureRequest) -> SshConfig:
-    """Return SSH port configuration for managed ITDE."""
-    return SshConfig(port=request.config.option.ssh_port)
 
 
 @pytest.fixture(scope="session")
@@ -251,8 +158,6 @@ def itde_database_name() -> str:
 def itde_database(
     itde_config: ItdeConfig,
     exasol_config: OnpremDatabaseConfig,
-    bucketfs_config: OnpremBucketfsConfig,
-    ssh_config: SshConfig,
     itde_database_name: str,
 ) -> Iterator[itde_environment_info.EnvironmentInfo | None]:
     """Start a managed ITDE database unless tests target an external database."""
@@ -260,16 +165,9 @@ def itde_database(
         yield None
         return
 
-    bucketfs_url = urlparse(bucketfs_config.url)
     environment_info, cleanup = itde_api.spawn_test_environment(
         environment_name=itde_database_name,
         database_port_forward=exasol_config.port,
-        bucketfs_port_forward=bucketfs_url.port or Ports.forward.bucketfs_http,
-        ssh_port_forward=ssh_config.port,
-        db_mem_size=itde_config.db_mem_size,
-        db_disk_size=itde_config.db_disk_size,
-        nameserver=tuple(itde_config.nameserver),
-        additional_db_parameter=tuple(itde_config.additional_db_parameter),
         docker_db_image_version=itde_config.db_version,
     )
     try:
@@ -290,23 +188,6 @@ def exasol_database_params(
         "user": exasol_config.username,
         "password": exasol_config.password,
         "websocket_sslopt": {"cert_reqs": ssl.CERT_NONE},
-    }
-
-
-@pytest.fixture(scope="session")
-def bucketfs_params(
-    itde_database: itde_environment_info.EnvironmentInfo | None,
-    bucketfs_config: OnpremBucketfsConfig,
-) -> dict[str, Any]:
-    """Return BucketFS connection parameters for the ITDE-backed database."""
-    _ = itde_database
-    return {
-        "url": bucketfs_config.url,
-        "username": bucketfs_config.username,
-        "password": bucketfs_config.password,
-        "service_name": "bfsdefault",
-        "bucket_name": "default",
-        "verify": False,
     }
 
 

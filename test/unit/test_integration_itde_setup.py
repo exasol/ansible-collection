@@ -27,10 +27,6 @@ def test_external_itde_database_does_not_start_managed_database() -> None:
     conftest = _load_integration_conftest()
     itde_config = conftest.ItdeConfig(
         db_version=conftest.EXTERNAL_ITDE_VERSION,
-        db_mem_size="1 GiB",
-        db_disk_size="10 GiB",
-        nameserver=[],
-        additional_db_parameter=[],
     )
     exasol_config = conftest.OnpremDatabaseConfig(
         host="localhost",
@@ -38,18 +34,10 @@ def test_external_itde_database_does_not_start_managed_database() -> None:
         username="sys",
         password="exasol",
     )
-    bucketfs_config = conftest.OnpremBucketfsConfig(
-        url="http://127.0.0.1:2580",
-        username="w",
-        password="write",
-    )
-    ssh_config = conftest.SshConfig(port=2222)
 
     database = _fixture_function(conftest.itde_database)(
         itde_config,
         exasol_config,
-        bucketfs_config,
-        ssh_config,
         "test-database",
     )
 
