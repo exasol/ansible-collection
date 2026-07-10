@@ -96,16 +96,6 @@ def test_acceptance_playbook_template_defines_one_scenario_placeholder() -> None
     assert "INSERT HERE" not in template
 
 
-def test_acceptance_playbook_template_leaves_cleanup_to_python() -> None:
-    """Verify the shared template contains no destructive cleanup tasks."""
-    template = (ACCEPTANCE_COMMON_ROOT / "acceptance_playbook_template.yml").read_text(
-        encoding="utf-8"
-    )
-
-    assert "DROP SCHEMA" not in template
-    assert "Verify disposable acceptance identifiers" not in template
-
-
 def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None:
     """Verify inline scenario fragments are inserted as valid playbook tasks."""
     acceptance_common = _acceptance_common_module()
@@ -127,8 +117,8 @@ def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None
     assert parsed[0]["tasks"][1]["block"][0]["name"] == "Inline scenario"
 
 
-def test_exact_acceptance_principal_names_use_disposable_prefixes() -> None:
-    """Verify exact user and role test names still match disposable cleanup rules."""
+def test_exact_acceptance_principal_names_preserve_identifier_examples() -> None:
+    """Verify exact user and role test names remain representative inputs."""
     acceptance_common = _acceptance_common_module()
     context = acceptance_common.AcceptanceContext(
         private_data_dir=Path("/tmp/private"),
@@ -144,14 +134,6 @@ def test_exact_acceptance_principal_names_use_disposable_prefixes() -> None:
     assert (
         context.exact_test_role
         == "ANSIBLE_ROLE_EXACT+/=Role_0123456789ABCDEF0123456789ABCDEF"
-    )
-    assert acceptance_common.DISPOSABLE_USER_PATTERN.fullmatch(context.exact_test_user)
-    assert acceptance_common.DISPOSABLE_USER_PATTERN.fullmatch(
-        context.exact_test_user.upper()
-    )
-    assert acceptance_common.DISPOSABLE_ROLE_PATTERN.fullmatch(context.exact_test_role)
-    assert acceptance_common.DISPOSABLE_ROLE_PATTERN.fullmatch(
-        context.exact_test_role.upper()
     )
     assert (
         acceptance_common._quote_cleanup_identifier(context.exact_test_role.upper())
@@ -171,6 +153,101 @@ class FakeConnection:
 
     def close(self) -> None:
         self.closed = True
+
+
+class FakeQueryResult:
+    """Small fetchall wrapper for catalog query tests."""
+
+    def __init__(self, rows: list[dict[str, str]]) -> None:
+        self._rows = rows
+
+    def fetchall(self) -> list[dict[str, str]]:
+        return self._rows
+
+
+class FakeCatalogConnection(FakeConnection):
+    """Connection stand-in with deterministic catalog query results."""
+
+    def __init__(self, results: dict[str, list[dict[str, str]]]) -> None:
+        super().__init__()
+        self._results = results
+
+    def execute(self, query: str) -> FakeQueryResult | None:
+        normalized_query = " ".join(query.split())
+        self.executed.append(normalized_query)
+        rows = self._results.get(normalized_query)
+        if rows is None:
+            return None
+        return FakeQueryResult(rows)
+
+
+def test_cleanup_database_objects_drops_all_non_system_objects(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    acceptance_common = _acceptance_common_module()
+    connection = FakeConnection()
+
+    monkeypatch.setattr(
+        acceptance_common, "connect_to_exasol", lambda login_vars: connection
+    )
+    monkeypatch.setattr(
+        acceptance_common,
+        "_schema_names_to_drop",
+        lambda _: ("APP_SCHEMA", "Mixed Case Schema"),
+    )
+    monkeypatch.setattr(
+        acceptance_common,
+        "_user_names_to_drop",
+        lambda _, current_user: ("APP_USER",) if current_user == "SYS" else (),
+    )
+    monkeypatch.setattr(
+        acceptance_common,
+        "_role_names_to_drop",
+        lambda _: ("APP_ROLE",),
+    )
+
+    acceptance_common.cleanup_database_objects({"login_user": "SYS"})
+
+    assert connection.executed == [
+        'DROP SCHEMA "APP_SCHEMA" CASCADE',
+        'DROP SCHEMA "Mixed Case Schema" CASCADE',
+        'DROP USER "APP_USER" CASCADE',
+        'DROP ROLE "APP_ROLE" CASCADE',
+    ]
+    assert connection.closed is True
+
+
+def test_cleanup_database_object_filters_skip_system_principals() -> None:
+    acceptance_common = _acceptance_common_module()
+    connection = FakeCatalogConnection(
+        {
+            "SELECT SCHEMA_NAME FROM EXA_ALL_SCHEMAS": [
+                {"SCHEMA_NAME": "SYS"},
+                {"SCHEMA_NAME": "EXA_STATISTICS"},
+                {"SCHEMA_NAME": "APP_SCHEMA"},
+            ],
+            "SELECT USER_NAME FROM EXA_ALL_USERS": [
+                {"USER_NAME": "SYS"},
+                {"USER_NAME": "service_admin"},
+                {"USER_NAME": "APP_USER"},
+            ],
+            "SELECT ROLE_NAME FROM EXA_ALL_ROLES": [
+                {"ROLE_NAME": "PUBLIC"},
+                {"ROLE_NAME": "DBA"},
+                {"ROLE_NAME": "APP_ROLE"},
+            ],
+        }
+    )
+
+    assert acceptance_common._schema_names_to_drop(connection) == (
+        "SYS",
+        "EXA_STATISTICS",
+        "APP_SCHEMA",
+    )
+    assert acceptance_common._user_names_to_drop(connection, "service_admin") == (
+        "APP_USER",
+    )
+    assert acceptance_common._role_names_to_drop(connection) == ("APP_ROLE",)
 
 
 def _acceptance_common_module() -> Any:

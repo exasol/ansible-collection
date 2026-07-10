@@ -118,3 +118,8 @@ from the Ansible collection target tests. They execute Ansible playbooks through
 Use ``--itde-db-version external`` together with the ``EXASOL_*`` environment
 variables when an already running database should be used instead of a managed
 ITDE container.
+
+Before each DB-backed integration test, the shared pytest fixture drops all
+non-system schemas, users, and roles from the target database. When using
+``--itde-db-version external``, point the tests at a disposable custom database
+instance only, not at a shared development or staging system.

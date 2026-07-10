@@ -74,7 +74,7 @@ def test_installed_exasol_user_smoke_succeeds(
     installed_collection_environment: InstalledCollectionEnvironment,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Create a disposable user through the built collection and installed runtime."""
+    """Create a user through the built collection and installed runtime."""
     workspace = _installed_runner_workspace(tmp_path, installed_collection_environment)
     context = given_acceptance_context(
         workspace,
@@ -87,15 +87,15 @@ def test_installed_exasol_user_smoke_succeeds(
         "exasol_user",
         "installed-exasol-user-smoke",
         scenario_playbook="""
-        - name: Create disposable user through installed artifacts
+        - name: Create a user through installed artifacts
           block:
-            - name: Ensure the disposable user is absent before the smoke run
+            - name: Ensure the user is absent before the smoke run
               exasol.exasol.exasol_user:
                 name: "{{ test_user }}"
                 state: absent
                 cascade: true
 
-            - name: Create the disposable user
+            - name: Create the user
               exasol.exasol.exasol_user:
                 name: "{{ test_user }}"
                 password: "{{ test_user_password }}"
@@ -131,7 +131,7 @@ def test_installed_exasol_role_smoke_succeeds(
     installed_collection_environment: InstalledCollectionEnvironment,
     exasol_login_vars: dict[str, object],
 ) -> None:
-    """Create a disposable role through the built collection and installed runtime."""
+    """Create a role through the built collection and installed runtime."""
     workspace = _installed_runner_workspace(tmp_path, installed_collection_environment)
     context = given_acceptance_context(
         workspace,
@@ -144,15 +144,15 @@ def test_installed_exasol_role_smoke_succeeds(
         "exasol_role",
         "installed-exasol-role-smoke",
         scenario_playbook="""
-        - name: Create disposable role through installed artifacts
+        - name: Create a role through installed artifacts
           block:
-            - name: Ensure the disposable role is absent before the smoke run
+            - name: Ensure the role is absent before the smoke run
               exasol.exasol.exasol_role:
                 name: "{{ test_role }}"
                 state: absent
                 cascade: true
 
-            - name: Create the disposable role
+            - name: Create the role
               exasol.exasol.exasol_role:
                 name: "{{ test_role }}"
               register: exasol_role_create

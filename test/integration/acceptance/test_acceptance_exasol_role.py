@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 import pytest
 from acceptance_common.acceptance_test_common import (
-    connect_to_exasol,
     given_acceptance_context,
     when_module_scenario_runs,
 )
 
 from exasol.ansible_modules.common_identifier_validation import quote_exact_identifier
-from exasol.ansible_modules.common_query import normalized_exasol_error_message
 
 MODULE_NAME = "exasol_role"
-DISPOSABLE_ROLE_PATTERN = re.compile(r"^ANSIBLE_ROLE_.+$")
 
 
 @pytest.mark.integration
@@ -30,7 +26,7 @@ def test_exasol_role_create_missing_role(
     playbook = """
     - name: Create missing role
       block:
-        - name: Given a disposable Exasol role does not exist
+        - name: Given an Exasol role does not exist
           exasol.exasol.exasol_role:
             name: "{{ test_role }}"
             state: absent
@@ -140,7 +136,7 @@ def test_exasol_role_present_idempotent(
     playbook = """
     - name: Present role is idempotent
       block:
-        - name: Given a disposable Exasol role already exists
+        - name: Given an Exasol role already exists
           exasol.exasol.exasol_role:
             name: "{{ test_role }}"
 
@@ -234,7 +230,7 @@ def test_exasol_role_check_mode_create(
     playbook = """
     - name: Check mode predicts create
       block:
-        - name: Given a disposable Exasol role does not exist
+        - name: Given an Exasol role does not exist
           exasol.exasol.exasol_role:
             name: "{{ check_mode_role }}"
             state: absent
@@ -290,7 +286,7 @@ def test_exasol_role_check_mode_drop(
     playbook = """
     - name: Check mode predicts drop
       block:
-        - name: Given a disposable Exasol role exists
+        - name: Given an Exasol role exists
           exasol.exasol.exasol_role:
             name: "{{ test_role }}"
 
@@ -346,7 +342,7 @@ def test_exasol_role_drop_existing_role(
     playbook = """
     - name: Drop existing role
       block:
-        - name: Given a disposable Exasol role exists
+        - name: Given an Exasol role exists
           exasol.exasol.exasol_role:
             name: "{{ test_role }}"
 
@@ -401,7 +397,7 @@ def test_exasol_role_drop_missing_role(
     playbook = """
     - name: Drop missing role
       block:
-        - name: Given a disposable Exasol role does not exist
+        - name: Given an Exasol role does not exist
           exasol.exasol.exasol_role:
             name: "{{ test_role }}"
             state: absent
@@ -439,23 +435,12 @@ def _when_role_scenario_runs(
     scenario_id: str,
     playbook: str,
 ) -> dict[str, Any]:
-    scenario_error = None
-    try:
-        return when_module_scenario_runs(
-            context,
-            MODULE_NAME,
-            scenario_id,
-            scenario_playbook=playbook,
-        )
-    except Exception as error:
-        scenario_error = error
-        raise
-    finally:
-        try:
-            _cleanup_disposable_roles(context)
-        except Exception:
-            if scenario_error is None:
-                raise
+    return when_module_scenario_runs(
+        context,
+        MODULE_NAME,
+        scenario_id,
+        scenario_playbook=playbook,
+    )
 
 
 def _assert_role_module_result(
@@ -483,45 +468,6 @@ def _assert_role_count(result: dict[str, Any], expected: int) -> None:
 def _assert_stored_role_name(result: dict[str, Any], expected_role_name: str) -> None:
     assert result["failed"] is False
     assert result["query_result"] == [{"ROLE_NAME": expected_role_name}]
-
-
-def _cleanup_disposable_roles(context: Any) -> None:
-    role_names = (context.test_role, context.check_mode_role, context.exact_test_role)
-    for role_name in role_names:
-        _assert_disposable_role_name(role_name)
-
-    try:
-        connection = connect_to_exasol(context.login_vars)
-        try:
-            for role_name in role_names:
-                if _role_exists(connection, role_name):
-                    connection.execute(
-                        f"DROP ROLE {quote_exact_identifier(role_name)} CASCADE"
-                    )
-        finally:
-            connection.close()
-    except Exception as error:
-        message = normalized_exasol_error_message(
-            error,
-            context.login_vars,
-            operation="Acceptance role cleanup",
-        )
-        raise AssertionError(message) from error
-
-
-def _role_exists(connection: Any, role_name: str) -> bool:
-    rows = connection.execute(f"""
-        SELECT COUNT(*) AS ROLE_COUNT
-        FROM EXA_ALL_ROLES
-        WHERE UPPER(ROLE_NAME) = UPPER('{role_name}')
-        """).fetchall()
-    return int(_row_value(rows[0], "ROLE_COUNT", 0)) > 0
-
-
-def _assert_disposable_role_name(role_name: str) -> None:
-    if not DISPOSABLE_ROLE_PATTERN.fullmatch(role_name):
-        msg = f"Unsafe disposable acceptance role name: {role_name}"
-        raise AssertionError(msg)
 
 
 def _create_role_query(role_name: str) -> str:

@@ -25,7 +25,7 @@ def test_exasol_user_create_missing_user(
     playbook = """
     - name: Create missing user
       block:
-        - name: Given a disposable Exasol user does not exist
+        - name: Given an Exasol user does not exist
           exasol.exasol.exasol_user:
             name: "{{ test_user }}"
             state: absent
@@ -124,7 +124,7 @@ def test_exasol_user_apply_unchanged(
     playbook = """
     - name: Applying identical user state results in no changes
       block:
-        - name: Given a disposable Exasol user already exists
+        - name: Given an Exasol user already exists
           exasol.exasol.exasol_user:
             name: "{{ test_user }}"
             password: "{{ test_user_password }}"
@@ -227,7 +227,7 @@ def test_exasol_user_change_authentication_to_ldap(
     playbook = """
     - name: Change authentication to LDAP
       block:
-        - name: Given a disposable Exasol password-authenticated user already exists
+        - name: Given an Exasol password-authenticated user already exists
           exasol.exasol.exasol_user:
             name: "{{ test_user }}"
             password: "{{ test_user_password }}"
@@ -322,7 +322,7 @@ def test_exasol_user_check_mode_create(
     playbook = """
     - name: Check mode predicts create
       block:
-        - name: Given a disposable Exasol user does not exist
+        - name: Given an Exasol user does not exist
           exasol.exasol.exasol_user:
             name: "{{ check_mode_user }}"
             state: absent
@@ -371,7 +371,7 @@ def test_exasol_user_check_mode_update_ldap(
     playbook = """
     - name: Check mode predicts LDAP update
       block:
-        - name: Given a disposable Exasol password-authenticated user already exists
+        - name: Given an Exasol password-authenticated user already exists
           exasol.exasol.exasol_user:
             name: "{{ test_user }}"
             password: "{{ test_user_password }}"
@@ -420,7 +420,7 @@ def test_exasol_user_check_mode_drop(
     playbook = """
     - name: Check mode predicts drop
       block:
-        - name: Given a disposable Exasol user exists
+        - name: Given an Exasol user exists
           exasol.exasol.exasol_user:
             name: "{{ test_user }}"
             password: "{{ test_user_password }}"
@@ -466,7 +466,7 @@ def test_exasol_user_drop_existing_user(
     playbook = """
     - name: Drop existing user
       block:
-        - name: Given a disposable Exasol user exists
+        - name: Given an Exasol user exists
           exasol.exasol.exasol_user:
             name: "{{ test_user }}"
             password: "{{ test_user_password }}"
@@ -511,7 +511,7 @@ def test_exasol_user_drop_missing_user(
     playbook = """
     - name: Drop missing user
       block:
-        - name: Given a disposable Exasol user does not exist
+        - name: Given an Exasol user does not exist
           exasol.exasol.exasol_user:
             name: "{{ test_user }}"
             state: absent
