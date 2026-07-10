@@ -128,6 +128,22 @@ Covers:
 
 Needs: scn
 
+### Preserve Exact Exasol Principal Identifiers
+`req~preserve-exact-exasol-principal-identifiers~1`
+
+User and role management operations must accept exact Exasol SQL identifier values, including names that require delimited-identifier syntax, so automation can target the intended principal without implicit uppercase normalization or character loss.
+
+Rationale:
+
+Automation often uses generated identifiers that include mixed case or special characters. The collection must preserve those identifiers when generating SQL and module results.
+
+Status: draft
+
+Covers:
+- `feat~secure-exasol-user-administration~1`
+
+Needs: scn
+
 ### Protect Exasol Transport
 `req~protect-exasol-transport~1`
 
@@ -235,6 +251,21 @@ Status: draft
 
 Covers:
 - `req~keep-authorization-changes-predictable~1`
+
+Needs: dsn
+
+### Exact Principal Identifiers Are Preserved
+`scn~exact-principal-identifiers-are-preserved~1`
+
+**Given** an Ansible Operator manages an Exasol user or role whose name uses mixed case, special characters, or delimited-identifier syntax
+**When** the collection validates the name, probes metadata, and generates SQL for the requested lifecycle change
+**Then** the generated SQL targets the same exact identifier value without forcing uppercase normalization
+**And** repeated runs address the same principal predictably
+
+Status: draft
+
+Covers:
+- `req~preserve-exact-exasol-principal-identifiers~1`
 
 Needs: dsn
 

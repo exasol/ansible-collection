@@ -26,7 +26,7 @@ COLLECTION_NAME = "exasol"
 if str(INTEGRATION_ROOT) not in sys.path:
     sys.path.insert(0, str(INTEGRATION_ROOT))
 
-from acceptance_common.acceptance_test_common import cleanup_disposable_database_objects
+from acceptance_common.acceptance_test_common import cleanup_database_objects
 
 
 @dataclass(frozen=True)
@@ -109,13 +109,18 @@ def ansible_runner_workspace(tmp_path: Path) -> AnsibleRunnerWorkspace:
     env_dir = private_data_dir / "env"
     ansible_home = tmp_path / ".ansible"
     ansible_local_tmp = ansible_home / "tmp"
+    ansible_remote_tmp = ansible_home / "remote-tmp"
 
     project_dir.mkdir(parents=True)
     env_dir.mkdir()
     ansible_local_tmp.mkdir(parents=True)
+    ansible_remote_tmp.mkdir(parents=True)
 
     inventory_path = private_data_dir / "inventory"
-    inventory_path.write_text("localhost ansible_connection=local\n")
+    inventory_path.write_text(
+        "localhost ansible_connection=local "
+        f"ansible_remote_tmp={ansible_remote_tmp}\n"
+    )
 
     preserved_env_names = {
         "LANG",
@@ -135,6 +140,8 @@ def ansible_runner_workspace(tmp_path: Path) -> AnsibleRunnerWorkspace:
         "ANSIBLE_COLLECTIONS_PATH": str(collection_root),
         "ANSIBLE_HOME": str(ansible_home),
         "ANSIBLE_LOCAL_TEMP": str(ansible_local_tmp),
+        "ANSIBLE_REMOTE_TEMP": str(ansible_remote_tmp),
+        "ANSIBLE_REMOTE_TMP": str(ansible_remote_tmp),
     }
     (env_dir / "envvars").write_text(yaml.safe_dump(envvars))
 
@@ -292,13 +299,13 @@ def exasol_login_vars(exasol_connection: ExasolConnection) -> dict[str, object]:
 
 
 @pytest.fixture(autouse=True)
-def cleanup_disposable_exasol_objects_before_test(
+def cleanup_exasol_objects_before_test(
     request: pytest.FixtureRequest,
 ) -> None:
-    """Delete disposable Exasol objects before each DB-backed integration test."""
+    """Delete non-system Exasol objects before each DB-backed integration test."""
     if "exasol_login_vars" not in request.fixturenames:
         return
-    cleanup_disposable_database_objects(request.getfixturevalue("exasol_login_vars"))
+    cleanup_database_objects(request.getfixturevalue("exasol_login_vars"))
 
 
 def _parse_pyexasol_dsn(dsn: str) -> tuple[str, str | None, int]:

@@ -8,8 +8,11 @@ module: exasol_role
 short_description: Manage Exasol database roles
 description:
   - Creates and drops Exasol database roles using pyexasol.
-  - Role names are restricted to conservative regular identifiers and are
-    normalized to Exasol's case-insensitive uppercase form.
+  - Role names are treated as exact Exasol identifier values.
+  - The module preserves case and special characters by rendering role names
+    as delimited SQL identifiers.
+  - Values that are already written using Exasol's delimited-identifier syntax
+    are accepted and normalized to the same exact identifier value.
 version_added: "0.1.0"
 author:
   - Exasol AG (@exasol)
@@ -19,6 +22,7 @@ options:
   name:
     description:
       - Name of the Exasol role to manage.
+      - This value is used exactly as provided when the module generates SQL.
     type: str
     required: true
     aliases:
@@ -61,10 +65,10 @@ EXAMPLES = r"""
 RETURN = r"""
 role:
   description:
-    - Normalized Exasol role name.
+    - Exact Exasol role name targeted by the module.
   returned: always
   type: str
-  sample: APP_ROLE
+  sample: App+/=Role
 state:
   description:
     - Requested state.
@@ -86,7 +90,7 @@ executed_queries:
   type: list
   elements: str
   sample:
-    - CREATE ROLE "APP_ROLE"
+    - CREATE ROLE "App+/=Role"
 """
 
 from typing import Any

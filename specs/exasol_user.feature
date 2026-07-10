@@ -18,6 +18,23 @@ Feature: exasol-user specification
     And user "ALICE" can run query "SELECT 17 AS A" with password "Initial_Secret_42"
     And the module result does not contain "Initial_Secret_42"
 
+  @exasol-user-preserves-exact-identifier
+  Scenario: Create user with exact identifier semantics
+    Given an Exasol database is reachable at localhost
+    And exact-identifier user "Alice+/=User" does not exist in EXA_ALL_USERS
+    When exasol_user runs with:
+      | name             | authentication_method | password          | state   |
+      | "Alice+/=User"   | password              | Initial_Secret_42 | present |
+    Then changed is true
+    And user equals "\"Alice+/=User\""
+    And exists is true
+    And executed_queries equals:
+      | sql                                                  |
+      | CREATE USER "Alice+/=User" IDENTIFIED BY "********" |
+      | GRANT CREATE SESSION TO "Alice+/=User"              |
+    And user "Alice+/=User" can run query "SELECT 17 AS A" with password "Initial_Secret_42"
+    And the module result does not contain "Initial_Secret_42"
+
   @exasol-user-apply-unchanged
   Scenario: Applying identical user state results in no changes
     Given an Exasol database is reachable at localhost
@@ -28,6 +45,19 @@ Feature: exasol-user specification
     Then changed is false
     And exists is true
     And executed_queries equals []
+
+  @exasol-user-apply-unchanged-with-different-case-spelling
+  Scenario: Applying same user with different case spelling stays idempotent
+    Given an Exasol database is reachable at localhost
+    And exact-identifier user "Alice+/=User" already exists after exasol_user created it with password "Initial_Secret_42"
+    When exasol_user runs again with:
+      | name             | authentication_method | password          | state   | update_password |
+      | "alice+/=user"   | password              | Initial_Secret_42 | present | on_create       |
+    Then changed is false
+    And user equals "\"alice+/=user\""
+    And exists is true
+    And executed_queries equals []
+    And EXA_DBA_USERS contains one row where USER_NAME equals "Alice+/=User"
 
   @exasol-user-change-authentication-to-ldap
   Scenario: Change authentication to LDAP

@@ -4,22 +4,22 @@ This chapter describes relevant runtime interactions for the main use cases and 
 
 Terms use the definitions from [System Requirements](../system_requirements.md).
 
-## `<Use Case or Runtime Area>`
+## User And Role Lifecycle Planning
 
-### `<Runtime Scenario Title>`
-`dsn~<runtime-scenario-id>~1`
+### Exact Principal Identifier Lifecycle
+`dsn~exact-principal-identifier-lifecycle~1`
 
-**Given** `<relevant runtime state>`
-**When** `<trigger, command, request, event, or user action>`
-**Then** `<collaboration, processing step, output, state change, or error handling behavior>`
+**Given** an Ansible Operator supplies a user or role name as either a raw exact value or a delimited SQL identifier
+**When** the module validates parameters, probes existing metadata, and plans `CREATE`, `ALTER`, or `DROP` statements
+**Then** the runtime converts the input to one exact identifier value, uses that value for metadata lookups, and renders generated SQL with escaped delimited identifiers without uppercasing the name
 
 Status: draft
 
 Covers:
-- `scn~<scenario-id>~1`
+- `scn~exact-principal-identifiers-are-preserved~1`
 
-Needs: impl, utest
+Needs: impl, utest, itest
 
 ## Open Issues
 
-* `<scenario without design coverage, code behavior without requirement, or runtime contradiction>`
+* The collection still uses conservative regular-identifier validation for schema and object names outside the user and role lifecycle modules.

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from exasol.ansible_modules import common_query
 from exasol.ansible_modules.common_identifier_validation import (
-    quote_identifier,
+    quote_exact_identifier_value,
     validate_role_name,
 )
 from exasol.ansible_modules.common_param_validation import (
@@ -21,7 +21,7 @@ DEFAULT_CASCADE = False
 ROLE_EXISTS_QUERY = """
                     SELECT ROLE_NAME
                     FROM EXA_ALL_ROLES
-                    WHERE ROLE_NAME = :role_name \
+                    WHERE UPPER(ROLE_NAME) = UPPER(:role_name) \
                     """
 
 STATES = frozenset({"present", "absent"})
@@ -46,7 +46,7 @@ def ensure_role(
 ) -> dict[str, object]:
     """Ensure an Exasol role is present or absent."""
 
-    role_name = _normalized_role_name(validate_required_param(params, "name"))
+    role_name = _exact_role_name(validate_required_param(params, "name"))
 
     state = _state(params)
     exists_before = _role_exists(connection, role_name)
@@ -95,15 +95,15 @@ def normalized_exasol_error_message(
 # -----------------------------
 
 
-def _normalized_role_name(name: str) -> str:
-    return validate_role_name(name).upper()
+def _exact_role_name(name: str) -> str:
+    return validate_role_name(name)
 
 
 def _role_exists(connection: object, name: str) -> bool:
     result = common_query.execute_queries(
         connection,
         ROLE_EXISTS_QUERY,
-        named_args={"role_name": _normalized_role_name(name)},
+        named_args={"role_name": name},
     )
     return bool(result["query_result"])
 
@@ -125,11 +125,18 @@ def _planned_role_statements(
     if exists:
         return []
 
-    return [RoleStatement(f"CREATE ROLE {quote_identifier(role_name)}")]
+    return [
+        RoleStatement(
+            "CREATE ROLE "
+            f"{quote_exact_identifier_value(role_name, identifier_type='role')}"
+        )
+    ]
 
 
 def _drop_role_query(role_name: str, cascade: bool) -> str:
-    query = f"DROP ROLE {quote_identifier(role_name)}"
+    query = (
+        f"DROP ROLE {quote_exact_identifier_value(role_name, identifier_type='role')}"
+    )
     return f"{query} CASCADE" if cascade else query
 
 

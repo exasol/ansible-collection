@@ -41,14 +41,14 @@
       ansible.builtin.assert:
         that:
           - exasol_user_create is changed
-          - exasol_user_create.user == "APP_USER"
+          - exasol_user_create.user == "app_user"
           - exasol_user_create.state == "present"
           - exasol_user_create.exists is true
           - >-
             exasol_user_create.executed_queries
             == [
-              'CREATE USER "APP_USER" IDENTIFIED BY "********"',
-              'GRANT CREATE SESSION TO "APP_USER"'
+              'CREATE USER "app_user" IDENTIFIED BY "********"',
+              'GRANT CREATE SESSION TO "app_user"'
             ]
           - "'h12_Xhz' not in (exasol_user_create | to_json)"
 
@@ -65,7 +65,7 @@
       ansible.builtin.assert:
         that:
           - exasol_user_existing is not changed
-          - exasol_user_existing.user == "APP_USER"
+          - exasol_user_existing.user == "app_user"
           - exasol_user_existing.exists is true
           - exasol_user_existing.executed_queries == []
 
@@ -87,7 +87,7 @@
           - "'cn=app_user' not in (exasol_user_ldap | to_json)"
       vars:
         expected_ldap_query:
-          - ALTER USER "APP_USER" IDENTIFIED AT LDAP AS '********'
+          - ALTER USER "app_user" IDENTIFIED AT LDAP AS '********'
 
     - name: Check mode predicts LDAP authentication change without executing it
       exasol.exasol.exasol_user:
@@ -108,7 +108,7 @@
           - "'cn=app_user_changed' not in (exasol_user_check_ldap | to_json)"
       vars:
         expected_ldap_query:
-          - ALTER USER "APP_USER" IDENTIFIED AT LDAP AS '********'
+          - ALTER USER "app_user" IDENTIFIED AT LDAP AS '********'
 
     - name: Rotate existing user password when requested
       exasol.exasol.exasol_user:
@@ -126,7 +126,7 @@
           - exasol_user_rotate.exists is true
           - >-
             exasol_user_rotate.executed_queries
-            == ['ALTER USER "APP_USER" IDENTIFIED BY "********"']
+            == ['ALTER USER "app_user" IDENTIFIED BY "********"']
           - "'n3w_Xhz' not in (exasol_user_rotate | to_json)"
 
     - name: Check mode predicts user creation without executing it
@@ -142,13 +142,13 @@
       ansible.builtin.assert:
         that:
           - exasol_user_check_create is changed
-          - exasol_user_check_create.user == "CHECK_USER"
+          - exasol_user_check_create.user == "check_user"
           - exasol_user_check_create.exists is true
           - >-
             exasol_user_check_create.executed_queries
             == [
-              'CREATE USER "CHECK_USER" IDENTIFIED BY "********"',
-              'GRANT CREATE SESSION TO "CHECK_USER"'
+              'CREATE USER "check_user" IDENTIFIED BY "********"',
+              'GRANT CREATE SESSION TO "check_user"'
             ]
           - "'ch3ck_Xhz' not in (exasol_user_check_create | to_json)"
 
@@ -182,7 +182,7 @@
         that:
           - exasol_user_check_drop is changed
           - exasol_user_check_drop.exists is false
-          - exasol_user_check_drop.executed_queries == ['DROP USER "APP_USER" CASCADE']
+          - exasol_user_check_drop.executed_queries == ['DROP USER "app_user" CASCADE']
 
     - name: Drop existing user with cascade
       exasol.exasol.exasol_user:
@@ -197,10 +197,10 @@
       ansible.builtin.assert:
         that:
           - exasol_user_drop is changed
-          - exasol_user_drop.user == "APP_USER"
+          - exasol_user_drop.user == "app_user"
           - exasol_user_drop.state == "absent"
           - exasol_user_drop.exists is false
-          - exasol_user_drop.executed_queries == ['DROP USER "APP_USER" CASCADE']
+          - exasol_user_drop.executed_queries == ['DROP USER "app_user" CASCADE']
 
     - name: Dropping a missing user is unchanged
       exasol.exasol.exasol_user:
@@ -235,7 +235,7 @@
     - name: Invalid user names fail before SQL generation
       exasol.exasol.exasol_user:
         login_user: sys
-        name: bad-user
+        name: 'bad-user"'
         state: absent
       environment: "{{ exasol_user_mock_environment }}"
       register: exasol_user_invalid_name
@@ -245,7 +245,7 @@
       ansible.builtin.assert:
         that:
           - exasol_user_invalid_name is failed
-          - "'valid regular identifier' in exasol_user_invalid_name.msg"
+          - "'Exasol user name uses malformed delimited identifier syntax.' in exasol_user_invalid_name.msg"
 
     - name: Bad credentials fail without leaking secrets
       exasol.exasol.exasol_user:
