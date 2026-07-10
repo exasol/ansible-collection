@@ -106,14 +106,14 @@ error sanitization without requiring a running Exasol database.
 Non-Mocked Exasol Integration Tests
 -----------------------------------
 
-The pytest-driven integration tests can start an actual Exasol database backend
-through ``pytest-exasol-backend`` instead of using the mocked ``pyexasol`` module
-from the Ansible collection target tests. They execute Ansible playbooks through
+The pytest-driven integration tests can start an actual on-prem Exasol database
+backend through ITDE instead of using the mocked ``pyexasol`` module from the
+Ansible collection target tests. They execute Ansible playbooks through
 ``exasol-ansible-runner-wrapper``.
 
 .. code-block:: bash
 
-   poetry run -- nox -s test:integration -- --backend=onprem --itde-db-version 2025.1.8
+   poetry run -- nox -s test:integration -- --itde-db-version 2025.1.8
 
 Use ``--itde-db-version external`` together with the ``EXASOL_*`` environment
 variables when an already running database should be used instead of a managed

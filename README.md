@@ -37,5 +37,12 @@ Use the collection from a playbook with the fully qualified collection name:
         msg: "Exasol collection is installed."
 ```
 
-The collection is currently a skeleton. Add module-specific tasks once public
-modules are available.
+The collection currently provides public modules for direct SQL execution and
+basic Exasol administration:
+
+* `exasol.exasol.exasol_query`
+* `exasol.exasol.exasol_user`
+* `exasol.exasol.exasol_role`
+
+See the [user guide](doc/user_guide.rst) for module-specific examples and
+execution-environment setup.
