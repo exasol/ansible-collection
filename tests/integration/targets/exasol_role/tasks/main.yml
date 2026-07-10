@@ -40,10 +40,10 @@
       ansible.builtin.assert:
         that:
           - exasol_role_create is changed
-          - exasol_role_create.role == "APP_ROLE"
+          - exasol_role_create.role == "app_role"
           - exasol_role_create.state == "present"
           - exasol_role_create.exists is true
-          - exasol_role_create.executed_queries == ['CREATE ROLE "APP_ROLE"']
+          - exasol_role_create.executed_queries == ['CREATE ROLE "app_role"']
 
     - name: Existing role is unchanged
       exasol.exasol.exasol_role:
@@ -56,7 +56,7 @@
       ansible.builtin.assert:
         that:
           - exasol_role_existing is not changed
-          - exasol_role_existing.role == "APP_ROLE"
+          - exasol_role_existing.role == "app_role"
           - exasol_role_existing.exists is true
           - exasol_role_existing.executed_queries == []
 
@@ -72,9 +72,9 @@
       ansible.builtin.assert:
         that:
           - exasol_role_check_create is changed
-          - exasol_role_check_create.role == "CHECK_ROLE"
+          - exasol_role_check_create.role == "check_role"
           - exasol_role_check_create.exists is true
-          - exasol_role_check_create.executed_queries == ['CREATE ROLE "CHECK_ROLE"']
+          - exasol_role_check_create.executed_queries == ['CREATE ROLE "check_role"']
 
     - name: Verify check mode did not create the role
       exasol.exasol.exasol_role:
@@ -104,10 +104,10 @@
       ansible.builtin.assert:
         that:
           - exasol_role_drop is changed
-          - exasol_role_drop.role == "APP_ROLE"
+          - exasol_role_drop.role == "app_role"
           - exasol_role_drop.state == "absent"
           - exasol_role_drop.exists is false
-          - exasol_role_drop.executed_queries == ['DROP ROLE "APP_ROLE" CASCADE']
+          - exasol_role_drop.executed_queries == ['DROP ROLE "app_role" CASCADE']
 
     - name: Dropping a missing role is unchanged
       exasol.exasol.exasol_role:
@@ -128,7 +128,7 @@
     - name: Invalid role names fail before SQL generation
       exasol.exasol.exasol_role:
         login_user: sys
-        name: bad-role
+        name: 'bad-role"'
         state: absent
       environment: "{{ exasol_role_mock_environment }}"
       register: exasol_role_invalid_name
@@ -138,7 +138,7 @@
       ansible.builtin.assert:
         that:
           - exasol_role_invalid_name is failed
-          - "'valid regular identifier' in exasol_role_invalid_name.msg"
+          - "'Exasol role name uses malformed delimited identifier syntax.' in exasol_role_invalid_name.msg"
 
     - name: Bad credentials fail without leaking secrets
       exasol.exasol.exasol_role:

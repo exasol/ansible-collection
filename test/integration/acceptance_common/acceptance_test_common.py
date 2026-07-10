@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 import sys
 import textwrap
 import uuid
@@ -13,7 +12,7 @@ from typing import Any
 
 from exasol.ansible.playbook import Playbook
 from exasol.ansible.runner import Runner
-from exasol.ansible_modules.common_identifier_validation import quote_identifier
+from exasol.ansible_modules.common_identifier_validation import quote_exact_identifier
 from exasol.ansible_modules.common_query import (
     build_exasol_connect_kwargs,
     normalized_exasol_error_message,
@@ -26,9 +25,6 @@ ACCEPTANCE_PLAYBOOK_TEMPLATE = (
     ACCEPTANCE_COMMON_DIR / "acceptance_playbook_template.yml"
 )
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
-DISPOSABLE_SCHEMA_PATTERN = re.compile(r"^ANSIBLE_SCHEMA_[0-9A-F]{32}(?:_CHECK_MODE)?$")
-DISPOSABLE_USER_PATTERN = re.compile(r"^ANSIBLE_USER(?:_CHECK)?_[0-9A-F]{32}$")
-DISPOSABLE_ROLE_PATTERN = re.compile(r"^ANSIBLE_ROLE(?:_CHECK)?_[0-9A-F]{32}$")
 
 
 @dataclass(frozen=True)
@@ -60,6 +56,14 @@ class AcceptanceContext:
     @property
     def check_mode_role(self) -> str:
         return f"ANSIBLE_ROLE_CHECK_{self.suffix}"
+
+    @property
+    def exact_test_user(self) -> str:
+        return f"ANSIBLE_USER_EXACT+/=User_{self.suffix}"
+
+    @property
+    def exact_test_role(self) -> str:
+        return f"ANSIBLE_ROLE_EXACT+/=Role_{self.suffix}"
 
     @property
     def test_user_password(self) -> str:
@@ -97,8 +101,10 @@ class AcceptanceContext:
             "test_schema": self.test_schema,
             "test_user": self.test_user,
             "check_mode_user": self.check_mode_user,
+            "exact_test_user": self.exact_test_user,
             "test_role": self.test_role,
             "check_mode_role": self.check_mode_role,
+            "exact_test_role": self.exact_test_role,
             "test_user_password": self.test_user_password,
             "test_user_rotated_password": self.test_user_rotated_password,
             "check_mode_user_password": self.check_mode_user_password,
@@ -113,7 +119,7 @@ def given_acceptance_context(
     exasol_login_vars: dict[str, object],
     python_interpreter: Path | None = None,
 ) -> AcceptanceContext:
-    """Given a unique disposable acceptance-test namespace."""
+    """Given a unique acceptance-test namespace."""
     return AcceptanceContext(
         private_data_dir=ansible_runner_workspace.private_data_dir,
         project_dir=ansible_runner_workspace.project_dir,
@@ -304,19 +310,24 @@ def _without_scenario_id(result: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in result.items() if key != "scenario_id"}
 
 
-def cleanup_disposable_database_objects(login_vars: dict[str, object]) -> None:
-    """Delete disposable schemas, users, and roles created by integration tests."""
+def cleanup_database_objects(login_vars: dict[str, object]) -> None:
+    """Delete non-system schemas, users, and roles before each DB-backed test."""
     try:
         connection = connect_to_exasol(login_vars)
         try:
-            for schema_name in _matching_schema_names(connection):
+            current_user = str(login_vars["login_user"])
+            for schema_name in _schema_names_to_drop(connection):
                 connection.execute(
-                    f"DROP SCHEMA {quote_identifier(schema_name)} CASCADE"
+                    f"DROP SCHEMA {_quote_cleanup_identifier(schema_name)} CASCADE"
                 )
-            for user_name in _matching_user_names(connection):
-                connection.execute(f"DROP USER {quote_identifier(user_name)} CASCADE")
-            for role_name in _matching_role_names(connection):
-                connection.execute(f"DROP ROLE {quote_identifier(role_name)} CASCADE")
+            for user_name in _user_names_to_drop(connection, current_user):
+                connection.execute(
+                    f"DROP USER {_quote_cleanup_identifier(user_name)} CASCADE"
+                )
+            for role_name in _role_names_to_drop(connection):
+                connection.execute(
+                    f"DROP ROLE {_quote_cleanup_identifier(role_name)} CASCADE"
+                )
         finally:
             connection.close()
     except Exception as error:
@@ -334,61 +345,58 @@ def connect_to_exasol(login_vars: dict[str, object]) -> Any:
     return pyexasol.connect(**build_exasol_connect_kwargs(login_vars))
 
 
-def _matching_schema_names(connection: Any) -> tuple[str, ...]:
-    return _matching_object_names(
-        connection,
-        catalog_column="SCHEMA_NAME",
-        catalog_table="EXA_ALL_SCHEMAS",
-        like_pattern="ANSIBLE_SCHEMA_%",
-        name_pattern=DISPOSABLE_SCHEMA_PATTERN,
-        object_kind="schema",
+def _schema_names_to_drop(connection: Any) -> tuple[str, ...]:
+    return tuple(
+        schema_name
+        for schema_name in _catalog_object_names(
+            connection,
+            catalog_column="SCHEMA_NAME",
+            catalog_table="EXA_ALL_SCHEMAS",
+        )
     )
 
 
-def _matching_user_names(connection: Any) -> tuple[str, ...]:
-    return _matching_object_names(
-        connection,
-        catalog_column="USER_NAME",
-        catalog_table="EXA_ALL_USERS",
-        like_pattern="ANSIBLE_USER%",
-        name_pattern=DISPOSABLE_USER_PATTERN,
-        object_kind="user",
+def _user_names_to_drop(connection: Any, current_user: str) -> tuple[str, ...]:
+    SYSTEM_USER_NAMES = frozenset({"SYS"})
+    protected_user_names = SYSTEM_USER_NAMES | {current_user.upper()}
+    return tuple(
+        user_name
+        for user_name in _catalog_object_names(
+            connection,
+            catalog_column="USER_NAME",
+            catalog_table="EXA_ALL_USERS",
+        )
+        if user_name.upper() not in protected_user_names
     )
 
 
-def _matching_role_names(connection: Any) -> tuple[str, ...]:
-    return _matching_object_names(
-        connection,
-        catalog_column="ROLE_NAME",
-        catalog_table="EXA_ALL_ROLES",
-        like_pattern="ANSIBLE_ROLE%",
-        name_pattern=DISPOSABLE_ROLE_PATTERN,
-        object_kind="role",
+def _role_names_to_drop(connection: Any) -> tuple[str, ...]:
+    SYSTEM_ROLE_NAMES = frozenset({"PUBLIC", "DBA"})
+    return tuple(
+        role_name
+        for role_name in _catalog_object_names(
+            connection,
+            catalog_column="ROLE_NAME",
+            catalog_table="EXA_ALL_ROLES",
+        )
+        if role_name.upper() not in SYSTEM_ROLE_NAMES
     )
 
 
-def _matching_object_names(
+def _catalog_object_names(
     connection: Any,
     *,
     catalog_column: str,
     catalog_table: str,
-    like_pattern: str,
-    name_pattern: re.Pattern[str],
-    object_kind: str,
 ) -> tuple[str, ...]:
-    rows = connection.execute(f"""
-        SELECT {catalog_column}
-        FROM {catalog_table}
-        WHERE {catalog_column} LIKE '{like_pattern}'
-        """).fetchall()
-    names = []
-    for row in rows:
-        name = str(_row_value(row, catalog_column, 0))
-        if not name_pattern.fullmatch(name):
-            msg = f"Unsafe disposable acceptance {object_kind} name: {name}"
-            raise AssertionError(msg)
-        names.append(name)
-    return tuple(names)
+    rows = connection.execute(
+        f"SELECT {catalog_column} FROM {catalog_table}"
+    ).fetchall()
+    return tuple(str(_row_value(row, catalog_column, 0)) for row in rows)
+
+
+def _quote_cleanup_identifier(name: str) -> str:
+    return quote_exact_identifier(name)
 
 
 def _row_value(row: object, key: str, index: int) -> object:

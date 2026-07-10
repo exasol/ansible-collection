@@ -23,7 +23,7 @@ Feature: exasol-query specification
   @exasol-query-batch-statements
   Scenario: Execute statement batch on one connection
     Given an Exasol database is reachable at localhost
-    And a disposable schema does not exist
+    And a schema does not exist
     When exasol_query runs a batch creating a schema, table, rows, and summary query
     Then changed is true
     And executed_queries preserves the supplied order
@@ -54,7 +54,7 @@ Feature: exasol-query specification
   @exasol-query-check-mode-write
   Scenario: Predict write in check mode without execution
     Given an Exasol database is reachable at localhost
-    And a disposable check-mode schema does not exist
+    And a check-mode schema does not exist
     When exasol_query runs CREATE SCHEMA in check mode
     Then changed is true
     And no query is executed
@@ -77,7 +77,7 @@ Feature: exasol-query specification
   @exasol-query-check-mode-mixed-batch
   Scenario: Skip mixed read-write batch in check mode
     Given an Exasol database is reachable at localhost
-    And a disposable check-mode schema does not exist
+    And a check-mode schema does not exist
     When exasol_query runs a batch containing SELECT and CREATE SCHEMA in check mode
     Then changed is true
     And no statement in the batch is executed

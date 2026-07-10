@@ -47,8 +47,9 @@ class FakeConnection:
         self.executed.append((normalized_query, query_params))
 
         if normalized_query.startswith("SELECT ROLE_NAME FROM EXA_ALL_ROLES"):
-            role_name = str((query_params or {})["role_name"]).upper()
-            rows = [{"ROLE_NAME": role_name}] if role_name in self.roles else []
+            role_name = str((query_params or {})["role_name"])
+            matched_name = _matching_identifier(self.roles, role_name)
+            rows = [{"ROLE_NAME": matched_name}] if matched_name is not None else []
             return FakeStatement(rows=rows, rowcount=len(rows))
 
         if normalized_query.startswith("CREATE ROLE"):
@@ -56,7 +57,12 @@ class FakeConnection:
             return FakeStatement(result_type="rowCount")
 
         if normalized_query.startswith("DROP ROLE"):
-            self.roles.discard(_quoted_identifier(normalized_query))
+            matched_name = _matching_identifier(
+                self.roles,
+                _quoted_identifier(normalized_query),
+            )
+            if matched_name is not None:
+                self.roles.discard(matched_name)
             return FakeStatement(result_type="rowCount")
 
         raise RuntimeError(f"unexpected query: {query}")
@@ -70,12 +76,12 @@ def test_ensure_role_creates_missing_role() -> None:
 
     assert result == {
         "changed": True,
-        "role": "APP_ROLE",
+        "role": "app_role",
         "state": "present",
         "exists": True,
-        "executed_queries": ['CREATE ROLE "APP_ROLE"'],
+        "executed_queries": ['CREATE ROLE "app_role"'],
     }
-    assert "APP_ROLE" in connection.roles
+    assert "app_role" in connection.roles
 
 
 def test_ensure_role_existing_role_is_unchanged() -> None:
@@ -101,12 +107,12 @@ def test_ensure_role_absent_drops_existing_role_with_cascade() -> None:
 
     assert result == {
         "changed": True,
-        "role": "APP_ROLE",
+        "role": "app_role",
         "state": "absent",
         "exists": False,
-        "executed_queries": ['DROP ROLE "APP_ROLE" CASCADE'],
+        "executed_queries": ['DROP ROLE "app_role" CASCADE'],
     }
-    assert "APP_ROLE" not in connection.roles
+    assert "app_role" not in connection.roles
 
 
 def test_ensure_role_missing_role_absent_is_unchanged() -> None:
@@ -136,7 +142,7 @@ def test_ensure_role_check_mode_predicts_create_without_writing() -> None:
 
     assert result["changed"] is True
     assert result["exists"] is True
-    assert result["executed_queries"] == ['CREATE ROLE "APP_ROLE"']
+    assert result["executed_queries"] == ['CREATE ROLE "app_role"']
     assert connection.roles == set()
     assert len(connection.executed) == 1
 
@@ -153,12 +159,12 @@ def test_ensure_role_check_mode_predicts_drop_without_writing() -> None:
 
     assert result["changed"] is True
     assert result["exists"] is False
-    assert result["executed_queries"] == ['DROP ROLE "APP_ROLE" CASCADE']
+    assert result["executed_queries"] == ['DROP ROLE "app_role" CASCADE']
     assert connection.roles == {"APP_ROLE"}
     assert len(connection.executed) == 1
 
 
-@pytest.mark.parametrize("role_name", ["bad-role", "", object()])
+@pytest.mark.parametrize("role_name", ["", object(), "app_role\x00"])
 def test_ensure_role_rejects_invalid_role_names(role_name: object) -> None:
     """Verify invalid role names fail before SQL generation."""
     with pytest.raises(ValueError):
@@ -167,7 +173,7 @@ def test_ensure_role_rejects_invalid_role_names(role_name: object) -> None:
 
 @pytest.mark.parametrize(
     "role_name",
-    [object(), "", f"A{'B' * 128}", "bad-role"],
+    [object(), "", f"A{'B' * 128}", "app_role\x00", '"unterminated'],
 )
 def test_validate_role_name_rejects_invalid_role_names(role_name: object) -> None:
     """Verify role-name validation rejects each invalid input class directly."""
@@ -182,6 +188,28 @@ def test_ensure_role_rejects_invalid_state() -> None:
             FakeConnection(),
             {"name": "app_role", "state": "invalid"},
         )
+
+
+def test_ensure_role_accepts_delimited_identifier_input() -> None:
+    """Verify delimited SQL identifier syntax is normalized to the exact value."""
+    connection = FakeConnection()
+
+    result = exasol_role.ensure_role(connection, {"name": '"App+/=Role"'})
+
+    assert result["role"] == "App+/=Role"
+    assert result["executed_queries"] == ['CREATE ROLE "App+/=Role"']
+    assert "App+/=Role" in connection.roles
+
+
+def test_ensure_role_preserves_boundary_quotes_in_exact_identifier() -> None:
+    """Verify exact identifier values can start and end with a quote character."""
+    connection = FakeConnection()
+
+    result = exasol_role.ensure_role(connection, {"name": '"""abc"""'})
+
+    assert result["role"] == '"abc"'
+    assert result["executed_queries"] == ['CREATE ROLE """abc"""']
+    assert '"abc"' in connection.roles
 
 
 def test_role_error_helpers_delegate_to_common_query(
@@ -237,4 +265,29 @@ def test_role_error_helpers_delegate_to_common_query(
 
 
 def _quoted_identifier(query: str) -> str:
-    return query.split('"', 2)[1]
+    value: list[str] = []
+    start = query.index('"')
+    index = start + 1
+    while index < len(query):
+        char = query[index]
+        if char != '"':
+            value.append(char)
+            index += 1
+            continue
+
+        if index + 1 < len(query) and query[index + 1] == '"':
+            value.append('"')
+            index += 2
+            continue
+
+        return "".join(value)
+
+    raise AssertionError(f"missing quoted identifier terminator in query: {query}")
+    return "".join(value)
+
+
+def _matching_identifier(values: set[str], identifier: str) -> str | None:
+    for value in values:
+        if value.casefold() == identifier.casefold():
+            return value
+    return None
