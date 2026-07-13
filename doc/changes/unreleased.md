@@ -21,6 +21,7 @@
 * #54: Add exasol_query missing scenarios
 * #64: Refactor exasol_user aceptance tests to use inline playbook fragments
 * #56: Add end-to-end tests for Ansible collection and Python module
+* #24: Add tests using Exasol DB versions 2025.1.11 and 2026.1.0
 
 ## Bug Fixes
 
