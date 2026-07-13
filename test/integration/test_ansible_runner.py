@@ -26,8 +26,9 @@ def test_ansible_runner_raises_exception_for_failing_playbook(
         work_dir=ansible_runner_workspace.private_data_dir,
     )
 
+    playbook = Playbook(playbook.name)
     with pytest.raises(AnsibleException):
-        runner.run(Playbook(playbook.name))
+        runner.run(playbook)
 
 
 @pytest.mark.integration
