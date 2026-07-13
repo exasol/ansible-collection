@@ -17,21 +17,20 @@ from contextlib import contextmanager
 from decimal import Decimal
 from typing import (
     Any,
-    TypeAlias,
     TypedDict,
     cast,
 )
 
-JsonScalar: TypeAlias = str | int | float | bool | None
-JsonValue: TypeAlias = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
-QueryParameters: TypeAlias = dict[str, object]
-AnsibleOptionSpec: TypeAlias = dict[str, object]
-AnsibleArgumentSpec: TypeAlias = dict[str, AnsibleOptionSpec]
-_ResultStatement: TypeAlias = Any
-_ExasolConnection: TypeAlias = Any
-_SqlglotToken: TypeAlias = Any
-_SqlglotModule: TypeAlias = Any
-_SqlglotTokenType: TypeAlias = Any
+type JsonScalar = str | int | float | bool | None
+type JsonValue = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
+type QueryParameters = dict[str, object]
+type AnsibleOptionSpec = dict[str, object]
+type AnsibleArgumentSpec = dict[str, AnsibleOptionSpec]
+type _ResultStatement = Any
+type _ExasolConnection = Any
+type _SqlglotToken = Any
+type _SqlglotModule = Any
+type _SqlglotTokenType = Any
 
 
 class ExasolQueryResult(TypedDict):
