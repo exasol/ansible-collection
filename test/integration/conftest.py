@@ -8,23 +8,12 @@ import site
 import ssl
 import subprocess
 import sys
-import time
-import uuid
-from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
-from exasol_integration_test_docker_environment.cli.options import (
-    test_environment_options as itde_cli,
-)
-from exasol_integration_test_docker_environment.lib import api as itde_api
-from exasol_integration_test_docker_environment.lib.models.data import (
-    environment_info as itde_environment_info,
-)
-from exasol_integration_test_docker_environment.lib.test_environment.ports import Ports
 
 from collection_manifest import ignore_collection_manifest_paths
 from noxconfig import PROJECT_CONFIG
@@ -33,46 +22,11 @@ PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 INTEGRATION_ROOT = Path(__file__).resolve().parent
 COLLECTION_NAMESPACE = "exasol"
 COLLECTION_NAME = "exasol"
-EXTERNAL_ITDE_VERSION = "external"
-DEFAULT_ITDE_DB_VERSION = itde_cli.LATEST_DB_VERSION
 
 if str(INTEGRATION_ROOT) not in sys.path:
     sys.path.insert(0, str(INTEGRATION_ROOT))
 
 from acceptance_common.acceptance_test_common import cleanup_database_objects
-
-
-def pytest_addoption(parser: pytest.Parser) -> None:
-    """Register ITDE and Exasol options for integration tests."""
-    exasol_group = parser.getgroup("exasol")
-    exasol_group.addoption(
-        "--exasol-host",
-        default=os.environ.get("EXASOL_HOST", "localhost"),
-        help="Host to connect to.",
-    )
-    exasol_group.addoption(
-        "--exasol-port",
-        default=int(os.environ.get("EXASOL_PORT", Ports.forward.database)),
-        type=int,
-        help="Port on which the Exasol database is listening.",
-    )
-    exasol_group.addoption(
-        "--exasol-username",
-        default=os.environ.get("EXASOL_USERNAME", "SYS"),
-        help="Username used to authenticate against the Exasol database.",
-    )
-    exasol_group.addoption(
-        "--exasol-password",
-        default=os.environ.get("EXASOL_PASSWORD", "exasol"),
-        help="Password used to authenticate against the Exasol database.",
-    )
-
-    itde_group = parser.getgroup("itde")
-    itde_group.addoption(
-        "--itde-db-version",
-        default=os.environ.get("ITDE_DB_VERSION", DEFAULT_ITDE_DB_VERSION),
-        help="Database version to start, or 'external' to use an existing database.",
-    )
 
 
 @dataclass(frozen=True)
@@ -110,85 +64,6 @@ class ExasolConnection:
         if self.certificate_fingerprint:
             result["certificate_fingerprint"] = self.certificate_fingerprint
         return result
-
-
-@dataclass(frozen=True)
-class OnpremDatabaseConfig:
-    """Exasol database configuration for on-prem integration tests."""
-
-    host: str
-    port: int
-    username: str
-    password: str
-
-
-@dataclass(frozen=True)
-class ItdeConfig:
-    """ITDE configuration for managed on-prem integration tests."""
-
-    db_version: str
-
-
-@pytest.fixture(scope="session")
-def exasol_config(request: pytest.FixtureRequest) -> OnpremDatabaseConfig:
-    """Return on-prem database connection configuration."""
-    return OnpremDatabaseConfig(
-        host=request.config.option.exasol_host,
-        port=request.config.option.exasol_port,
-        username=request.config.option.exasol_username,
-        password=request.config.option.exasol_password,
-    )
-
-
-@pytest.fixture(scope="session")
-def itde_config(request: pytest.FixtureRequest) -> ItdeConfig:
-    """Return managed ITDE configuration."""
-    return ItdeConfig(
-        db_version=request.config.option.itde_db_version,
-    )
-
-
-@pytest.fixture(scope="session")
-def itde_database_name() -> str:
-    """Return a unique name for the managed ITDE database."""
-    return f"ansible-collection-{time.strftime('%Y%m%d%H%M%S')}-{uuid.uuid4().hex[:8]}"
-
-
-@pytest.fixture(scope="session")
-def itde_database(
-    itde_config: ItdeConfig,
-    exasol_config: OnpremDatabaseConfig,
-    itde_database_name: str,
-) -> Iterator[itde_environment_info.EnvironmentInfo | None]:
-    """Start a managed ITDE database unless tests target an external database."""
-    if itde_config.db_version == EXTERNAL_ITDE_VERSION:
-        yield None
-        return
-
-    environment_info, cleanup = itde_api.spawn_test_environment(
-        environment_name=itde_database_name,
-        database_port_forward=exasol_config.port,
-        docker_db_image_version=itde_config.db_version,
-    )
-    try:
-        yield environment_info
-    finally:
-        cleanup()
-
-
-@pytest.fixture(scope="session")
-def exasol_database_params(
-    itde_database: itde_environment_info.EnvironmentInfo | None,
-    exasol_config: OnpremDatabaseConfig,
-) -> dict[str, Any]:
-    """Return pyexasol connection parameters for the ITDE-backed database."""
-    _ = itde_database
-    return {
-        "dsn": f"{exasol_config.host}:{exasol_config.port}",
-        "user": exasol_config.username,
-        "password": exasol_config.password,
-        "websocket_sslopt": {"cert_reqs": ssl.CERT_NONE},
-    }
 
 
 @dataclass(frozen=True)
@@ -399,18 +274,19 @@ def installed_collection_environment(
 
 @pytest.fixture
 def exasol_connection(
-    exasol_database_params: dict[str, Any],
+    backend_aware_database_params: dict[str, Any],
 ) -> ExasolConnection:
-    """Return Exasol connection details normalized for Ansible modules."""
-    dsn = exasol_database_params["dsn"]
+    """Return backend connection details normalized for Ansible modules."""
+    dsn = backend_aware_database_params["dsn"]
     host, fingerprint, port = _parse_pyexasol_dsn(dsn)
-    websocket_sslopt = exasol_database_params.get("websocket_sslopt") or {}
+    websocket_sslopt = backend_aware_database_params.get("websocket_sslopt") or {}
 
     return ExasolConnection(
         host=host,
         port=port,
-        user=exasol_database_params.get("user") or exasol_database_params["username"],
-        password=exasol_database_params["password"],
+        user=backend_aware_database_params.get("user")
+        or backend_aware_database_params["username"],
+        password=backend_aware_database_params["password"],
         validate_certs=websocket_sslopt.get("cert_reqs") != ssl.CERT_NONE,
         certificate_fingerprint=fingerprint,
     )
@@ -418,7 +294,7 @@ def exasol_connection(
 
 @pytest.fixture
 def exasol_login_vars(exasol_connection: ExasolConnection) -> dict[str, object]:
-    """Return Exasol connection details using collection module argument names."""
+    """Return backend connection details using collection module argument names."""
     return exasol_connection.login_vars
 
 
