@@ -48,9 +48,8 @@ def test_ansible_runner_wrapper_executes_playbook_against_non_mocked_exasol(
                 "exasol_probe_params_file": str(params_file),
                 "python_executable": sys.executable,
             },
-        ),
-        retrieve_facts_from="localhost",
-    )
+        )
+    ).get_facts("localhost")
 
     assert facts["exasol_backend_probe"] == {
         "schema": schema_name,

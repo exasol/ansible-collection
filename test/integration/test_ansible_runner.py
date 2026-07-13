@@ -27,9 +27,7 @@ def test_ansible_runner_raises_exception_for_failing_playbook(
     )
 
     with pytest.raises(AnsibleException):
-        runner.run(
-            Playbook(playbook.name),
-        )
+        runner.run(Playbook(playbook.name))
 
 
 @pytest.mark.integration
@@ -44,10 +42,7 @@ def test_ansible_runner_returns_facts_from_cacheable_task(
         work_dir=ansible_runner_workspace.private_data_dir,
     )
 
-    facts = runner.run(
-        Playbook(playbook.name),
-        retrieve_facts_from="localhost",
-    )
+    facts = runner.run(Playbook(playbook.name)).get_facts("localhost")
 
     assert facts["ansible_collection_runner_probe"] == {"status": "ok"}
 
