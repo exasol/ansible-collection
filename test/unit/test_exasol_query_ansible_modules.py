@@ -137,6 +137,27 @@ def test_build_connect_kwargs_applies_design_doc_defaults() -> None:
     assert kwargs["fetch_dict"] is True
 
 
+def test_build_connect_kwargs_overrides_insecure_websocket_sslopt() -> None:
+    """Verify validate_certs=true wins over insecure socket-level overrides."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_password": "secret",
+            "client_kwargs": {
+                "websocket_sslopt": {
+                    "cert_reqs": ssl.CERT_NONE,
+                    "check_hostname": False,
+                }
+            },
+        }
+    )
+
+    assert kwargs["websocket_sslopt"] == {
+        "cert_reqs": ssl.CERT_REQUIRED,
+        "check_hostname": False,
+    }
+
+
 def test_build_connect_kwargs_rejects_untrusted_tls_override() -> None:
     """Verify disabling CA validation requires fingerprint pinning."""
     with pytest.raises(ValueError, match="certificate_fingerprint"):
@@ -145,6 +166,22 @@ def test_build_connect_kwargs_rejects_untrusted_tls_override() -> None:
                 "login_user": "sys",
                 "login_password": "secret",
                 "validate_certs": False,
+            }
+        )
+
+
+@pytest.mark.parametrize("fingerprint", ["nocertcheck", "NoCertCheck", " NOCERTCHECK "])
+def test_build_connect_kwargs_rejects_nocertcheck_pseudo_fingerprint(
+    fingerprint: str,
+) -> None:
+    """Verify nocertcheck cannot be used as an ersatz trust anchor."""
+    with pytest.raises(ValueError, match="nocertcheck"):
+        exasol_query.build_exasol_connect_kwargs(
+            {
+                "login_user": "sys",
+                "login_password": "secret",
+                "validate_certs": False,
+                "certificate_fingerprint": fingerprint,
             }
         )
 

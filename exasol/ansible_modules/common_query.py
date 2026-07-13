@@ -156,7 +156,9 @@ def build_exasol_dsn(params: Mapping[str, object]) -> str:
     resolved = connection_parameters_with_defaults(params)
     host = resolved["login_host"]
     port = resolved["login_port"]
-    fingerprint = resolved.get("certificate_fingerprint")
+    fingerprint = _explicit_certificate_fingerprint(
+        resolved.get("certificate_fingerprint")
+    )
 
     if fingerprint:
         return f"{host}/{fingerprint}:{port}"
@@ -183,15 +185,14 @@ def build_exasol_connect_kwargs(params: Mapping[str, object]) -> dict[str, objec
     }
 
     ca_cert = resolved.get("ca_cert")
+    websocket_sslopt = dict(_mapping_or_empty(client_kwargs.get("websocket_sslopt")))
 
     if (
-        not resolved["validate_certs"]
-        or resolved.get("certificate_fingerprint")
+        websocket_sslopt
+        or not resolved["validate_certs"]
+        or _explicit_certificate_fingerprint(resolved.get("certificate_fingerprint"))
         or ca_cert
     ):
-        websocket_sslopt = dict(
-            _mapping_or_empty(client_kwargs.get("websocket_sslopt"))
-        )
         if ca_cert and resolved["validate_certs"]:
             websocket_sslopt["ca_certs"] = ca_cert
         websocket_sslopt["cert_reqs"] = (
@@ -205,13 +206,33 @@ def build_exasol_connect_kwargs(params: Mapping[str, object]) -> dict[str, objec
 
 def _validate_transport_security_options(resolved: Mapping[str, object]) -> None:
     validate_certs = bool(resolved["validate_certs"])
-    fingerprint = resolved.get("certificate_fingerprint")
+    fingerprint = _explicit_certificate_fingerprint(
+        resolved.get("certificate_fingerprint")
+    )
 
     if not validate_certs and not fingerprint:
         raise ValueError(
             "validate_certs=false requires certificate_fingerprint so the "
             "connection keeps an explicit TLS trust anchor."
         )
+
+
+def _explicit_certificate_fingerprint(value: object) -> str | None:
+    if not isinstance(value, str):
+        return None
+
+    fingerprint = value.strip()
+
+    if not fingerprint:
+        return None
+
+    if fingerprint.casefold() == "nocertcheck":
+        raise ValueError(
+            "certificate_fingerprint must pin a real server certificate; "
+            "'nocertcheck' disables TLS verification and is not supported."
+        )
+
+    return fingerprint
 
 
 @contextmanager
