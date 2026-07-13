@@ -148,17 +148,6 @@ def _openfasttrace_jar_file(session: nox.Session) -> Path:
     return jar_file
 
 
-def _skip_if_ansible_test_does_not_support_python(session: nox.Session) -> None:
-    """Skip ansible-test sessions on Python versions it cannot execute with."""
-    current_python = f"{sys.version_info.major}.{sys.version_info.minor}"
-    if current_python not in PROJECT_CONFIG.ansible_test_python_versions:
-        supported_versions = ", ".join(PROJECT_CONFIG.ansible_test_python_versions)
-        session.skip(
-            "ansible-test supports Python "
-            f"{supported_versions}; current interpreter is {current_python}."
-        )
-
-
 def _prepare_ansible_test_collection_layout(tmp_path: Path) -> Path:
     """Copy this checkout into the collection layout expected by ansible-test."""
     collection_path = (
@@ -199,7 +188,6 @@ def collection_build(session: nox.Session) -> None:
 @nox.session(name="collection:sanity", python=False)
 def collection_sanity(session: nox.Session) -> None:
     """Run ansible-test sanity in a temporary collection namespace layout."""
-    _skip_if_ansible_test_does_not_support_python(session)
 
     with tempfile.TemporaryDirectory(prefix="ansible-collection-sanity-") as tmp_dir:
         tmp_path = Path(tmp_dir)
@@ -256,7 +244,6 @@ def collection_ansible_doc(session: nox.Session) -> None:
 @nox.session(name="collection:integration", python=False)
 def collection_integration(session: nox.Session) -> None:
     """Run ansible-test integration in a temporary collection namespace layout."""
-    _skip_if_ansible_test_does_not_support_python(session)
 
     with tempfile.TemporaryDirectory(
         prefix="ansible-collection-integration-"

@@ -234,9 +234,8 @@ def _run_playbook(
                 "acceptance_scenario_id": scenario_id,
                 **(extra_vars or {}),
             },
-        ),
-        retrieve_facts_from="localhost",
-    )
+        )
+    ).get_facts("localhost")
 
     result = facts["acceptance_result"]
     assert result.get("scenario_id") == scenario_id

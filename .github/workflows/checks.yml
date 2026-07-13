@@ -1,5 +1,5 @@
 # Generated and maintained by the exasol-toolbox.
-# Last generated with exasol-toolbox version 10.1.0.
+# Last generated with exasol-toolbox version 10.2.1.
 name: Checks
 
 on:
@@ -22,7 +22,7 @@ jobs:
         id: set-up-python-and-poetry-environment
         uses: exasol/python-toolbox/.github/actions/python-environment@v10
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           poetry-version: "2.3.0"
 
       - name: Build Documentation
@@ -53,7 +53,7 @@ jobs:
         id: set-up-python-and-poetry-environment
         uses: exasol/python-toolbox/.github/actions/python-environment@v10
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           poetry-version: "2.3.0"
 
       - name: Check Changelog was Updated
@@ -68,7 +68,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-versions: ["3.11", "3.12", "3.13"]
+        python-versions: ["3.12", "3.13", "3.14"]
     steps:
       - name: Check out Repository
         id: check-out-repository
@@ -105,7 +105,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-versions: ["3.11", "3.12", "3.13"]
+        python-versions: ["3.12", "3.13", "3.14"]
 
     steps:
       - name: Check out Repository
@@ -133,7 +133,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-versions: ["3.11", "3.12", "3.13"]
+        python-versions: ["3.12", "3.13", "3.14"]
 
     steps:
       - name: Check out Repository
@@ -178,7 +178,7 @@ jobs:
         id: set-up-python-and-poetry-environment
         uses: exasol/python-toolbox/.github/actions/python-environment@v10
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           poetry-version: "2.3.0"
 
       - name: Check Format
@@ -201,7 +201,7 @@ jobs:
         id: set-up-python-and-poetry-environment
         uses: exasol/python-toolbox/.github/actions/python-environment@v10
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           poetry-version: "2.3.0"
 
       - name: Build Package
@@ -224,7 +224,7 @@ jobs:
         id: set-up-python-and-poetry-environment
         uses: exasol/python-toolbox/.github/actions/python-environment@v10
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           poetry-version: "2.3.0"
 
       - name: Check Workflows
@@ -247,7 +247,7 @@ jobs:
         id: set-up-python-and-poetry-environment
         uses: exasol/python-toolbox/.github/actions/python-environment@v10
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           poetry-version: "2.3.0"
 
       - name: Audit Workflows
