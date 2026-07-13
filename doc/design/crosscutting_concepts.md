@@ -95,14 +95,20 @@ Covers:
 Needs: impl, utest, itest
 
 ### Encrypted Transport By Default
-`dsn~encrypted-transport-by-default~1`
+`dsn~encrypted-transport-by-default~2`
 
-Shared connection handling always enables pyexasol encryption and requires certificate validation for every supported connection path. Operators establish trust only through explicit CA-certificate or certificate-fingerprint configuration.
+Shared connection handling always enables pyexasol encryption. Certificate
+validation remains enabled by default. When operators disable CA validation for
+self-signed deployments, they must provide a certificate fingerprint so the
+connection still uses an explicit trust anchor instead of allowing an
+untrusted TLS session.
 
 Status: draft
 
 Covers:
-- `scn~exasol-connections-use-encrypted-transport-by-default~1`
+- `scn~exasol-connections-use-encrypted-transport-by-default~2`
+- `scn~fingerprint-pinning-keeps-trust-explicit~1`
+- `scn~untrusted-tls-overrides-are-rejected~1`
 
 Needs: impl, utest
 

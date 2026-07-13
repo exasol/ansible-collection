@@ -137,6 +137,18 @@ def test_build_connect_kwargs_applies_design_doc_defaults() -> None:
     assert kwargs["fetch_dict"] is True
 
 
+def test_build_connect_kwargs_rejects_untrusted_tls_override() -> None:
+    """Verify disabling CA validation requires fingerprint pinning."""
+    with pytest.raises(ValueError, match="certificate_fingerprint"):
+        exasol_query.build_exasol_connect_kwargs(
+            {
+                "login_user": "sys",
+                "login_password": "secret",
+                "validate_certs": False,
+            }
+        )
+
+
 def test_prepare_query_translates_positional_and_named_args() -> None:
     """Verify Ansible-style placeholders are translated for pyexasol."""
     query, query_params = exasol_query.prepare_query(

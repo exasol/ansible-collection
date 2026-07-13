@@ -168,6 +168,7 @@ def build_exasol_dsn(params: Mapping[str, object]) -> str:
 def build_exasol_connect_kwargs(params: Mapping[str, object]) -> dict[str, object]:
     """Map connection parameters to pyexasol.connect keyword arguments."""
     resolved = connection_parameters_with_defaults(params)
+    _validate_transport_security_options(resolved)
     client_kwargs = dict(_mapping_or_empty(resolved.get("client_kwargs")))
 
     connect_kwargs = {
@@ -201,6 +202,17 @@ def build_exasol_connect_kwargs(params: Mapping[str, object]) -> dict[str, objec
 
     client_kwargs.update(connect_kwargs)
     return client_kwargs
+
+
+def _validate_transport_security_options(resolved: Mapping[str, object]) -> None:
+    validate_certs = bool(resolved["validate_certs"])
+    fingerprint = resolved.get("certificate_fingerprint")
+
+    if not validate_certs and not fingerprint:
+        raise ValueError(
+            "validate_certs=false requires certificate_fingerprint so the "
+            "connection keeps an explicit TLS trust anchor."
+        )
 
 
 @contextmanager

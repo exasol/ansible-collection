@@ -59,6 +59,8 @@ options:
       - Whether pyexasol should validate the TLS certificate presented by Exasol.
       - Public CA certificates and system-wide trust stores are used by default.
       - Set O(ca_cert) when the Exasol certificate is signed by a private CA.
+      - Set O(validate_certs) to V(false) only together with
+        O(certificate_fingerprint) for self-signed certificates.
       - When O(certificate_fingerprint) is set, this option controls whether CA
         validation also runs before fingerprint validation.
     type: bool
@@ -74,8 +76,9 @@ options:
     description:
       - Expected SHA-256 fingerprint of the TLS certificate presented by Exasol.
       - This value is appended to the pyexasol DSN and validated by pyexasol.
-      - Set O(validate_certs) to V(false) to use the fingerprint as the trust
-        anchor for self-signed certificates.
+      - This option is required when O(validate_certs) is V(false) so the
+        connection still uses an explicit trust anchor for self-signed
+        certificates.
       - Use a hexadecimal fingerprint without separators.
     type: str
   client_kwargs:
