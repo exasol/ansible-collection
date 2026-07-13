@@ -8,7 +8,6 @@ import nox
 
 from exasol.toolbox.config import (
     BaseConfig,
-    ValidVersionStr,
 )
 from exasol.toolbox.nox.plugin import hookimpl
 from exasol.toolbox.util.version import Version
