@@ -46,6 +46,6 @@ PROJECT_CONFIG = ProjectConfig(
     project_name="ansible_modules",
     root_path=Path(__file__).parent,
     python_versions=("3.12", "3.13", "3.14"),
-    exasol_versions=("8.29.13", "2025.1.8"),
+    exasol_versions=("8.29.13", "2025.1.11"),
     plugins_for_nox_sessions=(ReleaseVersionSyncPlugin,),
 )
