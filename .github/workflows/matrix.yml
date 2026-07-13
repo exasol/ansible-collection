@@ -1,5 +1,5 @@
 # Generated and maintained by the exasol-toolbox.
-# Last generated with exasol-toolbox version 10.1.0.
+# Last generated with exasol-toolbox version 10.2.1.
 name: Build Matrix
 
 on:
@@ -30,7 +30,7 @@ jobs:
         id: set-up-python-and-poetry-environment
         uses: exasol/python-toolbox/.github/actions/python-environment@v10
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           poetry-version: "2.3.0"
 
       - name: Generate Matrix
