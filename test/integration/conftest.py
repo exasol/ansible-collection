@@ -5,12 +5,12 @@ from __future__ import annotations
 import os
 import shutil
 import site
-import ssl
 import socket
+import ssl
 import subprocess
 import sys
-from hashlib import sha256
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
