@@ -16,12 +16,8 @@ collection build and sanity sessions.
 Python Versions
 ---------------
 
-The runtime package supports Python 3.11 through 3.13, as declared by
-``requires-python = ">=3.11,<3.14"`` in ``pyproject.toml``. Python 3.14 is not
-supported yet because it is outside the tested project matrix and the Ansible
-and toolbox dependency stack has not been validated with it. When adding support
-for a new Python minor version, update ``pyproject.toml``, ``noxconfig.py``, and
-the CI matrices together.
+The runtime package supports Python 3.12 through 3.14, as declared by
+``requires-python = ">=3.12,<3.15"`` in ``pyproject.toml``.
 
 Collection Build
 ----------------

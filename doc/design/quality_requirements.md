@@ -27,7 +27,7 @@ Use `uman` when a requirement or mitigation is fulfilled through documented oper
 
 Collection modules must validate inputs before generating SQL, reuse shared connection and redaction helpers, and keep secret-bearing parameters under `no_log=True`.
 
-Python code targets 3.11+, uses Black line length 88, isort's Black profile, Ruff for selected lint rules, Pylint, and mypy with explicit package bases.
+Python code targets 3.12+, uses Black line length 88, isort's Black profile, Ruff for selected lint rules, Pylint, and mypy with explicit package bases.
 
 Security-sensitive behavior such as connection setup, SQL rendering, and error sanitization belongs in reusable runtime helpers so user and role modules do not drift.
 
