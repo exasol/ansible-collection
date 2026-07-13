@@ -24,6 +24,7 @@ from exasol_integration_test_docker_environment.lib import api as itde_api
 from exasol_integration_test_docker_environment.lib.models.data import (
     environment_info as itde_environment_info,
 )
+from exasol_integration_test_docker_environment.lib.test_environment.ports import Ports
 
 from collection_manifest import ignore_collection_manifest_paths
 from noxconfig import PROJECT_CONFIG
@@ -39,6 +40,39 @@ if str(INTEGRATION_ROOT) not in sys.path:
     sys.path.insert(0, str(INTEGRATION_ROOT))
 
 from acceptance_common.acceptance_test_common import cleanup_database_objects
+
+
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Register ITDE and Exasol options for integration tests."""
+    exasol_group = parser.getgroup("exasol")
+    exasol_group.addoption(
+        "--exasol-host",
+        default=os.environ.get("EXASOL_HOST", "localhost"),
+        help="Host to connect to.",
+    )
+    exasol_group.addoption(
+        "--exasol-port",
+        default=int(os.environ.get("EXASOL_PORT", Ports.forward.database)),
+        type=int,
+        help="Port on which the Exasol database is listening.",
+    )
+    exasol_group.addoption(
+        "--exasol-username",
+        default=os.environ.get("EXASOL_USERNAME", "SYS"),
+        help="Username used to authenticate against the Exasol database.",
+    )
+    exasol_group.addoption(
+        "--exasol-password",
+        default=os.environ.get("EXASOL_PASSWORD", "exasol"),
+        help="Password used to authenticate against the Exasol database.",
+    )
+
+    itde_group = parser.getgroup("itde")
+    itde_group.addoption(
+        "--itde-db-version",
+        default=os.environ.get("ITDE_DB_VERSION", DEFAULT_ITDE_DB_VERSION),
+        help="Database version to start, or 'external' to use an existing database.",
+    )
 
 
 @dataclass(frozen=True)
