@@ -181,8 +181,10 @@ def test_ensure_role_check_mode_predicts_drop_without_writing() -> None:
 @pytest.mark.parametrize("role_name", ["", object(), "app_role\x00"])
 def test_ensure_role_rejects_invalid_role_names(role_name: object) -> None:
     """Verify invalid role names fail before SQL generation."""
+    connection = FakeConnection()
+
     with pytest.raises(ValueError):
-        exasol_role.ensure_role(FakeConnection(), {"name": role_name})
+        exasol_role.ensure_role(connection, {"name": role_name})
 
 
 @pytest.mark.parametrize(
@@ -197,11 +199,10 @@ def test_validate_role_name_rejects_invalid_role_names(role_name: object) -> Non
 
 def test_ensure_role_rejects_invalid_state() -> None:
     """Verify invalid lifecycle state values fail before role probing."""
+    connection = FakeConnection()
+
     with pytest.raises(ValueError, match="state must be one of"):
-        exasol_role.ensure_role(
-            FakeConnection(),
-            {"name": "app_role", "state": "invalid"},
-        )
+        exasol_role.ensure_role(connection, {"name": "app_role", "state": "invalid"})
 
 
 def test_ensure_role_accepts_delimited_identifier_input() -> None:

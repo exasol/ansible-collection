@@ -21,13 +21,14 @@
 - Distinguish environment failures from code failures:
   skipped tests usually mean missing backend configuration, while connection errors during setup usually mean sandbox/network restrictions.
 
-## Writing Integration Tests
+## Writing Tests
 
 - Prefer one behavior per integration test. Do not mix create, unchanged, update, and drop flows into one lifecycle test when separate tests would keep failures local and obvious.
 - For runtime-package integration tests, call the same high-level runtime entry points that the Ansible modules use, such as `run_query()`, `run_user()`, and `run_role()`, so the tests also cover connection creation and wrapper-facing execution flow.
 - DB-backed integration tests that use `exasol_login_vars` already get pre-test isolation from `cleanup_exasol_objects_before_test`; do not add normal per-test teardown solely to protect later tests from leftover schemas, users, or roles.
 - When verifying resulting database state, do not use the runtime function under test to inspect the result. Open a plain Exasol connection and run direct SQL for verification assertions.
 - When an integration test needs pre-existing database state, create that setup data through a normal Exasol connection and direct SQL instead of using the runtime action being tested.
+- When expecting an exception in a test, structure the assertion so exactly one invocation can throw; do not combine multiple possibly-throwing calls inside the same exception expectation.
 - Keep assertions specific:
   verify both the returned module/runtime result and the observable database side effect where applicable.
 - For query integration coverage, separate read-only and mutating scenarios into different tests, and cover check-mode prediction behavior explicitly when the runtime supports it.

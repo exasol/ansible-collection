@@ -402,8 +402,10 @@ def test_ensure_user_rejects_invalid_lifecycle_parameters(
     message: str,
 ) -> None:
     """Verify invalid lifecycle arguments fail before SQL generation."""
+    connection = FakeConnection(users={"APP_USER"})
+
     with pytest.raises(ValueError, match=message):
-        exasol_user.ensure_user(FakeConnection(users={"APP_USER"}), params)
+        exasol_user.ensure_user(connection, params)
 
 
 def test_user_metadata_rejects_unexpected_row_shape(
