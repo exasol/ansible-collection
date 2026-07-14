@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import pytest
 from test.integration.integration_common import (
     catalog_count,
     unique_name,
 )
+
+import pytest
 
 from exasol.ansible_modules import exasol_query
 

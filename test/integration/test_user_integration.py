@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import uuid
-
-import pytest
 from test.integration.integration_common import (
     catalog_count,
     execute_sql,
     unique_name,
 )
+
+import pytest
 
 from exasol.ansible_modules import (
     exasol_user,
