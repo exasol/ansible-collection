@@ -84,6 +84,20 @@ def test_ensure_role_creates_missing_role() -> None:
     assert "app_role" in connection.roles
 
 
+def test_module_argument_spec_exposes_role_specific_options() -> None:
+    """Verify the role runtime exposes the full Ansible-facing argument spec."""
+    argument_spec = exasol_role.module_argument_spec()
+
+    assert argument_spec["name"] == {
+        "type": "str",
+        "required": True,
+        "aliases": ["role"],
+    }
+    assert argument_spec["state"]["choices"] == ["absent", "present"]
+    assert argument_spec["state"]["default"] == "present"
+    assert argument_spec["cascade"]["default"] is False
+
+
 def test_ensure_role_existing_role_is_unchanged() -> None:
     """Verify existing roles are idempotent."""
     connection = FakeConnection(roles={"APP_ROLE"})
@@ -167,8 +181,10 @@ def test_ensure_role_check_mode_predicts_drop_without_writing() -> None:
 @pytest.mark.parametrize("role_name", ["", object(), "app_role\x00"])
 def test_ensure_role_rejects_invalid_role_names(role_name: object) -> None:
     """Verify invalid role names fail before SQL generation."""
+    connection = FakeConnection()
+
     with pytest.raises(ValueError):
-        exasol_role.ensure_role(FakeConnection(), {"name": role_name})
+        exasol_role.ensure_role(connection, {"name": role_name})
 
 
 @pytest.mark.parametrize(
@@ -183,11 +199,10 @@ def test_validate_role_name_rejects_invalid_role_names(role_name: object) -> Non
 
 def test_ensure_role_rejects_invalid_state() -> None:
     """Verify invalid lifecycle state values fail before role probing."""
+    connection = FakeConnection()
+
     with pytest.raises(ValueError, match="state must be one of"):
-        exasol_role.ensure_role(
-            FakeConnection(),
-            {"name": "app_role", "state": "invalid"},
-        )
+        exasol_role.ensure_role(connection, {"name": "app_role", "state": "invalid"})
 
 
 def test_ensure_role_accepts_delimited_identifier_input() -> None:
@@ -262,6 +277,42 @@ def test_role_error_helpers_delegate_to_common_query(
         )
         == "role operation failed: role failed ********"
     )
+
+
+def test_run_role_uses_shared_connection_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify role execution is routed through the runtime connection helper."""
+    connection = object()
+    params = {"name": "app_role"}
+
+    class _ConnectionContext:
+        def __enter__(self) -> object:
+            return connection
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            return None
+
+    monkeypatch.setattr(
+        exasol_role.common_query,
+        "connect_to_exasol",
+        lambda passed_params, module_name: _ConnectionContext(),
+    )
+    monkeypatch.setattr(
+        exasol_role,
+        "ensure_role",
+        lambda passed_connection, passed_params, check_mode=False: {
+            "connection": passed_connection,
+            "params": passed_params,
+            "check_mode": check_mode,
+        },
+    )
+
+    assert exasol_role.run_role(params, check_mode=True) == {
+        "connection": connection,
+        "params": params,
+        "check_mode": True,
+    }
 
 
 def _quoted_identifier(query: str) -> str:

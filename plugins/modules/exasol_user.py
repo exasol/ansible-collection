@@ -160,8 +160,6 @@ executed_queries:
     - CREATE USER "App+/=User" IDENTIFIED BY "********"
 """
 
-from typing import Any
-
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.exasol.exasol.plugins.module_utils import (
     common_runtime_import,
@@ -169,45 +167,20 @@ from ansible_collections.exasol.exasol.plugins.module_utils import (
 
 common_runtime_import.make_source_runtime_importable_for_ansible_sanity(__file__)
 
-from exasol.ansible_modules import common_query
-from exasol.ansible_modules import exasol_query as exasol_query_utils
 from exasol.ansible_modules import exasol_user as exasol_user_utils
 
 
 def main() -> None:
     """Run the Ansible module."""
-    argument_spec = {
-        **exasol_query_utils.exasol_connection_argument_spec(),
-        "name": {"type": "str", "required": True, "aliases": ["user"]},
-        "password": {"type": "str", "no_log": True},
-        "authentication_method": {
-            "type": "str",
-            "choices": ["password", "ldap"],
-        },
-        "ldap_dn": {"type": "str", "no_log": True},
-        "state": {
-            "type": "str",
-            "choices": ["present", "absent"],
-            "default": "present",
-        },
-        "update_password": {
-            "type": "str",
-            "choices": ["always", "on_create"],
-            "default": "on_create",
-            "no_log": False,
-        },
-        "create_session": {"type": "bool", "default": True},
-        "cascade": {"type": "bool", "default": False},
-    }
     module = AnsibleModule(
-        argument_spec=argument_spec,
+        argument_spec=exasol_user_utils.module_argument_spec(),
         supports_check_mode=True,
     )
 
     params = module.params
 
     try:
-        result = run_user(params, check_mode=module.check_mode)
+        result = exasol_user_utils.run_user(params, check_mode=module.check_mode)
     except ValueError as error:
         module.fail_json(msg=exasol_user_utils.sanitize_error_message(error, params))
     except Exception as error:  # noqa: BLE001 - Ansible modules report all failures.
@@ -220,19 +193,6 @@ def main() -> None:
         )
 
     module.exit_json(**result)
-
-
-def run_user(params: dict[str, Any], check_mode: bool = False) -> dict[str, object]:
-    """Connect to Exasol and manage the requested user."""
-    with common_query.connect_to_exasol(
-        params,
-        module_name="exasol_user",
-    ) as connection:
-        return exasol_user_utils.ensure_user(
-            connection,
-            params,
-            check_mode=check_mode,
-        )
 
 
 if __name__ == "__main__":

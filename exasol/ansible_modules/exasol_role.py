@@ -72,6 +72,36 @@ def ensure_role(
     }
 
 
+def module_argument_spec() -> dict[str, object]:
+    """Return the Ansible-facing argument spec for the role module."""
+    return {
+        **common_query.exasol_connection_argument_spec(),
+        "name": {"type": "str", "required": True, "aliases": ["role"]},
+        "state": {
+            "type": "str",
+            "choices": sorted(STATES),
+            "default": DEFAULT_STATE,
+        },
+        "cascade": {"type": "bool", "default": DEFAULT_CASCADE},
+    }
+
+
+def run_role(
+    params: Mapping[str, object],
+    check_mode: bool = False,
+) -> dict[str, object]:
+    """Connect to Exasol and manage the requested role."""
+    with common_query.connect_to_exasol(
+        params,
+        module_name="exasol_role",
+    ) as connection:
+        return ensure_role(
+            connection,
+            params,
+            check_mode=check_mode,
+        )
+
+
 def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
     """Redact sensitive data from error message."""
     return common_query.sanitize_error_message(error, params)
