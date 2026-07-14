@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import uuid
-from .integration_common import (
-    catalog_count,
-    execute_sql,
-    unique_name,
-)
 
 import pytest
 
 from exasol.ansible_modules import (
+    exasol_query,
     exasol_user,
+)
+
+from .integration_common import (
+    catalog_count,
+    execute_sql,
+    unique_name,
 )
 
 
@@ -117,6 +119,15 @@ def test_user_runtime_updates_existing_user_password(
         object_name=user_name,
         result_key="USER_COUNT",
     )
+    with exasol_query.connect_to_exasol(
+        {
+            **exasol_login_vars,
+            "login_user": user_name,
+            "login_password": rotated_password,
+        },
+        module_name="python package integration test",
+    ) as connection:
+        login_rows = connection.execute("SELECT 1 AS LOGIN_OK").fetchall()
 
     assert update_result["changed"] is True
     assert update_result["user"] == user_name
@@ -125,6 +136,7 @@ def test_user_runtime_updates_existing_user_password(
         f'ALTER USER "{user_name}" IDENTIFIED BY "********"'
     ]
     assert user_count == 1
+    assert login_rows == [{"LOGIN_OK": 1}]
 
 
 @pytest.mark.integration
