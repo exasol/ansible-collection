@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from python_package_integration_common import (
+from test.integration.integration_common import (
     catalog_count,
     unique_name,
 )
@@ -18,32 +18,23 @@ def test_query_runtime_executes_write_query_against_backend(
 ) -> None:
     """Verify the query runtime can execute write SQL through its run helper."""
     schema_name = unique_name("ANSIBLE_PYTHON_SCHEMA")
+    create_result = exasol_query.run_query(
+        {
+            **exasol_login_vars,
+            "query": f'CREATE SCHEMA "{schema_name}"',
+        }
+    )
+    schema_count = catalog_count(
+        exasol_login_vars,
+        table="EXA_ALL_SCHEMAS",
+        column="SCHEMA_NAME",
+        object_name=schema_name,
+        result_key="SCHEMA_COUNT",
+    )
 
-    try:
-        create_result = exasol_query.run_query(
-            {
-                **exasol_login_vars,
-                "query": f'CREATE SCHEMA "{schema_name}"',
-            }
-        )
-        schema_count = catalog_count(
-            exasol_login_vars,
-            table="EXA_ALL_SCHEMAS",
-            column="SCHEMA_NAME",
-            object_name=schema_name,
-            result_key="SCHEMA_COUNT",
-        )
-
-        assert create_result["changed"] is True
-        assert create_result["executed_queries"] == [f'CREATE SCHEMA "{schema_name}"']
-        assert schema_count == 1
-    finally:
-        exasol_query.run_query(
-            {
-                **exasol_login_vars,
-                "query": f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE',
-            }
-        )
+    assert create_result["changed"] is True
+    assert create_result["executed_queries"] == [f'CREATE SCHEMA "{schema_name}"']
+    assert schema_count == 1
 
 
 @pytest.mark.integration

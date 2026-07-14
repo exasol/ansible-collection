@@ -25,6 +25,7 @@
 
 - Prefer one behavior per integration test. Do not mix create, unchanged, update, and drop flows into one lifecycle test when separate tests would keep failures local and obvious.
 - For runtime-package integration tests, call the same high-level runtime entry points that the Ansible modules use, such as `run_query()`, `run_user()`, and `run_role()`, so the tests also cover connection creation and wrapper-facing execution flow.
+- DB-backed integration tests that use `exasol_login_vars` already get pre-test isolation from `cleanup_exasol_objects_before_test`; do not add normal per-test teardown solely to protect later tests from leftover schemas, users, or roles.
 - When verifying resulting database state, do not use the runtime function under test to inspect the result. Open a plain Exasol connection and run direct SQL for verification assertions.
 - When an integration test needs pre-existing database state, create that setup data through a normal Exasol connection and direct SQL instead of using the runtime action being tested.
 - Keep assertions specific:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from python_package_integration_common import (
+from test.integration.integration_common import (
     catalog_count,
     execute_sql,
     unique_name,
