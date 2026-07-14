@@ -76,6 +76,49 @@ def ensure_user(
     }
 
 
+def module_argument_spec() -> dict[str, object]:
+    """Return the Ansible-facing argument spec for the user module."""
+    return {
+        **common_query.exasol_connection_argument_spec(),
+        "name": {"type": "str", "required": True, "aliases": ["user"]},
+        "password": {"type": "str", "no_log": True},
+        "authentication_method": {
+            "type": "str",
+            "choices": sorted(AUTHENTICATION_METHODS),
+        },
+        "ldap_dn": {"type": "str", "no_log": True},
+        "state": {
+            "type": "str",
+            "choices": sorted(STATES),
+            "default": DEFAULT_STATE,
+        },
+        "update_password": {
+            "type": "str",
+            "choices": sorted(UPDATE_MODES),
+            "default": DEFAULT_UPDATE_MODE,
+            "no_log": False,
+        },
+        "create_session": {"type": "bool", "default": DEFAULT_CREATE_SESSION},
+        "cascade": {"type": "bool", "default": DEFAULT_CASCADE},
+    }
+
+
+def run_user(
+    params: Mapping[str, object],
+    check_mode: bool = False,
+) -> dict[str, object]:
+    """Connect to Exasol and manage the requested user."""
+    with common_query.connect_to_exasol(
+        params,
+        module_name="exasol_user",
+    ) as connection:
+        return ensure_user(
+            connection,
+            params,
+            check_mode=check_mode,
+        )
+
+
 def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
     """Redact Exasol connection and user secrets from an error string."""
     return common_query.sanitize_error_message(

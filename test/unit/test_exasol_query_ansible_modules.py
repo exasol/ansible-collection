@@ -65,6 +65,16 @@ def test_connection_argument_spec_marks_secret_options_no_log() -> None:
     assert argument_spec["login_db"]["aliases"] == ["login_schema"]
 
 
+def test_module_argument_spec_includes_query_specific_options() -> None:
+    """Verify the query runtime exposes the full Ansible-facing argument spec."""
+    argument_spec = exasol_query.module_argument_spec()
+
+    assert argument_spec["query"] == {"type": "raw", "required": True}
+    assert argument_spec["positional_args"] == {"type": "list", "elements": "raw"}
+    assert argument_spec["named_args"] == {"type": "dict"}
+    assert argument_spec["login_password"]["no_log"] is True
+
+
 def test_build_exasol_dsn_includes_certificate_fingerprint() -> None:
     """Verify certificate fingerprints are encoded in the pyexasol DSN."""
     dsn = exasol_query.build_exasol_dsn(
@@ -313,3 +323,64 @@ def test_build_query_request_rejects_bound_args_for_statement_batches(
     assert "positional_args and named_args" in message
     assert "single SQL statement" in message
     assert "statement batches" in message
+
+
+def test_check_mode_result_returns_none_for_read_only_queries() -> None:
+    """Verify read-only batches do not produce a synthetic check-mode result."""
+    assert exasol_query.check_mode_result(["SELECT 1", "SHOW TABLES"]) is None
+
+
+def test_check_mode_result_predicts_write_without_execution() -> None:
+    """Verify write statements produce the public check-mode response shape."""
+    assert exasol_query.check_mode_result(["SELECT 1", "CREATE SCHEMA demo"]) == {
+        "changed": True,
+        "query_result": [],
+        "query_all_results": [],
+        "executed_queries": ["SELECT 1", "CREATE SCHEMA demo"],
+        "rowcount": [],
+        "execution_time_ms": [],
+    }
+
+
+def test_run_query_uses_shared_connection_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify query execution is routed through the runtime connection helper."""
+    params: dict[str, object] = {
+        "query": "SELECT 1 AS A",
+        "positional_args": [42],
+        "named_args": {"n": 7},
+    }
+    connection = object()
+
+    class _ConnectionContext:
+        def __enter__(self) -> object:
+            return connection
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            return None
+
+    monkeypatch.setattr(
+        exasol_query,
+        "connect_to_exasol",
+        lambda passed_params, module_name: _ConnectionContext(),
+    )
+    monkeypatch.setattr(
+        exasol_query,
+        "execute_queries",
+        lambda passed_connection, query, positional_args=None, named_args=None: {
+            "connection": passed_connection,
+            "query": query,
+            "positional_args": positional_args,
+            "named_args": named_args,
+        },
+    )
+
+    result = exasol_query.run_query(params)
+
+    assert result == {
+        "connection": connection,
+        "query": "SELECT 1 AS A",
+        "positional_args": [42],
+        "named_args": {"n": 7},
+    }

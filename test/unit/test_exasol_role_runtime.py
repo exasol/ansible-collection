@@ -84,6 +84,20 @@ def test_ensure_role_creates_missing_role() -> None:
     assert "app_role" in connection.roles
 
 
+def test_module_argument_spec_exposes_role_specific_options() -> None:
+    """Verify the role runtime exposes the full Ansible-facing argument spec."""
+    argument_spec = exasol_role.module_argument_spec()
+
+    assert argument_spec["name"] == {
+        "type": "str",
+        "required": True,
+        "aliases": ["role"],
+    }
+    assert argument_spec["state"]["choices"] == ["absent", "present"]
+    assert argument_spec["state"]["default"] == "present"
+    assert argument_spec["cascade"]["default"] is False
+
+
 def test_ensure_role_existing_role_is_unchanged() -> None:
     """Verify existing roles are idempotent."""
     connection = FakeConnection(roles={"APP_ROLE"})
@@ -262,6 +276,42 @@ def test_role_error_helpers_delegate_to_common_query(
         )
         == "role operation failed: role failed ********"
     )
+
+
+def test_run_role_uses_shared_connection_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify role execution is routed through the runtime connection helper."""
+    connection = object()
+    params = {"name": "app_role"}
+
+    class _ConnectionContext:
+        def __enter__(self) -> object:
+            return connection
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            return None
+
+    monkeypatch.setattr(
+        exasol_role.common_query,
+        "connect_to_exasol",
+        lambda passed_params, module_name: _ConnectionContext(),
+    )
+    monkeypatch.setattr(
+        exasol_role,
+        "ensure_role",
+        lambda passed_connection, passed_params, check_mode=False: {
+            "connection": passed_connection,
+            "params": passed_params,
+            "check_mode": check_mode,
+        },
+    )
+
+    assert exasol_role.run_role(params, check_mode=True) == {
+        "connection": connection,
+        "params": params,
+        "check_mode": True,
+    }
 
 
 def _quoted_identifier(query: str) -> str:

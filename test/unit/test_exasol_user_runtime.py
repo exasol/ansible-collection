@@ -129,6 +129,21 @@ def test_ensure_user_creates_missing_user_and_grants_session() -> None:
     assert connection.executed[1][0] == 'CREATE USER "app_user" IDENTIFIED BY "h12_Xhz"'
 
 
+def test_module_argument_spec_exposes_user_specific_options() -> None:
+    """Verify the user runtime exposes the full Ansible-facing argument spec."""
+    argument_spec = exasol_user.module_argument_spec()
+
+    assert argument_spec["name"] == {
+        "type": "str",
+        "required": True,
+        "aliases": ["user"],
+    }
+    assert argument_spec["authentication_method"]["choices"] == ["ldap", "password"]
+    assert argument_spec["update_password"]["choices"] == ["always", "on_create"]
+    assert argument_spec["create_session"]["default"] is True
+    assert argument_spec["cascade"]["default"] is False
+
+
 def test_ensure_user_creates_missing_ldap_user() -> None:
     """Verify LDAP authentication can be used when creating a missing user."""
     connection = FakeConnection()
@@ -515,6 +530,42 @@ def test_quote_sql_string_literal_rejects_invalid_values(ldap_dn: object) -> Non
 def test_quote_sql_string_literal_escapes_single_quotes() -> None:
     """Verify LDAP distinguished names are escaped as SQL string literals."""
     assert exasol_user._quote_sql_string_literal("cn=o'hara") == "'cn=o''hara'"
+
+
+def test_run_user_uses_shared_connection_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify user execution is routed through the runtime connection helper."""
+    connection = object()
+    params = {"name": "app_user", "password": "secret"}
+
+    class _ConnectionContext:
+        def __enter__(self) -> object:
+            return connection
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            return None
+
+    monkeypatch.setattr(
+        exasol_user.common_query,
+        "connect_to_exasol",
+        lambda passed_params, module_name: _ConnectionContext(),
+    )
+    monkeypatch.setattr(
+        exasol_user,
+        "ensure_user",
+        lambda passed_connection, passed_params, check_mode=False: {
+            "connection": passed_connection,
+            "params": passed_params,
+            "check_mode": check_mode,
+        },
+    )
+
+    assert exasol_user.run_user(params, check_mode=True) == {
+        "connection": connection,
+        "params": params,
+        "check_mode": True,
+    }
 
 
 def _quoted_identifier(query: str) -> str:

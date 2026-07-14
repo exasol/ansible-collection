@@ -8,6 +8,7 @@ from collections.abc import (
     Sequence,
 )
 from typing import (
+    Any,
     Protocol,
     cast,
 )
@@ -80,6 +81,16 @@ class _SqlglotToken(Protocol):
     text: str
 
 
+def module_argument_spec() -> dict[str, object]:
+    """Return the Ansible-facing argument spec for the query module."""
+    return {
+        **exasol_connection_argument_spec(),
+        "query": {"type": "raw", "required": True},
+        "positional_args": {"type": "list", "elements": "raw"},
+        "named_args": {"type": "dict"},
+    }
+
+
 def execute_queries(
     connection: object,
     query: str | list[str],
@@ -96,6 +107,37 @@ def execute_queries(
     )
     result["changed"] = any(not is_read_only_query(statement) for statement in queries)
     return result
+
+
+def check_mode_result(queries: list[str]) -> ExasolQueryResult | None:
+    """Return the predicted result for check mode when statements would write."""
+    if all(is_read_only_query(item) for item in queries):
+        return None
+
+    return {
+        "changed": True,
+        "query_result": [],
+        "query_all_results": [],
+        "executed_queries": queries,
+        "rowcount": [],
+        "execution_time_ms": [],
+    }
+
+
+def run_query(params: Mapping[str, Any]) -> ExasolQueryResult:
+    """Connect to Exasol and execute query parameters."""
+    with connect_to_exasol(
+        params,
+        module_name="exasol_query",
+    ) as connection:
+        return execute_queries(
+            connection,
+            params["query"],
+            positional_args=cast(
+                Sequence[object] | None, params.get("positional_args")
+            ),
+            named_args=cast(Mapping[str, object] | None, params.get("named_args")),
+        )
 
 
 def is_read_only_query(query: str) -> bool:

@@ -115,8 +115,6 @@ execution_time_ms:
     - 12.3
 """
 
-from typing import Any
-
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.exasol.exasol.plugins.module_utils import (
     common_runtime_import,
@@ -124,31 +122,26 @@ from ansible_collections.exasol.exasol.plugins.module_utils import (
 
 common_runtime_import.make_source_runtime_importable_for_ansible_sanity(__file__)
 
-from exasol.ansible_modules import common_query
 from exasol.ansible_modules import exasol_query as exasol_query_utils
-from exasol.ansible_modules.common_query import ExasolQueryResult
 
 
 def main() -> None:
     """Run the Ansible module."""
-    argument_spec = {
-        **exasol_query_utils.exasol_connection_argument_spec(),
-        "query": {"type": "raw", "required": True},
-        "positional_args": {"type": "list", "elements": "raw"},
-        "named_args": {"type": "dict"},
-    }
     module = AnsibleModule(
-        argument_spec=argument_spec,
+        argument_spec=exasol_query_utils.module_argument_spec(),
         supports_check_mode=True,
     )
 
     params = module.params
-    query = params["query"]
 
     try:
-        queries = exasol_query_utils.normalize_query_list(query)
-        exit_if_check_mode_would_change(module, queries)
-        result = run_query(params)
+        queries = exasol_query_utils.normalize_query_list(params["query"])
+        check_mode_result = (
+            exasol_query_utils.check_mode_result(queries) if module.check_mode else None
+        )
+        if check_mode_result is not None:
+            module.exit_json(**check_mode_result)
+        result = exasol_query_utils.run_query(params)
     except ValueError as error:
         module.fail_json(msg=exasol_query_utils.sanitize_error_message(error, params))
     except Exception as error:  # noqa: BLE001 - Ansible modules report all failures.
@@ -161,37 +154,6 @@ def main() -> None:
         )
 
     module.exit_json(**result)
-
-
-def exit_if_check_mode_would_change(module: AnsibleModule, queries: list[str]) -> None:
-    """Exit early when check mode predicts a write without executing it."""
-    if not module.check_mode or all(
-        exasol_query_utils.is_read_only_query(item) for item in queries
-    ):
-        return
-
-    module.exit_json(
-        changed=True,
-        query_result=[],
-        query_all_results=[],
-        executed_queries=queries,
-        rowcount=[],
-        execution_time_ms=[],
-    )
-
-
-def run_query(params: dict[str, Any]) -> ExasolQueryResult:
-    """Connect to Exasol and execute query parameters."""
-    with common_query.connect_to_exasol(
-        params,
-        module_name="exasol_query",
-    ) as connection:
-        return exasol_query_utils.execute_queries(
-            connection,
-            params["query"],
-            positional_args=params.get("positional_args"),
-            named_args=params.get("named_args"),
-        )
 
 
 if __name__ == "__main__":

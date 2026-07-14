@@ -93,8 +93,6 @@ executed_queries:
     - CREATE ROLE "App+/=Role"
 """
 
-from typing import Any
-
 from ansible.module_utils.basic import AnsibleModule
 from ansible_collections.exasol.exasol.plugins.module_utils import (
     common_runtime_import,
@@ -102,31 +100,20 @@ from ansible_collections.exasol.exasol.plugins.module_utils import (
 
 common_runtime_import.make_source_runtime_importable_for_ansible_sanity(__file__)
 
-from exasol.ansible_modules import common_query
 from exasol.ansible_modules import exasol_role as exasol_role_utils
 
 
 def main() -> None:
     """Run the Ansible module."""
-    argument_spec = {
-        **common_query.exasol_connection_argument_spec(),
-        "name": {"type": "str", "required": True, "aliases": ["role"]},
-        "state": {
-            "type": "str",
-            "choices": ["present", "absent"],
-            "default": "present",
-        },
-        "cascade": {"type": "bool", "default": False},
-    }
     module = AnsibleModule(
-        argument_spec=argument_spec,
+        argument_spec=exasol_role_utils.module_argument_spec(),
         supports_check_mode=True,
     )
 
     params = module.params
 
     try:
-        result = run_role(params, check_mode=module.check_mode)
+        result = exasol_role_utils.run_role(params, check_mode=module.check_mode)
     except ValueError as error:
         module.fail_json(msg=exasol_role_utils.sanitize_error_message(error, params))
     except Exception as error:  # noqa: BLE001 - Ansible modules report all failures.
@@ -139,19 +126,6 @@ def main() -> None:
         )
 
     module.exit_json(**result)
-
-
-def run_role(params: dict[str, Any], check_mode: bool = False) -> dict[str, object]:
-    """Connect to Exasol and manage the requested role."""
-    with common_query.connect_to_exasol(
-        params,
-        module_name="exasol_role",
-    ) as connection:
-        return exasol_role_utils.ensure_role(
-            connection,
-            params,
-            check_mode=check_mode,
-        )
 
 
 if __name__ == "__main__":
