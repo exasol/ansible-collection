@@ -42,6 +42,14 @@ class AcceptanceContext:
         return f"ANSIBLE_SCHEMA_{self.suffix}"
 
     @property
+    def check_mode_schema(self) -> str:
+        return f"ANSIBLE_SCHEMA_CHECK_{self.suffix}"
+
+    @property
+    def exact_test_schema(self) -> str:
+        return f"ANSIBLE_SCHEMA_EXACT+/=Schema_{self.suffix}"
+
+    @property
     def test_user(self) -> str:
         return f"ANSIBLE_USER_{self.suffix}"
 
@@ -99,6 +107,8 @@ class AcceptanceContext:
                 else sys.executable
             ),
             "test_schema": self.test_schema,
+            "check_mode_schema": self.check_mode_schema,
+            "exact_test_schema": self.exact_test_schema,
             "test_user": self.test_user,
             "check_mode_user": self.check_mode_user,
             "exact_test_user": self.exact_test_user,

@@ -517,6 +517,8 @@ def test_execution_error_is_sanitized() -> None:
 def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
     """Verify schema, user, role, and object identifier helpers."""
     assert validate_schema_name("APP_SCHEMA") == "APP_SCHEMA"
+    assert validate_schema_name("App+/=Schema") == "App+/=Schema"
+    assert validate_schema_name('"App+/=Schema"') == "App+/=Schema"
     assert validate_user_name("App+/=User") == "App+/=User"
     assert validate_user_name('"App+/=User"') == "App+/=User"
     assert validate_role_name("App+/=Role") == "App+/=Role"
@@ -536,11 +538,6 @@ def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
     "name",
     [
         "",
-        "1APP",
-        "APP-TABLE",
-        "APP TABLE",
-        "APPÄ",
-        "APP.TABLE.EXTRA",
         f"A{'B' * 128}",
     ],
 )
