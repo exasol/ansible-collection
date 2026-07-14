@@ -53,6 +53,6 @@ Keep the current playbook-backed acceptance tests for collection-level behavior,
 
 ### Verification
 
-- [ ] Run the targeted Python package integration tests
+- [x] Run the targeted Python package integration tests
 - [x] Run the targeted runtime unit tests for the extracted helpers
 - [x] Run `poetry run nox -s requirements:trace`
