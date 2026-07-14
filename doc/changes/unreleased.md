@@ -8,6 +8,10 @@
 * Implemented exasol_role module
 * Replaced stale GPL module headers with MIT references
 
+## Security
+
+* #75: Made certificate validation mandatory
+
 ## Features
 
 * #38: Support exact Exasol user and role identifiers

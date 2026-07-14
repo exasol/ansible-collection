@@ -56,7 +56,7 @@ Needs: dsn
 * keep module parameters explicit and validate mutually unsafe combinations
 * construct SQL safely for identifiers, literals, and grant targets
 * sanitize surfaced driver and database errors
-* support only encrypted connections with correct certificate validation
+* support only encrypted connections with explicit trust anchors
 * treat `exasol_query` and any future `exasol_script` surface as trusted-operator interfaces, not sandboxes
 
 ## Mitigations
@@ -90,14 +90,20 @@ Covers:
 Needs: impl, utest
 
 ### Encrypt Exasol Connections By Default
-`dsn~encrypt-exasol-connections-by-default~1`
+`dsn~encrypt-exasol-connections-by-default~2`
 
-Open Exasol connections only over encrypted transport. Unencrypted connections are not supported. Certificate validation is mandatory on every supported connection path, so operators must provide trust material that keeps the connection encrypted and authenticated instead of downgrading transport security.
+Open Exasol connections only over encrypted transport. Unencrypted connections
+are not supported. Certificate validation remains enabled by default. When
+operators disable CA validation, they must provide a certificate fingerprint so
+the connection still uses an explicit trust anchor instead of downgrading to a
+fully untrusted TLS session.
 
 Status: draft
 
 Covers:
-- `scn~exasol-connections-use-encrypted-transport-by-default~1`
+- `scn~exasol-connections-use-encrypted-transport-by-default~2`
+- `scn~fingerprint-pinning-keeps-trust-explicit~1`
+- `scn~untrusted-tls-overrides-are-rejected~1`
 - `thrt~outbound-connections-accept-insecure-transport-or-trust~1`
 
 Needs: impl, utest

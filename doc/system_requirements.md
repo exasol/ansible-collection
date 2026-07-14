@@ -145,13 +145,19 @@ Covers:
 Needs: scn
 
 ### Protect Exasol Transport
-`req~protect-exasol-transport~1`
+`req~protect-exasol-transport~2`
 
-Connections to Exasol must use encrypted transport and mandatory certificate validation so that credentials and administrative traffic are not exposed in transit.
+Connections to Exasol must use encrypted transport, enable certificate
+validation by default, and require an explicit trust anchor whenever CA
+validation is disabled so that credentials and administrative traffic are not
+exposed in transit.
 
 Rationale:
 
-Database administration often crosses shared networks or automation tiers. The collection must require transport protection and explicit trust configuration without allowing certificate-validation downgrades.
+Database administration often crosses shared networks or automation tiers. The
+collection must require transport protection and explicit trust configuration.
+Self-signed deployments may use certificate-fingerprint pinning, but the
+collection must reject fully untrusted TLS sessions.
 
 Status: draft
 
@@ -270,17 +276,46 @@ Covers:
 Needs: dsn
 
 ### Exasol Connections Use Encrypted Transport By Default
-`scn~exasol-connections-use-encrypted-transport-by-default~1`
+`scn~exasol-connections-use-encrypted-transport-by-default~2`
 
 **Given** an Ansible Operator connects to Exasol with the shared connection options
 **When** the collection opens the pyexasol connection
 **Then** transport encryption is enabled
-**And** certificate validation remains enabled, with trust established only through explicit CA-certificate or certificate-fingerprint configuration
+**And** certificate validation remains enabled by default
 
 Status: draft
 
 Covers:
-- `req~protect-exasol-transport~1`
+- `req~protect-exasol-transport~2`
+
+Needs: dsn
+
+### Fingerprint Pinning Keeps Trust Explicit
+`scn~fingerprint-pinning-keeps-trust-explicit~1`
+
+**Given** an Ansible Operator disables CA validation and provides a certificate fingerprint
+**When** the collection opens the pyexasol connection
+**Then** transport encryption remains enabled
+**And** the connection uses the configured fingerprint as the explicit trust anchor
+
+Status: draft
+
+Covers:
+- `req~protect-exasol-transport~2`
+
+Needs: dsn
+
+### Untrusted TLS Overrides Are Rejected
+`scn~untrusted-tls-overrides-are-rejected~1`
+
+**Given** an Ansible Operator disables CA validation without providing a certificate fingerprint
+**When** the collection validates the shared Exasol connection parameters
+**Then** the collection rejects the parameter combination before opening the connection
+
+Status: draft
+
+Covers:
+- `req~protect-exasol-transport~2`
 
 Needs: dsn
 

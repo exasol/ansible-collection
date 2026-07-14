@@ -5,10 +5,12 @@ from __future__ import annotations
 import os
 import shutil
 import site
+import socket
 import ssl
 import subprocess
 import sys
 from dataclasses import dataclass
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -280,6 +282,14 @@ def exasol_connection(
     dsn = backend_aware_database_params["dsn"]
     host, fingerprint, port = _parse_pyexasol_dsn(dsn)
     websocket_sslopt = backend_aware_database_params.get("websocket_sslopt") or {}
+    validate_certs = websocket_sslopt.get("cert_reqs") != ssl.CERT_NONE
+    effective_fingerprint = _backend_certificate_fingerprint(
+        backend_aware_database_params,
+        dsn_fingerprint=fingerprint,
+        host=host,
+        port=port,
+        validate_certs=validate_certs,
+    )
 
     return ExasolConnection(
         host=host,
@@ -287,8 +297,8 @@ def exasol_connection(
         user=backend_aware_database_params.get("user")
         or backend_aware_database_params["username"],
         password=backend_aware_database_params["password"],
-        validate_certs=websocket_sslopt.get("cert_reqs") != ssl.CERT_NONE,
-        certificate_fingerprint=fingerprint,
+        validate_certs=validate_certs,
+        certificate_fingerprint=effective_fingerprint,
     )
 
 
@@ -315,6 +325,42 @@ def _parse_pyexasol_dsn(dsn: str) -> tuple[str, str | None, int]:
     else:
         host, fingerprint = address, None
     return host, fingerprint, int(port_text)
+
+
+def _backend_certificate_fingerprint(
+    backend_aware_database_params: dict[str, Any],
+    *,
+    dsn_fingerprint: str | None,
+    host: str,
+    port: int,
+    validate_certs: bool,
+) -> str | None:
+    if dsn_fingerprint:
+        return dsn_fingerprint
+
+    configured_fingerprint = backend_aware_database_params.get(
+        "certificate_fingerprint"
+    ) or os.environ.get("EXASOL_CERTIFICATE_FINGERPRINT")
+    if configured_fingerprint:
+        fingerprint = str(configured_fingerprint).strip()
+        if fingerprint:
+            return fingerprint
+
+    if validate_certs:
+        return None
+
+    return _certificate_fingerprint_for_endpoint(host, port)
+
+
+def _certificate_fingerprint_for_endpoint(host: str, port: int) -> str:
+    context = ssl.create_default_context()
+    context.check_hostname = False
+    context.verify_mode = ssl.CERT_NONE
+
+    with socket.create_connection((host, port)) as tcp_socket:
+        with context.wrap_socket(tcp_socket, server_hostname=host) as tls_socket:
+            certificate = tls_socket.getpeercert(binary_form=True)
+    return sha256(certificate).hexdigest().upper()
 
 
 def _required_executable(name: str) -> str:

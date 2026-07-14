@@ -163,16 +163,15 @@ def test_build_exasol_connect_kwargs_keeps_default_ssl_validation() -> None:
 
 
 def test_build_exasol_connect_kwargs_disables_ssl_validation_without_ca_cert() -> None:
-    """Verify validation can be disabled without providing CA certificates."""
-    kwargs = exasol_query.build_exasol_connect_kwargs(
-        {
-            "login_user": "sys",
-            "login_password": "secret",
-            "validate_certs": False,
-        }
-    )
-
-    assert kwargs["websocket_sslopt"] == {"cert_reqs": ssl.CERT_NONE}
+    """Verify fully untrusted TLS sessions are rejected."""
+    with pytest.raises(ValueError, match="certificate_fingerprint"):
+        exasol_query.build_exasol_connect_kwargs(
+            {
+                "login_user": "sys",
+                "login_password": "secret",
+                "validate_certs": False,
+            }
+        )
 
 
 def test_build_exasol_connect_kwargs_merges_ca_cert_ssl_options() -> None:
@@ -230,13 +229,14 @@ def test_build_exasol_connect_kwargs_uses_ca_cert_with_default_validation() -> N
     }
 
 
-def test_build_exasol_connect_kwargs_ignores_ca_cert_without_validation() -> None:
-    """Verify CA certificates are ignored when TLS validation is disabled."""
+def test_build_exasol_connect_kwargs_ignores_ca_cert_for_fingerprint_pinning() -> None:
+    """Verify CA certificates are ignored when fingerprint pinning disables CA validation."""
     kwargs = exasol_query.build_exasol_connect_kwargs(
         {
             "login_user": "sys",
             "login_password": "secret",
             "validate_certs": False,
+            "certificate_fingerprint": "ABCDEF",
             "ca_cert": "/etc/exasol/ca.pem",
         }
     )
@@ -640,11 +640,13 @@ def test_connect_to_exasol_raises_runtime_error_when_pyexasol_is_missing(
     monkeypatch.delitem(sys.modules, "pyexasol", raising=False)
     monkeypatch.setattr(builtins, "__import__", import_without_pyexasol)
 
+    connection_context = exasol_query.connect_to_exasol(
+        {"login_user": "sys", "login_password": "secret"},
+        module_name="my_ansible_module",
+    )
+
     with pytest.raises(
         RuntimeError, match="pyexasol is required to use my_ansible_module"
     ):
-        with exasol_query.connect_to_exasol(
-            {"login_user": "sys", "login_password": "secret"},
-            module_name="my_ansible_module",
-        ):
+        with connection_context:
             pytest.fail("context manager should not yield a connection")
