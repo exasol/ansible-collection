@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import pytest
-
-from exasol.ansible_modules import exasol_query
-
-from .integration_common import (
+from integration_common import (
     catalog_count,
     unique_name,
 )
+
+from exasol.ansible_modules import exasol_query
 
 
 @pytest.mark.integration
@@ -18,6 +17,7 @@ def test_query_runtime_executes_write_query_against_backend(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify the query runtime can execute write SQL through its run helper."""
+    scenario_id = "exasol-query-execute-write-query-against-backend"
     schema_name = unique_name("ANSIBLE_PYTHON_SCHEMA")
     create_result = exasol_query.run_query(
         {
@@ -44,6 +44,7 @@ def test_query_runtime_executes_read_query_against_backend(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify the query runtime can execute read-only SQL through its run helper."""
+    scenario_id = "exasol-query-execute-read-query-against-backend"
     query = "SELECT 1 AS TEST_VALUE"
 
     result = exasol_query.run_query(
@@ -64,6 +65,7 @@ def test_query_runtime_check_mode_ignores_read_only_query(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify query check mode keeps read-only statements on the execution path."""
+    scenario_id = "exasol-query-check-mode-ignores-read-only-query"
     query = (
         "SELECT PARAM_VALUE FROM EXA_METADATA "
         "WHERE PARAM_NAME = 'databaseProductVersion'"

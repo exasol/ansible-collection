@@ -5,16 +5,15 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from integration_common import (
+    catalog_count,
+    execute_sql,
+    unique_name,
+)
 
 from exasol.ansible_modules import (
     exasol_query,
     exasol_user,
-)
-
-from .integration_common import (
-    catalog_count,
-    execute_sql,
-    unique_name,
 )
 
 
@@ -24,6 +23,7 @@ def test_user_runtime_creates_missing_user(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify the user runtime creates a missing user."""
+    scenario_id = "exasol-user-create-missing-user"
     user_name = unique_name("ANSIBLE_PYTHON_USER")
     initial_password = f"Initial_{uuid.uuid4().hex}"
 
@@ -58,6 +58,7 @@ def test_user_runtime_leaves_existing_user_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify the user runtime reports no changes for an existing user."""
+    scenario_id = "exasol-user-leave-existing-user-unchanged"
     user_name = unique_name("ANSIBLE_PYTHON_USER")
     initial_password = f"Initial_{uuid.uuid4().hex}"
 
@@ -95,6 +96,7 @@ def test_user_runtime_updates_existing_user_password(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify the user runtime updates an existing user's password."""
+    scenario_id = "exasol-user-update-existing-user-password"
     user_name = unique_name("ANSIBLE_PYTHON_USER")
     initial_password = f"Initial_{uuid.uuid4().hex}"
     rotated_password = f"Rotated_{uuid.uuid4().hex}"
@@ -146,6 +148,7 @@ def test_user_runtime_drops_existing_user(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify the user runtime drops an existing user."""
+    scenario_id = "exasol-user-drop-existing-user"
     user_name = unique_name("ANSIBLE_PYTHON_USER")
     initial_password = f"Initial_{uuid.uuid4().hex}"
 
@@ -183,6 +186,7 @@ def test_user_runtime_check_mode_predicts_create_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify user check mode reports creation without persisting the user."""
+    scenario_id = "exasol-user-check-mode-predicts-create-without-writing"
     user_name = unique_name("ANSIBLE_PYTHON_USER")
     password = f"Initial_{uuid.uuid4().hex}"
 
@@ -217,6 +221,7 @@ def test_user_runtime_check_mode_predicts_drop_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify user check mode reports drop without removing the user."""
+    scenario_id = "exasol-user-check-mode-predicts-drop-without-writing"
     user_name = unique_name("ANSIBLE_PYTHON_USER")
     password = f"Initial_{uuid.uuid4().hex}"
 

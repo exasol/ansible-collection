@@ -13,9 +13,13 @@ import pytest
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-ACCEPTANCE_ROOT = PROJECT_ROOT / "test" / "integration" / "acceptance"
-ACCEPTANCE_COMMON_ROOT = PROJECT_ROOT / "test" / "integration" / "acceptance_common"
+INTEGRATION_ROOT = PROJECT_ROOT / "test" / "integration"
+ANSIBLE_PLAYBOOK_TEST_ROOT = INTEGRATION_ROOT / "ansible_playbook"
+ANSIBLE_MODULES_TEST_ROOT = INTEGRATION_ROOT / "ansible_modules"
+ACCEPTANCE_COMMON_ROOT = INTEGRATION_ROOT / "acceptance_common"
 SPEC_ROOT = PROJECT_ROOT / "specs"
+ANSIBLE_PLAYBOOK_SPEC_ROOT = SPEC_ROOT / "ansible_playbook"
+ANSIBLE_MODULES_SPEC_ROOT = SPEC_ROOT / "ansible_modules"
 SCENARIO_ID_PATTERN = re.compile(r"^[a-z0-9-]+$")
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 
@@ -27,15 +31,35 @@ class Scenario:
     scenario_id: str
 
 
-def _acceptance_contract_files() -> list[object]:
+def _spec_module_names(spec_root: Path) -> set[str]:
+    return {path.stem for path in spec_root.glob("*.feature")}
+
+
+def _test_module_names(test_root: Path) -> set[str]:
+    return {path.stem.removeprefix("test_") for path in test_root.glob("test_*.py")}
+
+
+def test_ansible_playbook_specs_and_tests_are_in_sync() -> None:
+    """Verify every ansible-playbook spec has a matching test, and vice versa."""
+    assert _spec_module_names(ANSIBLE_PLAYBOOK_SPEC_ROOT) == _test_module_names(
+        ANSIBLE_PLAYBOOK_TEST_ROOT
+    )
+
+
+def test_ansible_modules_specs_and_tests_are_in_sync() -> None:
+    """Verify every ansible-modules spec has a matching test, and vice versa."""
+    assert _spec_module_names(ANSIBLE_MODULES_SPEC_ROOT) == _test_module_names(
+        ANSIBLE_MODULES_TEST_ROOT
+    )
+
+
+def _contract_files(spec_root: Path, test_root: Path, id_prefix: str) -> list[object]:
     params: list[object] = []
-    for spec_file in sorted(SPEC_ROOT.glob("*.feature")):
-        module_name = spec_file.stem
-        module_dir = ACCEPTANCE_ROOT / module_name
-        spec_file = SPEC_ROOT / f"{module_name}.feature"
-        playbook_file = module_dir / f"{module_name}_playbook.yml"
-        acceptance_file = _acceptance_file(module_name, module_dir)
-        if not (spec_file.exists() and acceptance_file.exists()):
+    for module_name in sorted(_spec_module_names(spec_root)):
+        spec_file = spec_root / f"{module_name}.feature"
+        acceptance_file = test_root / f"test_{module_name}.py"
+        playbook_file = test_root / module_name / f"{module_name}_playbook.yml"
+        if not acceptance_file.exists():
             continue
 
         params.append(
@@ -43,24 +67,23 @@ def _acceptance_contract_files() -> list[object]:
                 spec_file,
                 playbook_file if playbook_file.exists() else None,
                 acceptance_file,
-                id=module_name,
+                id=f"{id_prefix}-{module_name}",
             )
         )
 
     return params
 
 
-def _acceptance_file(module_name: str, module_dir: Path) -> Path:
-    parent_file = ACCEPTANCE_ROOT / f"test_acceptance_{module_name}.py"
-    if parent_file.exists():
-        return parent_file
-
-    return module_dir / f"test_acceptance_{module_name}.py"
-
-
 @pytest.mark.parametrize(
     ("spec_file", "playbook_file", "acceptance_file"),
-    _acceptance_contract_files(),
+    [
+        *_contract_files(
+            ANSIBLE_PLAYBOOK_SPEC_ROOT, ANSIBLE_PLAYBOOK_TEST_ROOT, "ansible_playbook"
+        ),
+        *_contract_files(
+            ANSIBLE_MODULES_SPEC_ROOT, ANSIBLE_MODULES_TEST_ROOT, "ansible_modules"
+        ),
+    ],
 )
 def test_spec_scenarios_match_acceptance_scenarios(
     spec_file: Path,
@@ -79,11 +102,46 @@ def test_spec_scenarios_match_acceptance_scenarios(
     _assert_scenario_ids_declared_once(playbook_file, scenarios)
 
 
-def test_acceptance_root_contains_only_acceptance_tests_or_module_directories() -> None:
-    """Verify direct acceptance files follow the acceptance-test naming convention."""
-    direct_files = sorted(path for path in ACCEPTANCE_ROOT.iterdir() if path.is_file())
+def test_ansible_playbook_root_contains_only_ansible_playbook_tests() -> None:
+    """Verify direct ansible-playbook test files follow the naming convention."""
+    direct_files = sorted(
+        path for path in ANSIBLE_PLAYBOOK_TEST_ROOT.iterdir() if path.is_file()
+    )
 
-    assert all(path.name.startswith("test_acceptance_") for path in direct_files)
+    assert all(
+        path.suffix != ".py" or path.name.endswith("_ansible_playbook.py")
+        for path in direct_files
+    )
+
+
+def test_ansible_playbook_spec_root_contains_only_feature_files() -> None:
+    """Verify direct ansible-playbook spec files are Gherkin feature files."""
+    direct_files = sorted(
+        path for path in ANSIBLE_PLAYBOOK_SPEC_ROOT.iterdir() if path.is_file()
+    )
+
+    assert all(path.suffix == ".feature" for path in direct_files)
+
+
+def test_ansible_modules_root_contains_only_ansible_modules_tests() -> None:
+    """Verify direct ansible-modules test files follow the naming convention."""
+    direct_files = sorted(
+        path for path in ANSIBLE_MODULES_TEST_ROOT.iterdir() if path.is_file()
+    )
+
+    assert all(
+        path.suffix != ".py" or path.name.endswith("_ansible_modules.py")
+        for path in direct_files
+    )
+
+
+def test_ansible_modules_spec_root_contains_only_feature_files() -> None:
+    """Verify direct ansible-modules spec files are Gherkin feature files."""
+    direct_files = sorted(
+        path for path in ANSIBLE_MODULES_SPEC_ROOT.iterdir() if path.is_file()
+    )
+
+    assert all(path.suffix == ".feature" for path in direct_files)
 
 
 def test_acceptance_playbook_template_defines_one_scenario_placeholder() -> None:
@@ -251,9 +309,8 @@ def test_cleanup_database_object_filters_skip_system_principals() -> None:
 
 
 def _acceptance_common_module() -> Any:
-    integration_root = PROJECT_ROOT / "test" / "integration"
-    if str(integration_root) not in sys.path:
-        sys.path.insert(0, str(integration_root))
+    if str(INTEGRATION_ROOT) not in sys.path:
+        sys.path.insert(0, str(INTEGRATION_ROOT))
 
     from acceptance_common import acceptance_test_common
 
@@ -273,7 +330,7 @@ def _spec_scenarios(path: Path) -> list[Scenario]:
         if not stripped.startswith("Scenario: "):
             continue
 
-        assert pending_tags, f"{path}: Scenario '{scenario_name}' needs an @id tag"
+        assert pending_tags, f"{path}: Scenario '{stripped}' needs an @id tag"
         scenario_id = pending_tags[0].removeprefix("@")
         assert SCENARIO_ID_PATTERN.fullmatch(scenario_id)
         scenarios.append(Scenario(scenario_id=scenario_id))

@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import pytest
-
-from exasol.ansible_modules import (
-    exasol_role,
-)
-
-from .integration_common import (
+from integration_common import (
     catalog_count,
     execute_sql,
     unique_name,
+)
+
+from exasol.ansible_modules import (
+    exasol_role,
 )
 
 
@@ -21,6 +20,7 @@ def test_role_runtime_creates_missing_role(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify the role runtime creates a missing role."""
+    scenario_id = "exasol-role-create-missing-role"
     role_name = unique_name("ANSIBLE_PYTHON_ROLE")
 
     create_result = exasol_role.run_role(
@@ -50,6 +50,7 @@ def test_role_runtime_leaves_existing_role_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify the role runtime reports no changes for an existing role."""
+    scenario_id = "exasol-role-leave-existing-role-unchanged"
     role_name = unique_name("ANSIBLE_PYTHON_ROLE")
     execute_sql(exasol_login_vars, f'CREATE ROLE "{role_name}"')
 
@@ -80,6 +81,7 @@ def test_role_runtime_drops_existing_role(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify the role runtime drops an existing role."""
+    scenario_id = "exasol-role-drop-existing-role"
     role_name = unique_name("ANSIBLE_PYTHON_ROLE")
     execute_sql(exasol_login_vars, f'CREATE ROLE "{role_name}"')
 
@@ -112,6 +114,7 @@ def test_role_runtime_check_mode_predicts_create_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify role check mode reports creation without persisting the role."""
+    scenario_id = "exasol-role-check-mode-predicts-create-without-writing"
     role_name = unique_name("ANSIBLE_PYTHON_ROLE")
 
     predicted_result = exasol_role.run_role(
@@ -141,6 +144,7 @@ def test_role_runtime_check_mode_predicts_drop_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify role check mode reports drop without removing the role."""
+    scenario_id = "exasol-role-check-mode-predicts-drop-without-writing"
     role_name = unique_name("ANSIBLE_PYTHON_ROLE")
     execute_sql(exasol_login_vars, f'CREATE ROLE "{role_name}"')
 
