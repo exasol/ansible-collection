@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from test.integration.integration_common import (
+from .integration_common import (
     catalog_count,
     execute_sql,
     unique_name,
