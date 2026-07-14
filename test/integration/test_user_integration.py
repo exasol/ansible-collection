@@ -103,6 +103,7 @@ def test_user_runtime_updates_existing_user_password(
         exasol_login_vars,
         f'CREATE USER "{user_name}" IDENTIFIED BY "{initial_password}"',
     )
+    execute_sql(exasol_login_vars, f'GRANT CREATE SESSION TO "{user_name}"')
 
     update_result = exasol_user.run_user(
         {
