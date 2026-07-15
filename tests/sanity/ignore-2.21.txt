@@ -1,3 +1,4 @@
 plugins/modules/exasol_query.py validate-modules:missing-gplv3-license # It's OK to use a different license than GPL, see https://access.redhat.com/articles/4916901
 plugins/modules/exasol_role.py validate-modules:missing-gplv3-license
 plugins/modules/exasol_user.py validate-modules:missing-gplv3-license
+plugins/modules/exasol_init.py validate-modules:missing-gplv3-license

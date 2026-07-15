@@ -14,6 +14,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
     "module_path",
     [
         PROJECT_ROOT / "plugins" / "modules" / "exasol_user.py",
+        PROJECT_ROOT / "plugins" / "modules" / "exasol_init.py",
     ],
 )
 def test_module_defines_documentation_examples_and_return(module_path: Path) -> None:

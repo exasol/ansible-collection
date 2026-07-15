@@ -51,3 +51,20 @@ def execute_sql(login_vars: dict[str, object], query: str) -> None:
         module_name="python package integration test",
     ) as connection:
         connection.execute(query)
+
+
+def query_row_count(login_vars: dict[str, object], query: str) -> int:
+    """Read one row count for an arbitrary query aliased as ROW_COUNT.
+
+    The query must select exactly one column, aliased C(AS ROW_COUNT), so
+    multi-column existence checks (for example role or schema grants) can
+    reuse this helper instead of catalog_count's single-column equality
+    shape.
+    """
+    with exasol_query.connect_to_exasol(
+        login_vars,
+        module_name="python package integration test",
+    ) as connection:
+        rows = connection.execute(query).fetchall()
+
+    return row_int(rows[0], "ROW_COUNT")
