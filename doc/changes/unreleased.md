@@ -6,6 +6,7 @@
 * Prepare publishing to Ansible Galaxy
 * Only include required files into the uploaded bundle
 * Implemented exasol_role module
+* Implemented exasol_grants module
 * Replaced stale GPL module headers with MIT references
 
 ## Security
@@ -16,6 +17,7 @@
 
 * #38: Support exact Exasol user and role identifiers
 * #36: Implement exasol_role module
+* #80: Implement exasol_grants module
 * #48: Automate publishing to Ansible Galaxy
 
 ## Refactorings
