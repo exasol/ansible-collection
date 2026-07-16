@@ -54,6 +54,6 @@ playbooks and direct calls to the runtime package's high-level entry point.
 
 - [x] Run the scenario synchronization contract tests
 - [x] Run targeted schema unit tests and collect the integration tests
-- [ ] Run the schema integration tests against an Exasol backend
+- [x] Run the schema integration tests against an Exasol backend
 - [x] Run formatting checks
 - [x] Run `poetry run nox -s requirements:trace`

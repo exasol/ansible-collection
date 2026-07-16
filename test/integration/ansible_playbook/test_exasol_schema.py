@@ -466,16 +466,20 @@ def _schema_count(login_vars: dict[str, object], schema_name: str) -> int:
 
 
 def _stored_schema_names(login_vars: dict[str, object], schema_name: str) -> list[str]:
+    schema_name_literal = _sql_string_literal(schema_name)
     connection = connect_to_exasol(login_vars)
     try:
         rows = connection.execute(
             "SELECT SCHEMA_NAME FROM EXA_SCHEMAS "
-            "WHERE UPPER(SCHEMA_NAME) = UPPER(:schema_name)",
-            {"schema_name": schema_name},
+            f"WHERE UPPER(SCHEMA_NAME) = UPPER({schema_name_literal})"
         ).fetchall()
     finally:
         connection.close()
     return [str(_row_value(row, "SCHEMA_NAME", 0)) for row in rows]
+
+
+def _sql_string_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
 
 
 def _assert_schema_module_result(
