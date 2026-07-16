@@ -76,6 +76,32 @@ def ensure_schema(
     }
 
 
+def module_argument_spec() -> dict[str, object]:
+    """Return the Ansible-facing argument spec for the schema module."""
+    return {
+        **common_query.exasol_connection_argument_spec(),
+        "name": {"type": "str", "required": True, "aliases": ["schema"]},
+        "state": {
+            "type": "str",
+            "choices": sorted(STATES),
+            "default": DEFAULT_STATE,
+        },
+        "cascade": {"type": "bool", "default": DEFAULT_CASCADE},
+    }
+
+
+def run_schema(
+    params: Mapping[str, object],
+    check_mode: bool = False,
+) -> dict[str, object]:
+    """Connect to Exasol and manage the requested schema."""
+    with common_query.connect_to_exasol(
+        params,
+        module_name="exasol_schema",
+    ) as connection:
+        return ensure_schema(connection, params, check_mode=check_mode)
+
+
 def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
     """Sanitize schema-related errors."""
     return common_query.sanitize_error_message(error, params)

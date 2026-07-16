@@ -34,7 +34,7 @@ Feature: exasol-schema specification
   @exasol-schema-apply-unchanged
   Scenario: Applying identical schema state results in no changes
     Given an Exasol database is reachable at localhost
-    And schema "SALES" already exists after exasol_schema created it
+    And schema "SALES" already exists in EXA_SCHEMAS
     When exasol_schema runs again with:
       | name  | state   |
       | SALES | present |
@@ -46,7 +46,7 @@ Feature: exasol-schema specification
   @exasol-schema-apply-unchanged-with-different-case-spelling
   Scenario: Applying same schema with different case spelling stays idempotent
     Given an Exasol database is reachable at localhost
-    And exact-identifier schema "Sales+/=Schema" already exists after exasol_schema created it
+    And exact-identifier schema "Sales+/=Schema" already exists in EXA_SCHEMAS
     When exasol_schema runs again with:
       | name             | state   |
       | "sales+/=schema" | present |

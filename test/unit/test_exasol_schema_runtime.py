@@ -94,6 +94,20 @@ def test_ensure_schema_creates_missing_schema() -> None:
     assert "SALES" in connection.schemas
 
 
+def test_module_argument_spec_exposes_schema_specific_options() -> None:
+    """Verify the schema runtime exposes the Ansible-facing argument spec."""
+    argument_spec = exasol_schema.module_argument_spec()
+
+    assert argument_spec["name"] == {
+        "type": "str",
+        "required": True,
+        "aliases": ["schema"],
+    }
+    assert argument_spec["state"]["choices"] == ["absent", "present"]
+    assert argument_spec["state"]["default"] == "present"
+    assert argument_spec["cascade"]["default"] is False
+
+
 def test_ensure_schema_existing_schema_is_idempotent() -> None:
     """Verify existing schemas are not recreated."""
     connection = FakeConnection(schemas={"SALES"})
@@ -276,6 +290,42 @@ def test_sanitize_error_message_redacts_password() -> None:
     )
 
     assert message == "failed near SALES ********"
+
+
+def test_run_schema_uses_shared_connection_helper(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify schema execution is routed through the runtime connection helper."""
+    connection = object()
+    params = {"name": "SALES"}
+
+    class _ConnectionContext:
+        def __enter__(self) -> object:
+            return connection
+
+        def __exit__(self, exc_type: object, exc: object, tb: object) -> None:
+            return None
+
+    monkeypatch.setattr(
+        exasol_schema.common_query,
+        "connect_to_exasol",
+        lambda passed_params, module_name: _ConnectionContext(),
+    )
+    monkeypatch.setattr(
+        exasol_schema,
+        "ensure_schema",
+        lambda passed_connection, passed_params, check_mode=False: {
+            "connection": passed_connection,
+            "params": passed_params,
+            "check_mode": check_mode,
+        },
+    )
+
+    assert exasol_schema.run_schema(params, check_mode=True) == {
+        "connection": connection,
+        "params": params,
+        "check_mode": True,
+    }
 
 
 @pytest.mark.parametrize(
