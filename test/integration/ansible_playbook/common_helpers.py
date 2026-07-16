@@ -21,7 +21,7 @@ from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
 ANSIBLE_PLAYBOOK_DIR = Path(__file__).resolve().parent
-ANSIBLE_PLAYBOOK_TEST_TEMPLATE = ANSIBLE_PLAYBOOK_DIR / "test_template.yml"
+ANSIBLE_PLAYBOOK_COMMON_TEMPLATE = ANSIBLE_PLAYBOOK_DIR / "common_template.yml"
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 
 
@@ -282,13 +282,13 @@ def _write_template_playbook(
 
 
 def _render_template_playbook(scenario_playbook: str) -> str:
-    template = ANSIBLE_PLAYBOOK_TEST_TEMPLATE.read_text(encoding="utf-8")
+    template = ANSIBLE_PLAYBOOK_COMMON_TEMPLATE.read_text(encoding="utf-8")
     scenario_tasks = textwrap.indent(
         textwrap.dedent(scenario_playbook).strip("\n"),
         " " * 8,
     )
     if SCENARIO_TASKS_PLACEHOLDER not in template:
-        msg = f"{ANSIBLE_PLAYBOOK_TEST_TEMPLATE} does not define scenario placeholder"
+        msg = f"{ANSIBLE_PLAYBOOK_COMMON_TEMPLATE} does not define scenario placeholder"
         raise AssertionError(msg)
     return template.replace(SCENARIO_TASKS_PLACEHOLDER, scenario_tasks)
 

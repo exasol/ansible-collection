@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 import yaml
-from ansible_playbook.test_common import (
+from ansible_playbook.common_helpers import (
     connect_to_exasol,
     given_acceptance_context,
     then_secret_is_not_exposed,

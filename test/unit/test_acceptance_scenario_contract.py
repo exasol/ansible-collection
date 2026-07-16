@@ -35,11 +35,22 @@ def _spec_module_names(spec_root: Path) -> set[str]:
 
 
 def _test_module_names(test_root: Path) -> set[str]:
-    return {
-        path.stem.removeprefix("test_")
-        for path in test_root.glob("test_*.py")
-        if path.name != "test_common.py"
-    }
+    return {path.stem.removeprefix("test_") for path in test_root.glob("test_*.py")}
+
+
+def test_test_module_names_only_considers_test_prefixed_python_files(
+    tmp_path: Path,
+) -> None:
+    """Verify scenario discovery ignores helpers, templates, and non-Python files."""
+    for filename in (
+        "test_exasol_query.py",
+        "common_helpers.py",
+        "common_template.yml",
+        "test_template.yml",
+    ):
+        (tmp_path / filename).touch()
+
+    assert _test_module_names(tmp_path) == {"exasol_query"}
 
 
 def test_ansible_playbook_specs_and_tests_are_in_sync() -> None:
@@ -98,22 +109,10 @@ def test_spec_scenarios_match_acceptance_scenarios(
 
 
 def test_ansible_playbook_root_contains_only_test_modules() -> None:
-    """Verify the Ansible playbook directory contains tests and its template."""
-    direct_files = sorted(
-        path for path in ANSIBLE_PLAYBOOK_TEST_ROOT.iterdir() if path.is_file()
-    )
+    """Verify test-prefixed Ansible playbook files are Python test modules."""
+    test_prefixed_files = sorted(ANSIBLE_PLAYBOOK_TEST_ROOT.glob("test_*"))
 
-    assert all(
-        (
-            path.suffix == ".py"
-            and (
-                path.name in {"__init__.py", "test_common.py"}
-                or path.name.startswith("test_")
-            )
-        )
-        or path.name == "test_template.yml"
-        for path in direct_files
-    )
+    assert all(path.is_file() and path.suffix == ".py" for path in test_prefixed_files)
 
 
 def test_ansible_playbook_spec_root_contains_only_feature_files() -> None:
@@ -126,17 +125,10 @@ def test_ansible_playbook_spec_root_contains_only_feature_files() -> None:
 
 
 def test_ansible_modules_root_contains_only_test_modules() -> None:
-    """Verify direct ansible-modules Python files use the test-module prefix."""
-    direct_files = sorted(
-        path for path in ANSIBLE_MODULES_TEST_ROOT.iterdir() if path.is_file()
-    )
+    """Verify test-prefixed Ansible module files are Python test modules."""
+    test_prefixed_files = sorted(ANSIBLE_MODULES_TEST_ROOT.glob("test_*"))
 
-    assert all(
-        path.suffix != ".py"
-        or path.name in {"__init__.py", "test_common.py"}
-        or path.name.startswith("test_")
-        for path in direct_files
-    )
+    assert all(path.is_file() and path.suffix == ".py" for path in test_prefixed_files)
 
 
 def test_ansible_modules_spec_root_contains_only_feature_files() -> None:
@@ -148,9 +140,9 @@ def test_ansible_modules_spec_root_contains_only_feature_files() -> None:
     assert all(path.suffix == ".feature" for path in direct_files)
 
 
-def test_ansible_playbook_template_defines_one_scenario_placeholder() -> None:
+def test_ansible_playbook_common_template_defines_one_scenario_placeholder() -> None:
     """Verify the Ansible playbook template has one scenario insertion point."""
-    template = (ANSIBLE_PLAYBOOK_TEST_ROOT / "test_template.yml").read_text(
+    template = (ANSIBLE_PLAYBOOK_TEST_ROOT / "common_template.yml").read_text(
         encoding="utf-8"
     )
 
@@ -158,7 +150,7 @@ def test_ansible_playbook_template_defines_one_scenario_placeholder() -> None:
     assert "INSERT HERE" not in template
 
 
-def test_ansible_playbook_template_renders_inline_scenario_fragment() -> None:
+def test_ansible_playbook_common_template_renders_inline_scenario_fragment() -> None:
     """Verify inline scenario fragments are inserted as valid playbook tasks."""
     playbook_common = _ansible_playbook_common_module()
 
@@ -316,9 +308,9 @@ def _ansible_playbook_common_module() -> Any:
     if str(INTEGRATION_ROOT) not in sys.path:
         sys.path.insert(0, str(INTEGRATION_ROOT))
 
-    from ansible_playbook import test_common
+    from ansible_playbook import common_helpers
 
-    return test_common
+    return common_helpers
 
 
 def _spec_scenarios(path: Path) -> list[Scenario]:

@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from ansible_playbook.test_common import (
+from ansible_playbook.common_helpers import (
     given_acceptance_context,
     then_secret_is_not_exposed,
     when_module_scenario_runs,
 )
-from common.test_common_user import assert_user_can_log_in
+from common.user_assertions import assert_user_can_log_in
 
 MODULE_NAME = "exasol_user"
 

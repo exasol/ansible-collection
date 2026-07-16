@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from ansible_playbook.test_common import connect_to_exasol
+from ansible_playbook.common_helpers import connect_to_exasol
 
 
 def assert_user_can_log_in(

@@ -5,12 +5,12 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from ansible_modules.test_common import (
+from ansible_modules.common_helpers import (
     catalog_count,
     execute_sql,
     unique_name,
 )
-from common.test_common_user import assert_user_can_log_in
+from common.user_assertions import assert_user_can_log_in
 
 from exasol.ansible_modules import exasol_user
 
