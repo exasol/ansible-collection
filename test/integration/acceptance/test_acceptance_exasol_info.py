@@ -96,8 +96,8 @@ def test_exasol_info_check_mode(
         scenario_playbook=playbook,
     )
 
-    normal_result = result["normal_result"]["module_result"]
-    check_mode_result = result["check_mode_result"]["module_result"]
+    normal_result = result["normal_result"]
+    check_mode_result = result["check_mode_result"]
 
     assert check_mode_result["changed"] is False
     assert check_mode_result["version"] == normal_result["version"]
