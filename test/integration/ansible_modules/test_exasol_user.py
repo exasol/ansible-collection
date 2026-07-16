@@ -5,8 +5,8 @@ from __future__ import annotations
 import uuid
 
 import pytest
-from acceptance_common.test_common_user import assert_user_can_log_in
-from integration_common import (
+from common.test_common_user import assert_user_can_log_in
+from ansible_modules.test_common import (
     catalog_count,
     execute_sql,
     unique_name,

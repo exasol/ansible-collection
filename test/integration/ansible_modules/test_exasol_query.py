@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from integration_common import (
+from ansible_modules.test_common import (
     catalog_count,
     unique_name,
 )

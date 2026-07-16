@@ -28,7 +28,7 @@ COLLECTION_NAME = "exasol"
 if str(INTEGRATION_ROOT) not in sys.path:
     sys.path.insert(0, str(INTEGRATION_ROOT))
 
-from acceptance_common.acceptance_test_common import cleanup_database_objects
+from ansible_playbook.test_common import cleanup_database_objects
 
 
 @dataclass(frozen=True)

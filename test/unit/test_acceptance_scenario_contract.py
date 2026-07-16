@@ -16,7 +16,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 INTEGRATION_ROOT = PROJECT_ROOT / "test" / "integration"
 ANSIBLE_PLAYBOOK_TEST_ROOT = INTEGRATION_ROOT / "ansible_playbook"
 ANSIBLE_MODULES_TEST_ROOT = INTEGRATION_ROOT / "ansible_modules"
-ACCEPTANCE_COMMON_ROOT = INTEGRATION_ROOT / "acceptance_common"
 SPEC_ROOT = PROJECT_ROOT / "specs"
 ANSIBLE_PLAYBOOK_SPEC_ROOT = SPEC_ROOT / "ansible_playbook"
 ANSIBLE_MODULES_SPEC_ROOT = SPEC_ROOT / "ansible_modules"
@@ -36,7 +35,11 @@ def _spec_module_names(spec_root: Path) -> set[str]:
 
 
 def _test_module_names(test_root: Path) -> set[str]:
-    return {path.stem.removeprefix("test_") for path in test_root.glob("test_*.py")}
+    return {
+        path.stem.removeprefix("test_")
+        for path in test_root.glob("test_*.py")
+        if path.name != "test_common.py"
+    }
 
 
 def test_ansible_playbook_specs_and_tests_are_in_sync() -> None:
@@ -95,15 +98,20 @@ def test_spec_scenarios_match_acceptance_scenarios(
 
 
 def test_ansible_playbook_root_contains_only_test_modules() -> None:
-    """Verify direct ansible-playbook Python files use the test-module prefix."""
+    """Verify the Ansible playbook directory contains tests and its template."""
     direct_files = sorted(
         path for path in ANSIBLE_PLAYBOOK_TEST_ROOT.iterdir() if path.is_file()
     )
 
     assert all(
-        path.suffix != ".py"
-        or path.name == "__init__.py"
-        or path.name.startswith("test_")
+        (
+            path.suffix == ".py"
+            and (
+                path.name in {"__init__.py", "test_common.py"}
+                or path.name.startswith("test_")
+            )
+        )
+        or path.name == "test_template.yml"
         for path in direct_files
     )
 
@@ -125,7 +133,7 @@ def test_ansible_modules_root_contains_only_test_modules() -> None:
 
     assert all(
         path.suffix != ".py"
-        or path.name == "__init__.py"
+        or path.name in {"__init__.py", "test_common.py"}
         or path.name.startswith("test_")
         for path in direct_files
     )
@@ -140,9 +148,9 @@ def test_ansible_modules_spec_root_contains_only_feature_files() -> None:
     assert all(path.suffix == ".feature" for path in direct_files)
 
 
-def test_acceptance_playbook_template_defines_one_scenario_placeholder() -> None:
-    """Verify the shared template has one explicit scenario insertion point."""
-    template = (ACCEPTANCE_COMMON_ROOT / "acceptance_playbook_template.yml").read_text(
+def test_ansible_playbook_template_defines_one_scenario_placeholder() -> None:
+    """Verify the Ansible playbook template has one scenario insertion point."""
+    template = (ANSIBLE_PLAYBOOK_TEST_ROOT / "test_template.yml").read_text(
         encoding="utf-8"
     )
 
@@ -150,11 +158,11 @@ def test_acceptance_playbook_template_defines_one_scenario_placeholder() -> None
     assert "INSERT HERE" not in template
 
 
-def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None:
+def test_ansible_playbook_template_renders_inline_scenario_fragment() -> None:
     """Verify inline scenario fragments are inserted as valid playbook tasks."""
-    acceptance_common = _acceptance_common_module()
+    playbook_common = _ansible_playbook_common_module()
 
-    rendered = acceptance_common._render_template_playbook(
+    rendered = playbook_common._render_template_playbook(
         """
         - name: Inline scenario
           block:
@@ -173,8 +181,8 @@ def test_acceptance_playbook_template_renders_inline_scenario_fragment() -> None
 
 def test_exact_acceptance_principal_names_preserve_identifier_examples() -> None:
     """Verify exact user and role test names remain representative inputs."""
-    acceptance_common = _acceptance_common_module()
-    context = acceptance_common.AcceptanceContext(
+    playbook_common = _ansible_playbook_common_module()
+    context = playbook_common.AcceptanceContext(
         private_data_dir=Path("/tmp/private"),
         project_dir=Path("/tmp/project"),
         login_vars={},
@@ -190,7 +198,7 @@ def test_exact_acceptance_principal_names_preserve_identifier_examples() -> None
         == "ANSIBLE_ROLE_EXACT+/=Role_0123456789ABCDEF0123456789ABCDEF"
     )
     assert (
-        acceptance_common._quote_cleanup_identifier(context.exact_test_role.upper())
+        playbook_common._quote_cleanup_identifier(context.exact_test_role.upper())
         == f'"{context.exact_test_role.upper()}"'
     )
 
@@ -238,29 +246,29 @@ class FakeCatalogConnection(FakeConnection):
 def test_cleanup_database_objects_drops_all_non_system_objects(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    acceptance_common = _acceptance_common_module()
+    playbook_common = _ansible_playbook_common_module()
     connection = FakeConnection()
 
     monkeypatch.setattr(
-        acceptance_common, "connect_to_exasol", lambda login_vars: connection
+        playbook_common, "connect_to_exasol", lambda login_vars: connection
     )
     monkeypatch.setattr(
-        acceptance_common,
+        playbook_common,
         "_schema_names_to_drop",
         lambda _: ("APP_SCHEMA", "Mixed Case Schema"),
     )
     monkeypatch.setattr(
-        acceptance_common,
+        playbook_common,
         "_user_names_to_drop",
         lambda _, current_user: ("APP_USER",) if current_user == "SYS" else (),
     )
     monkeypatch.setattr(
-        acceptance_common,
+        playbook_common,
         "_role_names_to_drop",
         lambda _: ("APP_ROLE",),
     )
 
-    acceptance_common.cleanup_database_objects({"login_user": "SYS"})
+    playbook_common.cleanup_database_objects({"login_user": "SYS"})
 
     assert connection.executed == [
         'DROP SCHEMA "APP_SCHEMA" CASCADE',
@@ -272,7 +280,7 @@ def test_cleanup_database_objects_drops_all_non_system_objects(
 
 
 def test_cleanup_database_object_filters_skip_system_principals() -> None:
-    acceptance_common = _acceptance_common_module()
+    playbook_common = _ansible_playbook_common_module()
     connection = FakeCatalogConnection(
         {
             "SELECT SCHEMA_NAME FROM EXA_ALL_SCHEMAS": [
@@ -293,24 +301,24 @@ def test_cleanup_database_object_filters_skip_system_principals() -> None:
         }
     )
 
-    assert acceptance_common._schema_names_to_drop(connection) == (
+    assert playbook_common._schema_names_to_drop(connection) == (
         "SYS",
         "EXA_STATISTICS",
         "APP_SCHEMA",
     )
-    assert acceptance_common._user_names_to_drop(connection, "service_admin") == (
+    assert playbook_common._user_names_to_drop(connection, "service_admin") == (
         "APP_USER",
     )
-    assert acceptance_common._role_names_to_drop(connection) == ("APP_ROLE",)
+    assert playbook_common._role_names_to_drop(connection) == ("APP_ROLE",)
 
 
-def _acceptance_common_module() -> Any:
+def _ansible_playbook_common_module() -> Any:
     if str(INTEGRATION_ROOT) not in sys.path:
         sys.path.insert(0, str(INTEGRATION_ROOT))
 
-    from acceptance_common import acceptance_test_common
+    from ansible_playbook import test_common
 
-    return acceptance_test_common
+    return test_common
 
 
 def _spec_scenarios(path: Path) -> list[Scenario]:

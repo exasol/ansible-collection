@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from acceptance_common.acceptance_test_common import (
+from ansible_playbook.test_common import (
     given_acceptance_context,
     when_module_scenario_runs,
 )
