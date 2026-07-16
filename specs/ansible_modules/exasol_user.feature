@@ -56,6 +56,26 @@ Feature: exasol-user Ansible module runtime specification
     And executed_queries equals a CREATE USER statement and a GRANT CREATE SESSION statement
     And the user still does not exist in EXA_ALL_USERS
 
+  @exasol-user-check-mode-predicts-no-change-when-user-exists
+  Scenario: Check mode predicts no change when user exists
+    Given an Exasol database is reachable at localhost
+    And the user already exists with a password and a session grant
+    When the user runtime runs in check mode with state present and no password update
+    Then changed is false
+    And exists is true
+    And executed_queries equals []
+    And the user can still authenticate with the old password
+
+  @exasol-user-check-mode-predicts-password-update-without-writing
+  Scenario: Check mode predicts password update without writing
+    Given an Exasol database is reachable at localhost
+    And the user already exists with a password and a session grant
+    When the user runtime runs in check mode with a rotated password and update_password always
+    Then changed is true
+    And exists is true
+    And executed_queries equals a single ALTER USER statement
+    And the user can still authenticate with the old password
+
   @exasol-user-check-mode-predicts-drop-without-writing
   Scenario: Check mode predicts drop without writing
     Given an Exasol database is reachable at localhost

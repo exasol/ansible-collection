@@ -45,6 +45,16 @@ Feature: exasol-role Ansible module runtime specification
     And executed_queries equals a single CREATE ROLE statement
     And the role still does not exist in EXA_ALL_ROLES
 
+  @exasol-role-check-mode-predicts-no-action-when-role-exists
+  Scenario: Check mode predicts no action when role exists
+    Given an Exasol database is reachable at localhost
+    And the role already exists
+    When the role runtime runs in check mode with state present
+    Then changed is false
+    And exists is true
+    And executed_queries equals []
+    And the role still exists in EXA_ALL_ROLES
+
   @exasol-role-check-mode-predicts-drop-without-writing
   Scenario: Check mode predicts drop without writing
     Given an Exasol database is reachable at localhost

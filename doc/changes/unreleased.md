@@ -26,6 +26,7 @@
 * #64: Refactor exasol_user aceptance tests to use inline playbook fragments
 * #56: Add end-to-end tests for Ansible collection and Python module
 * #24: Add tests using Exasol DB versions 2025.1.11 and 2026.1.0
+* #90: Split acceptance integration tests to ansible_playbook and ansible_modules types
 
 ## Bug Fixes
 

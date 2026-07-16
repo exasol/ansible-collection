@@ -308,6 +308,15 @@ def exasol_login_vars(exasol_connection: ExasolConnection) -> dict[str, object]:
     return exasol_connection.login_vars
 
 
+@pytest.fixture
+def scenario_id(request: pytest.FixtureRequest) -> str:
+    """Return the Gherkin scenario ID attached to the current test."""
+    marker = request.node.get_closest_marker("scenario_id")
+    if marker is None or len(marker.args) != 1 or not isinstance(marker.args[0], str):
+        pytest.fail("test must declare one string-valued scenario_id marker")
+    return marker.args[0]
+
+
 @pytest.fixture(autouse=True)
 def cleanup_exasol_objects_before_test(
     request: pytest.FixtureRequest,

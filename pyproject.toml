@@ -71,6 +71,7 @@ python_files = [
 markers = [
     "integration: tests requiring external services, service containers, or Ansible runner workflows",
     "slow: tests that may start Exasol or run full runner workflows",
+    "scenario_id: links an integration test to its Gherkin scenario",
 ]
 
 [tool.coverage.report]

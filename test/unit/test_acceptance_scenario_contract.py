@@ -102,14 +102,16 @@ def test_spec_scenarios_match_acceptance_scenarios(
     _assert_scenario_ids_declared_once(playbook_file, scenarios)
 
 
-def test_ansible_playbook_root_contains_only_ansible_playbook_tests() -> None:
-    """Verify direct ansible-playbook test files follow the naming convention."""
+def test_ansible_playbook_root_contains_only_test_modules() -> None:
+    """Verify direct ansible-playbook Python files use the test-module prefix."""
     direct_files = sorted(
         path for path in ANSIBLE_PLAYBOOK_TEST_ROOT.iterdir() if path.is_file()
     )
 
     assert all(
-        path.suffix != ".py" or path.name.endswith("_ansible_playbook.py")
+        path.suffix != ".py"
+        or path.name == "__init__.py"
+        or path.name.startswith("test_")
         for path in direct_files
     )
 
@@ -123,14 +125,16 @@ def test_ansible_playbook_spec_root_contains_only_feature_files() -> None:
     assert all(path.suffix == ".feature" for path in direct_files)
 
 
-def test_ansible_modules_root_contains_only_ansible_modules_tests() -> None:
-    """Verify direct ansible-modules test files follow the naming convention."""
+def test_ansible_modules_root_contains_only_test_modules() -> None:
+    """Verify direct ansible-modules Python files use the test-module prefix."""
     direct_files = sorted(
         path for path in ANSIBLE_MODULES_TEST_ROOT.iterdir() if path.is_file()
     )
 
     assert all(
-        path.suffix != ".py" or path.name.endswith("_ansible_modules.py")
+        path.suffix != ".py"
+        or path.name == "__init__.py"
+        or path.name.startswith("test_")
         for path in direct_files
     )
 
@@ -398,16 +402,46 @@ def _acceptance_scenarios(path: Path) -> list[Scenario]:
 
 
 def _acceptance_function_scenario_id(path: Path, node: ast.FunctionDef) -> str:
-    scenario_ids = {
-        child.value
-        for child in ast.walk(node)
-        if isinstance(child, ast.Constant)
-        and isinstance(child.value, str)
-        and SCENARIO_ID_PATTERN.fullmatch(child.value)
-        and "-" in child.value
-    }
-    assert len(scenario_ids) == 1, f"{path}:{node.name} must reference one scenario id"
-    return scenario_ids.pop()
+    scenario_ids = [
+        scenario_id
+        for decorator in node.decorator_list
+        if (scenario_id := _scenario_id_marker_value(decorator)) is not None
+    ]
+    assert (
+        len(scenario_ids) == 1
+    ), f"{path}:{node.name} must declare one scenario_id marker"
+    scenario_id = scenario_ids[0]
+    assert (
+        SCENARIO_ID_PATTERN.fullmatch(scenario_id) and "-" in scenario_id
+    ), f"{path}:{node.name} has invalid scenario id {scenario_id}"
+    return scenario_id
+
+
+def _scenario_id_marker_value(decorator: ast.expr) -> str | None:
+    if (
+        not isinstance(decorator, ast.Call)
+        or len(decorator.args) != 1
+        or decorator.keywords
+    ):
+        return None
+
+    marker = decorator.func
+    if not (
+        isinstance(marker, ast.Attribute)
+        and marker.attr == "scenario_id"
+        and isinstance(marker.value, ast.Attribute)
+        and marker.value.attr == "mark"
+        and isinstance(marker.value.value, ast.Name)
+        and marker.value.value.id == "pytest"
+    ):
+        return None
+
+    value = decorator.args[0]
+    return (
+        value.value
+        if isinstance(value, ast.Constant) and isinstance(value.value, str)
+        else None
+    )
 
 
 def _assert_scenario_ids_declared_once(path: Path, scenarios: list[Scenario]) -> None:

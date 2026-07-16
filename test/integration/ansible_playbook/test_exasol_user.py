@@ -16,12 +16,12 @@ MODULE_NAME = "exasol_user"
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-create-missing-user")
 def test_exasol_user_create_missing_user(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-create-missing-user"
-
     playbook = """
     - name: Create missing user
       block:
@@ -64,12 +64,12 @@ def test_exasol_user_create_missing_user(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-preserves-exact-identifier")
 def test_exasol_user_preserves_exact_identifier(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-preserves-exact-identifier"
-
     playbook = """
     - name: Preserve exact user identifier
       block:
@@ -115,12 +115,12 @@ def test_exasol_user_preserves_exact_identifier(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-apply-unchanged")
 def test_exasol_user_apply_unchanged(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-apply-unchanged"
-
     playbook = """
     - name: Applying identical user state results in no changes
       block:
@@ -160,12 +160,12 @@ def test_exasol_user_apply_unchanged(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-apply-unchanged-with-different-case-spelling")
 def test_exasol_user_apply_unchanged_with_different_case_spelling(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-apply-unchanged-with-different-case-spelling"
-
     playbook = """
     - name: Applying same user with different case spelling stays idempotent
       block:
@@ -218,12 +218,12 @@ def test_exasol_user_apply_unchanged_with_different_case_spelling(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-change-authentication-to-ldap")
 def test_exasol_user_change_authentication_to_ldap(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-change-authentication-to-ldap"
-
     playbook = """
     - name: Change authentication to LDAP
       block:
@@ -265,12 +265,12 @@ def test_exasol_user_change_authentication_to_ldap(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-rotate-password")
 def test_exasol_user_rotate_password(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-rotate-password"
-
     playbook = """
     - name: Rotate password
       block:
@@ -313,12 +313,12 @@ def test_exasol_user_rotate_password(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-check-mode-create")
 def test_exasol_user_check_mode_create(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-check-mode-create"
-
     playbook = """
     - name: Check mode predicts create
       block:
@@ -362,12 +362,12 @@ def test_exasol_user_check_mode_create(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-check-mode-update-ldap")
 def test_exasol_user_check_mode_update_ldap(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-check-mode-update-ldap"
-
     playbook = """
     - name: Check mode predicts LDAP update
       block:
@@ -411,12 +411,12 @@ def test_exasol_user_check_mode_update_ldap(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-check-mode-drop")
 def test_exasol_user_check_mode_drop(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-check-mode-drop"
-
     playbook = """
     - name: Check mode predicts drop
       block:
@@ -457,12 +457,12 @@ def test_exasol_user_check_mode_drop(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-drop-existing-user")
 def test_exasol_user_drop_existing_user(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-drop-existing-user"
-
     playbook = """
     - name: Drop existing user
       block:
@@ -502,12 +502,12 @@ def test_exasol_user_drop_existing_user(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-user-drop-missing-user")
 def test_exasol_user_drop_missing_user(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-user-drop-missing-user"
-
     playbook = """
     - name: Drop missing user
       block:

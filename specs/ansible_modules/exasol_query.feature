@@ -24,3 +24,12 @@ Feature: exasol-query Ansible module runtime specification
     When the query runtime executes a read-only metadata query
     Then changed is false
     And query_result is not empty
+
+  @exasol-query-check-mode-predicts-write-without-execution
+  Scenario: Predict a write query without executing it in check mode
+    Given an Exasol database is reachable at localhost
+    When the query runtime executes a CREATE SCHEMA statement in check mode
+    Then changed is true
+    And executed_queries equals the planned CREATE SCHEMA statement
+    And query_result is empty
+    And the created schema does not exist in EXA_ALL_SCHEMAS
