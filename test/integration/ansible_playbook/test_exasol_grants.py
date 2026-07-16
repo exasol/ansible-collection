@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Any
+
+import pytest
 from ansible_playbook.common_helpers import (
     connect_to_exasol,
     given_acceptance_context,
     when_module_scenario_runs,
 )
-from typing import Any
-
-import pytest
 
 from exasol.ansible_modules.common_identifier_validation import (
     quote_exact_identifier,
@@ -133,9 +133,7 @@ def test_exasol_grants_system_privilege_idempotent(
 
 @pytest.mark.integration
 @pytest.mark.slow
-@pytest.mark.scenario_id(
-    "exasol-grants-grant-multiple-system-and-object-privileges"
-)
+@pytest.mark.scenario_id("exasol-grants-grant-multiple-system-and-object-privileges")
 def test_exasol_grants_grant_multiple_system_and_object_privileges(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -324,9 +322,7 @@ def test_exasol_grants_revoke_existing_schema_object_privilege(
 
 @pytest.mark.integration
 @pytest.mark.slow
-@pytest.mark.scenario_id(
-    "exasol-grants-absent-schema-object-privilege-idempotent"
-)
+@pytest.mark.scenario_id("exasol-grants-absent-schema-object-privilege-idempotent")
 def test_exasol_grants_absent_schema_object_privilege_idempotent(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
