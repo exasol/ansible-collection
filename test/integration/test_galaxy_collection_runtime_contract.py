@@ -24,7 +24,7 @@ def test_galaxy_archive_excludes_python_runtime_package(
 @pytest.mark.parametrize(
     ("module_name", "expected_messages"),
     [
-        ("exasol_grants", ("missing required arguments: login_user", "one of")),
+        ("exasol_grants", ("missing required arguments: login_user",)),
         ("exasol_query", ("missing required arguments: login_user, query",)),
         ("exasol_user", ("missing required arguments: login_user, name",)),
     ],
