@@ -5,16 +5,14 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from acceptance_common.test_common_user import assert_user_can_log_in
 from integration_common import (
     catalog_count,
     execute_sql,
     unique_name,
 )
 
-from exasol.ansible_modules import (
-    exasol_query,
-    exasol_user,
-)
+from exasol.ansible_modules import exasol_user
 
 
 @pytest.mark.integration
@@ -122,15 +120,7 @@ def test_user_runtime_updates_existing_user_password(
         object_name=user_name,
         result_key="USER_COUNT",
     )
-    with exasol_query.connect_to_exasol(
-        {
-            **exasol_login_vars,
-            "login_user": user_name,
-            "login_password": rotated_password,
-        },
-        module_name="python package integration test",
-    ) as connection:
-        login_rows = connection.execute("SELECT 1 AS LOGIN_OK").fetchall()
+    assert_user_can_log_in(exasol_login_vars, user_name, rotated_password)
 
     assert update_result["changed"] is True
     assert update_result["user"] == user_name
@@ -139,7 +129,6 @@ def test_user_runtime_updates_existing_user_password(
         f'ALTER USER "{user_name}" IDENTIFIED BY "********"'
     ]
     assert user_count == 1
-    assert login_rows == [{"LOGIN_OK": 1}]
 
 
 @pytest.mark.integration
@@ -238,21 +227,12 @@ def test_user_runtime_check_mode_predicts_no_change_when_user_exists(
         },
         check_mode=True,
     )
-    with exasol_query.connect_to_exasol(
-        {
-            **exasol_login_vars,
-            "login_user": user_name,
-            "login_password": old_password,
-        },
-        module_name="python package integration test",
-    ) as connection:
-        login_rows = connection.execute("SELECT 1 AS LOGIN_OK").fetchall()
+    assert_user_can_log_in(exasol_login_vars, user_name, old_password)
 
     assert unchanged_result["changed"] is False
     assert unchanged_result["user"] == user_name
     assert unchanged_result["exists"] is True
     assert unchanged_result["executed_queries"] == []
-    assert login_rows == [{"LOGIN_OK": 1}]
 
 
 @pytest.mark.integration
@@ -283,15 +263,7 @@ def test_user_runtime_check_mode_predicts_password_update_without_writing(
         },
         check_mode=True,
     )
-    with exasol_query.connect_to_exasol(
-        {
-            **exasol_login_vars,
-            "login_user": user_name,
-            "login_password": old_password,
-        },
-        module_name="python package integration test",
-    ) as connection:
-        login_rows = connection.execute("SELECT 1 AS LOGIN_OK").fetchall()
+    assert_user_can_log_in(exasol_login_vars, user_name, old_password)
 
     assert predicted_result["changed"] is True
     assert predicted_result["user"] == user_name
@@ -299,7 +271,6 @@ def test_user_runtime_check_mode_predicts_password_update_without_writing(
     assert predicted_result["executed_queries"] == [
         f'ALTER USER "{user_name}" IDENTIFIED BY "********"'
     ]
-    assert login_rows == [{"LOGIN_OK": 1}]
 
 
 @pytest.mark.integration

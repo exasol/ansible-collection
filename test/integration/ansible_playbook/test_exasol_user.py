@@ -10,6 +10,7 @@ from acceptance_common.acceptance_test_common import (
     then_secret_is_not_exposed,
     when_module_scenario_runs,
 )
+from acceptance_common.test_common_user import assert_user_can_log_in
 
 MODULE_NAME = "exasol_user"
 
@@ -305,6 +306,9 @@ def test_exasol_user_rotate_password(
         changed=True,
         exists=True,
         executed_queries_len=1,
+    )
+    assert_user_can_log_in(
+        context.login_vars, context.test_user, context.test_user_rotated_password
     )
 
     then_secret_is_not_exposed(result, context.test_user_password)
