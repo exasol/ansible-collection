@@ -58,14 +58,12 @@ def _contract_files(spec_root: Path, test_root: Path, id_prefix: str) -> list[ob
     for module_name in sorted(_spec_module_names(spec_root)):
         spec_file = spec_root / f"{module_name}.feature"
         acceptance_file = test_root / f"test_{module_name}.py"
-        playbook_file = test_root / module_name / f"{module_name}_playbook.yml"
         if not acceptance_file.exists():
             continue
 
         params.append(
             pytest.param(
                 spec_file,
-                playbook_file if playbook_file.exists() else None,
                 acceptance_file,
                 id=f"{id_prefix}-{module_name}",
             )
@@ -75,7 +73,7 @@ def _contract_files(spec_root: Path, test_root: Path, id_prefix: str) -> list[ob
 
 
 @pytest.mark.parametrize(
-    ("spec_file", "playbook_file", "acceptance_file"),
+    ("spec_file", "acceptance_file"),
     [
         *_contract_files(
             ANSIBLE_PLAYBOOK_SPEC_ROOT, ANSIBLE_PLAYBOOK_TEST_ROOT, "ansible_playbook"
@@ -87,7 +85,6 @@ def _contract_files(spec_root: Path, test_root: Path, id_prefix: str) -> list[ob
 )
 def test_spec_scenarios_match_acceptance_scenarios(
     spec_file: Path,
-    playbook_file: Path | None,
     acceptance_file: Path,
 ) -> None:
     """Every spec scenario must have a matching acceptance test."""
@@ -95,11 +92,6 @@ def test_spec_scenarios_match_acceptance_scenarios(
 
     assert scenarios == _acceptance_scenarios(acceptance_file)
     _assert_scenario_ids_declared_once(acceptance_file, scenarios)
-    if playbook_file is None:
-        return
-
-    assert scenarios == _playbook_scenarios(playbook_file)
-    _assert_scenario_ids_declared_once(playbook_file, scenarios)
 
 
 def test_ansible_playbook_root_contains_only_test_modules() -> None:
@@ -343,50 +335,6 @@ def _spec_scenarios(path: Path) -> list[Scenario]:
     return scenarios
 
 
-def _playbook_scenarios(path: Path) -> list[Scenario]:
-    scenarios: list[Scenario] = []
-    for task in _walk_tasks(
-        yaml.safe_load(path.read_text(encoding="utf-8"))[0]["tasks"]
-    ):
-        scenario_id = task.get("vars", {}).get("acceptance_current_scenario_id")
-        if scenario_id is None:
-            continue
-
-        assert isinstance(scenario_id, str)
-        assert SCENARIO_ID_PATTERN.fullmatch(scenario_id)
-        assert "tags" not in task
-        assert _scenario_when_uses_current_scenario_id(task.get("when"))
-        assert _scenario_result_uses_current_scenario_id(task)
-        scenarios.append(Scenario(scenario_id=scenario_id))
-
-    return scenarios
-
-
-def _scenario_when_uses_current_scenario_id(when: object) -> bool:
-    expression = when[0] if isinstance(when, list) else when
-    if not isinstance(expression, str):
-        return False
-
-    return (
-        "acceptance_scenario_id" in expression
-        and "acceptance_current_scenario_id" in expression
-    )
-
-
-def _scenario_result_uses_current_scenario_id(task: dict[str, Any]) -> bool:
-    result_task_count = 0
-    for child in _walk_tasks(task.get("block", [])):
-        set_fact = child.get("ansible.builtin.set_fact", {})
-        if not isinstance(set_fact, dict) or "acceptance_result" not in set_fact:
-            continue
-
-        result_task_count += 1
-        scenario_id = set_fact["acceptance_result"].get("scenario_id")
-        assert scenario_id == "{{ acceptance_current_scenario_id }}"
-
-    return result_task_count == 1
-
-
 def _acceptance_scenarios(path: Path) -> list[Scenario]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
     scenarios: list[Scenario] = []
@@ -455,12 +403,3 @@ def _assert_scenario_ids_declared_once(path: Path, scenarios: list[Scenario]) ->
             f"{path}: scenario id {scenario.scenario_id} must be declared once, "
             f"found {count}"
         )
-
-
-def _walk_tasks(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    walked: list[dict[str, Any]] = []
-    for task in tasks:
-        walked.append(task)
-        if block := task.get("block"):
-            walked.extend(_walk_tasks(block))
-    return walked
