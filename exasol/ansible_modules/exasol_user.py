@@ -267,7 +267,7 @@ def _alter_user_password_statement(user_name: str, password: str) -> UserStateme
 
 def _alter_user_ldap_statement(user_name: str, ldap_dn: str) -> UserStatement:
     quoted_user = quote_exact_identifier_value(user_name, identifier_type="user")
-    quoted_ldap_dn = _quote_sql_string_literal(ldap_dn)
+    quoted_ldap_dn = common_query.quote_sql_string_literal(ldap_dn)
 
     return UserStatement(
         actual=f"ALTER USER {quoted_user} IDENTIFIED AT LDAP AS {quoted_ldap_dn}",
@@ -315,28 +315,12 @@ def _authentication_statement(
 
 
 def _ldap_authentication_statement(ldap_dn: str) -> UserStatement:
-    quoted_ldap_dn = _quote_sql_string_literal(ldap_dn)
+    quoted_ldap_dn = common_query.quote_sql_string_literal(ldap_dn)
 
     return UserStatement(
         actual=f"IDENTIFIED AT LDAP AS {quoted_ldap_dn}",
         public=f"IDENTIFIED AT LDAP AS '{REDACTED}'",
     )
-
-
-def _quote_sql_string_literal(value: str) -> str:
-    if not isinstance(value, str):
-        raise ValueError("Exasol LDAP distinguished name must be a string.")
-
-    if not value:
-        raise ValueError("Exasol LDAP distinguished name must not be empty.")
-
-    if "\x00" in value:
-        raise ValueError(
-            "Exasol LDAP distinguished name must not contain NUL characters."
-        )
-
-    escaped = value.replace("'", "''")
-    return f"'{escaped}'"
 
 
 def _state(params: Mapping[str, object]) -> str:

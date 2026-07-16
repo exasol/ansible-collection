@@ -296,6 +296,20 @@ def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
     return message
 
 
+def quote_sql_string_literal(value: str) -> str:
+    """Quote a string value for use as an Exasol SQL literal."""
+    if not isinstance(value, str):
+        raise ValueError("Exasol SQL string literal value must be a string.")
+
+    if "\x00" in value:
+        raise ValueError(
+            "Exasol SQL string literal value must not contain NUL characters."
+        )
+
+    escaped_value = value.replace("'", "''")
+    return f"'{escaped_value}'"
+
+
 def normalize_query_list(query: object) -> list[str]:
     """Normalize an Ansible query argument into an ordered statement list."""
     if isinstance(query, str):

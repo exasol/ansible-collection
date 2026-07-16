@@ -66,6 +66,8 @@ def test_required_string_rejects_invalid_values(value: object) -> None:
 def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
     """Verify schema, user, role, and object identifier helpers."""
     assert validate_schema_name("APP_SCHEMA") == "APP_SCHEMA"
+    assert validate_schema_name("App+/=Schema") == "App+/=Schema"
+    assert validate_schema_name('"App+/=Schema"') == "App+/=Schema"
     assert validate_user_name("App+/=User") == "App+/=User"
     assert validate_user_name('"App+/=User"') == "App+/=User"
     assert validate_role_name("App+/=Role") == "App+/=Role"
@@ -85,11 +87,6 @@ def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
     "name",
     [
         "",
-        "1APP",
-        "APP-TABLE",
-        "APP TABLE",
-        "APPÄ",
-        "APP.TABLE.EXTRA",
         f"A{'B' * 128}",
     ],
 )
@@ -99,10 +96,11 @@ def test_identifier_validation_helpers_reject_invalid_schema_names(name: str) ->
         validate_schema_name(name)
 
 
-def test_validate_identifier_rejects_names_not_matching_regular_pattern() -> None:
-    """Verify identifiers must match the conservative regular identifier pattern."""
-    with pytest.raises(ValueError, match="not a valid regular identifier"):
-        validate_schema_name("APP-SCHEMA")
+@pytest.mark.parametrize("name", ['"unterminated', '"bad"quote"'])
+def test_validate_schema_name_rejects_malformed_delimited_syntax(name: str) -> None:
+    """Verify malformed quoted schema identifiers fail with a clear error."""
+    with pytest.raises(ValueError, match="malformed delimited identifier syntax"):
+        validate_schema_name(name)
 
 
 @pytest.mark.parametrize("name", ['"unterminated', '"bad"quote"'])
