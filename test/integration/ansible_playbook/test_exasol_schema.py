@@ -12,8 +12,10 @@ from ansible_playbook.common_helpers import (
     when_module_scenario_runs,
 )
 
+from exasol.ansible_modules import common_query
 from exasol.ansible_modules.common_identifier_validation import (
     quote_exact_identifier_value,
+    validate_schema_name,
 )
 
 MODULE_NAME = "exasol_schema"
@@ -466,7 +468,8 @@ def _schema_count(login_vars: dict[str, object], schema_name: str) -> int:
 
 
 def _stored_schema_names(login_vars: dict[str, object], schema_name: str) -> list[str]:
-    schema_name_literal = _sql_string_literal(schema_name)
+    normalized_schema_name = validate_schema_name(schema_name)
+    schema_name_literal = common_query.quote_sql_string_literal(normalized_schema_name)
     connection = connect_to_exasol(login_vars)
     try:
         rows = connection.execute(
@@ -476,10 +479,6 @@ def _stored_schema_names(login_vars: dict[str, object], schema_name: str) -> lis
     finally:
         connection.close()
     return [str(_row_value(row, "SCHEMA_NAME", 0)) for row in rows]
-
-
-def _sql_string_literal(value: str) -> str:
-    return "'" + value.replace("'", "''") + "'"
 
 
 def _assert_schema_module_result(

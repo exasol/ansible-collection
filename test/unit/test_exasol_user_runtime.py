@@ -392,6 +392,18 @@ def test_ensure_user_missing_password_for_alter_fails() -> None:
             "ldap_dn is required",
         ),
         (
+            {"name": "app_user", "authentication_method": "ldap", "ldap_dn": ""},
+            "ldap_dn is required",
+        ),
+        (
+            {
+                "name": "app_user",
+                "authentication_method": "ldap",
+                "ldap_dn": "bad\x00dn",
+            },
+            "must not contain NUL characters",
+        ),
+        (
             {"name": "app_user\x00"},
             "must not contain NUL characters",
         ),
@@ -520,18 +532,6 @@ def test_validate_identifier_rejects_invalid_name_types(identifier: object) -> N
     """Verify identifier validation rejects non-string and empty values directly."""
     with pytest.raises(ValueError):
         validate_identifier(identifier)  # type: ignore[arg-type]
-
-
-@pytest.mark.parametrize("ldap_dn", [object(), "", "bad\x00dn"])
-def test_quote_sql_string_literal_rejects_invalid_values(ldap_dn: object) -> None:
-    """Verify invalid LDAP distinguished names fail before SQL generation."""
-    with pytest.raises(ValueError):
-        exasol_user._quote_sql_string_literal(ldap_dn)  # type: ignore[arg-type]
-
-
-def test_quote_sql_string_literal_escapes_single_quotes() -> None:
-    """Verify LDAP distinguished names are escaped as SQL string literals."""
-    assert exasol_user._quote_sql_string_literal("cn=o'hara") == "'cn=o''hara'"
 
 
 def test_run_user_uses_shared_connection_helper(

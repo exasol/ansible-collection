@@ -49,11 +49,14 @@ playbooks and direct calls to the runtime package's high-level entry point.
 - [x] Align the playbook schema test with the shared scenario-ID and helper conventions
 - [x] Add a high-level schema runtime entry point matching the other runtime modules
 - [x] Add basic schema runtime scenarios and backend integration tests
+- [x] Centralize SQL string-literal quoting in the shared query runtime
+- [x] Normalize schema identifiers before direct catalog verification
 
 ### Verification
 
 - [x] Run the scenario synchronization contract tests
 - [x] Run targeted schema unit tests and collect the integration tests
 - [x] Run the schema integration tests against an Exasol backend
+- [x] Run focused SQL-literal, schema runtime, and scenario-contract tests
 - [x] Run formatting checks
 - [x] Run `poetry run nox -s requirements:trace`
