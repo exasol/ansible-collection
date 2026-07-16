@@ -60,15 +60,14 @@ def run_info(
         params,
         module_name="exasol_info",
     ) as connection:
-        del params
-        del check_mode
         return ensure_info(connection)
 
 
 def _query_cluster_size(connection: object) -> int:
     result = common_query.execute_queries(connection, CLUSTER_SIZE_QUERY)
     rows = result["query_result"]
-    return cast(int, rows[0]["CLUSTER_SIZE"])
+    row = cast(Mapping[str, Any], rows[0])
+    return cast(int, row["CLUSTER_SIZE"])
 
 
 def _query_version(connection: object) -> str:
@@ -80,4 +79,5 @@ def _query_version(connection: object) -> str:
 def _query_database_name(connection: object) -> str:
     result = common_query.execute_queries(connection, DATABASE_NAME_QUERY)
     rows = result["query_result"]
-    return cast(str, rows[0]["DATABASE_NAME"])
+    row = cast(Mapping[str, Any], rows[0])
+    return cast(str, row["DATABASE_NAME"])
