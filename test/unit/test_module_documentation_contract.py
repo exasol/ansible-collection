@@ -16,7 +16,7 @@ MODULE_DIR = PROJECT_ROOT / "plugins" / "modules"
     [
         pytest.param(module_path, id=module_path.stem)
         for module_path in sorted(MODULE_DIR.glob("exasol_*.py"))
-    ]
+    ],
 )
 def test_module_defines_documentation_examples_and_return(module_path: Path) -> None:
     """Verify public Ansible modules expose required documentation constants."""
