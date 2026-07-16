@@ -78,7 +78,6 @@ def main() -> None:
     try:
         result = exasol_info_utils.run_info(
             params=params,
-            check_mode=module.check_mode,
         )
     except ValueError as error:
         module.fail_json(

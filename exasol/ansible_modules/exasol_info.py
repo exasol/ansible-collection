@@ -11,15 +11,15 @@ from typing import (
 from exasol.ansible_modules import common_query
 
 VERSION_QUERY = """
-SELECT PARAM_VALUE AS VERSION
-FROM SYS.EXA_METADATA
-WHERE PARAM_NAME = 'databaseProductVersion'
-"""
+                SELECT PARAM_VALUE AS VERSION
+                FROM SYS.EXA_METADATA
+                WHERE PARAM_NAME = 'databaseProductVersion' \
+                """
 DATABASE_NAME_QUERY = """
-SELECT PARAM_VALUE AS DATABASE_NAME
-FROM SYS.EXA_METADATA
-WHERE PARAM_NAME = 'databaseName'
-"""
+                      SELECT PARAM_VALUE AS DATABASE_NAME
+                      FROM SYS.EXA_METADATA
+                      WHERE PARAM_NAME = 'databaseName' \
+                      """
 CLUSTER_SIZE_QUERY = "SELECT NODES AS CLUSTER_SIZE FROM EXA_SYSTEM_EVENTS"
 
 exasol_connection_argument_spec = common_query.exasol_connection_argument_spec
@@ -35,32 +35,22 @@ def module_argument_spec() -> dict[str, object]:
     }
 
 
-def ensure_info(
-    connection: object,
-) -> dict[str, object]:
-    """Read basic Exasol server information through one open connection."""
-    version = _query_version(connection)
-    database_name = _query_database_name(connection)
-    cluster_size = _query_cluster_size(connection)
-
-    return {
-        "changed": False,
-        "version": version,
-        "database_name": database_name,
-        "cluster_size": cluster_size,
-    }
-
-
-def run_info(
-    params: Mapping[str, Any],
-    check_mode: bool = False,
-) -> dict[str, object]:
+def run_info(params: Mapping[str, Any]) -> dict[str, object]:
     """Connect to Exasol and gather the requested server information."""
     with common_query.connect_to_exasol(
         params,
         module_name="exasol_info",
     ) as connection:
-        return ensure_info(connection)
+        version = _query_version(connection)
+        database_name = _query_database_name(connection)
+        cluster_size = _query_cluster_size(connection)
+
+        return {
+            "changed": False,
+            "version": version,
+            "database_name": database_name,
+            "cluster_size": cluster_size,
+        }
 
 
 def _query_cluster_size(connection: object) -> int:
