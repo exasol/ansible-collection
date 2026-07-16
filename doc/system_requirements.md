@@ -182,10 +182,10 @@ Covers:
 
 Needs: scn
 
-### Gather Basic Exasol Server Information
+### Gather Basic Exasol Server Metadata
 `req~gather-basic-exasol-server-information~1`
 
-The `exasol_info` module must gather the Exasol server version, database name, and cluster size through read-only metadata queries, always report `changed=false`, and does not alter the Exasol state.
+The `exasol_info` module must gather the Exasol server version, database name, and cluster size through read-only metadata queries, always report `changed=false`, and not alter the Exasol state.
 
 Rationale:
 
@@ -282,21 +282,6 @@ Needs: dsn
 **And** the result contains `database_name`
 **And** the result contains `cluster_size`
 **And** the result reports `changed=false`
-
-Status: draft
-
-Covers:
-- `req~gather-basic-exasol-server-information~1`
-- `req~keep-exasol-info-read-only~1`
-
-Needs: dsn
-
-### Exasol Info Works Against Single-Node Exasol One
-`scn~exasol-info-works-against-single-node-exasol-one~1`
-
-**Given** a single-node Exasol One deployment
-**When** an Ansible Operator runs `exasol_info`
-**Then** the result reports `cluster_size=1`
 
 Status: draft
 

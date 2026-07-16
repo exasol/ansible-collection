@@ -6,7 +6,7 @@ orphan: true
 
 ## Goal
 
-Add an `exasol_info` module that gathers basic Exasol server information for playbooks.
+Add an `exasol_info` module that gathers basic Exasol server information for playbooks, including version, database name, and cluster size.
 
 ## Scope
 
