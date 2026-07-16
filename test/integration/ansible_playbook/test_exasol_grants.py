@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from test.integration.acceptance_common.acceptance_test_common import (
+from ansible_playbook.common_helpers import (
     connect_to_exasol,
     given_acceptance_context,
     when_module_scenario_runs,
@@ -21,12 +21,13 @@ MODULE_NAME = "exasol_grants"
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-grants-grant-missing-system-privilege")
 def test_exasol_grants_grant_missing_system_privilege(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Grant missing system privilege."""
-    scenario_id = "exasol-grants-grant-missing-system-privilege"
     playbook = """
     - name: Grant missing system privilege
       block:
@@ -74,12 +75,13 @@ def test_exasol_grants_grant_missing_system_privilege(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-grants-system-privilege-idempotent")
 def test_exasol_grants_system_privilege_idempotent(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Existing system privilege is unchanged."""
-    scenario_id = "exasol-grants-system-privilege-idempotent"
     playbook = """
     - name: Existing system privilege is unchanged
       block:
@@ -131,12 +133,15 @@ def test_exasol_grants_system_privilege_idempotent(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id(
+    "exasol-grants-grant-multiple-system-and-object-privileges"
+)
 def test_exasol_grants_grant_multiple_system_and_object_privileges(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Grant multiple system and object privileges."""
-    scenario_id = "exasol-grants-grant-multiple-system-and-object-privileges"
     playbook = """
     - name: Grant multiple system and object privileges
       block:
@@ -253,12 +258,13 @@ def test_exasol_grants_grant_multiple_system_and_object_privileges(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-grants-revoke-existing-schema-object-privilege")
 def test_exasol_grants_revoke_existing_schema_object_privilege(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Revoke existing schema object privilege."""
-    scenario_id = "exasol-grants-revoke-existing-schema-object-privilege"
     playbook = """
     - name: Revoke existing schema object privilege
       block:
@@ -318,12 +324,15 @@ def test_exasol_grants_revoke_existing_schema_object_privilege(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id(
+    "exasol-grants-absent-schema-object-privilege-idempotent"
+)
 def test_exasol_grants_absent_schema_object_privilege_idempotent(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Missing schema object privilege is unchanged when absent."""
-    scenario_id = "exasol-grants-absent-schema-object-privilege-idempotent"
     playbook = """
     - name: Missing schema object privilege is unchanged when absent
       block:
@@ -379,12 +388,13 @@ def test_exasol_grants_absent_schema_object_privilege_idempotent(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-grants-check-mode-predicts-system-grant")
 def test_exasol_grants_check_mode_predicts_system_grant(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Check mode predicts system grant."""
-    scenario_id = "exasol-grants-check-mode-predicts-system-grant"
     playbook = """
     - name: Check mode predicts system grant
       block:
@@ -433,12 +443,13 @@ def test_exasol_grants_check_mode_predicts_system_grant(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-grants-reject-mutually-exclusive-principals")
 def test_exasol_grants_reject_mutually_exclusive_principals(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Reject mutually exclusive principals."""
-    scenario_id = "exasol-grants-reject-mutually-exclusive-principals"
     playbook = """
     - name: Reject mutually exclusive principals
       block:

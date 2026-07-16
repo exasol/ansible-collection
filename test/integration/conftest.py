@@ -21,12 +21,14 @@ from collection_manifest import ignore_collection_manifest_paths
 from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
+INTEGRATION_ROOT = Path(__file__).resolve().parent
 COLLECTION_NAMESPACE = "exasol"
 COLLECTION_NAME = "exasol"
 
-from test.integration.acceptance_common.acceptance_test_common import (
-    cleanup_database_objects,
-)
+if str(INTEGRATION_ROOT) not in sys.path:
+    sys.path.insert(0, str(INTEGRATION_ROOT))
+
+from ansible_playbook.common_helpers import cleanup_database_objects
 
 
 @dataclass(frozen=True)
@@ -304,6 +306,15 @@ def exasol_connection(
 def exasol_login_vars(exasol_connection: ExasolConnection) -> dict[str, object]:
     """Return backend connection details using collection module argument names."""
     return exasol_connection.login_vars
+
+
+@pytest.fixture
+def scenario_id(request: pytest.FixtureRequest) -> str:
+    """Return the Gherkin scenario ID attached to the current test."""
+    marker = request.node.get_closest_marker("scenario_id")
+    if marker is None or len(marker.args) != 1 or not isinstance(marker.args[0], str):
+        pytest.fail("test must declare one string-valued scenario_id marker")
+    return marker.args[0]
 
 
 @pytest.fixture(autouse=True)

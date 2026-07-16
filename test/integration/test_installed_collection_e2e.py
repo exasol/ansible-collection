@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 from pathlib import Path
-from test.integration.acceptance_common.acceptance_test_common import (
+from types import SimpleNamespace
+
+import pytest
+import yaml
+from ansible_playbook.common_helpers import (
     connect_to_exasol,
     given_acceptance_context,
     then_secret_is_not_exposed,
     when_module_scenario_runs,
 )
-from test.integration.conftest import InstalledCollectionEnvironment
-from types import SimpleNamespace
-
-import pytest
-import yaml
+from conftest import InstalledCollectionEnvironment
 
 from exasol.ansible_modules.common_identifier_validation import quote_identifier
 

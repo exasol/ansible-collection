@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from test.integration.acceptance_common.acceptance_test_common import (
+from typing import Any
+
+import pytest
+from ansible_playbook.common_helpers import (
     connect_to_exasol,
     given_acceptance_context,
     then_secret_is_not_exposed,
     when_module_scenario_runs,
 )
-from typing import Any
-
-import pytest
 
 from exasol.ansible_modules.common_identifier_validation import quote_identifier
 
@@ -19,11 +19,12 @@ MODULE_NAME = "exasol_query"
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-read-metadata-version")
 def test_exasol_query_read_metadata_version(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-query-read-metadata-version"
     playbook = """
     - name: Read database version metadata
       block:
@@ -70,11 +71,12 @@ def test_exasol_query_read_metadata_version(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-single-select")
 def test_exasol_query_single_select(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-query-single-select"
     playbook = """
     - name: Execute single SELECT
       block:
@@ -112,11 +114,12 @@ def test_exasol_query_single_select(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-batch-statements")
 def test_exasol_query_batch_statements(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-query-batch-statements"
     playbook = """
     - name: Execute statement batch on one connection
       block:
@@ -197,11 +200,12 @@ def test_exasol_query_batch_statements(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-positional-args")
 def test_exasol_query_positional_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-query-positional-args"
     playbook = """
     - name: Bind positional arguments
       block:
@@ -241,11 +245,12 @@ def test_exasol_query_positional_args(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-named-args")
 def test_exasol_query_named_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-query-named-args"
     playbook = """
     - name: Bind named arguments
       block:
@@ -285,11 +290,12 @@ def test_exasol_query_named_args(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-check-mode-select")
 def test_exasol_query_check_mode_select(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-query-check-mode-select"
     playbook = """
     - name: Execute read-only query in check mode
       block:
@@ -328,11 +334,12 @@ def test_exasol_query_check_mode_select(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-check-mode-write")
 def test_exasol_query_check_mode_write(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-query-check-mode-write"
     playbook = """
     - name: Predict write in check mode without execution
       block:
@@ -395,11 +402,12 @@ def test_exasol_query_check_mode_write(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-sanitize-bad-credentials")
 def test_exasol_query_sanitize_bad_credentials(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-query-sanitize-bad-credentials"
     playbook = """
     - name: Sanitize bad credential errors
       block:
@@ -440,11 +448,12 @@ def test_exasol_query_sanitize_bad_credentials(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-reject-batch-args")
 def test_exasol_query_reject_batch_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-query-reject-batch-args"
     playbook = """
     - name: Reject bound arguments for statement batch
       block:
@@ -492,11 +501,12 @@ def test_exasol_query_reject_batch_args(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-check-mode-mixed-batch")
 def test_exasol_query_check_mode_mixed_batch(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
-    scenario_id = "exasol-query-check-mode-mixed-batch"
     playbook = """
     - name: Skip mixed read-write batch in check mode
       block:

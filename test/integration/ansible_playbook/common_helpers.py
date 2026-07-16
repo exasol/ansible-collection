@@ -1,4 +1,4 @@
-"""Shared helpers for feature-level Ansible acceptance tests."""
+"""Shared helpers for Ansible playbook integration tests."""
 
 from __future__ import annotations
 
@@ -20,10 +20,8 @@ from exasol.ansible_modules.common_query import (
 from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
-ACCEPTANCE_COMMON_DIR = PROJECT_ROOT / "test" / "integration" / "acceptance_common"
-ACCEPTANCE_PLAYBOOK_TEMPLATE = (
-    ACCEPTANCE_COMMON_DIR / "acceptance_playbook_template.yml"
-)
+ANSIBLE_PLAYBOOK_DIR = Path(__file__).resolve().parent
+ANSIBLE_PLAYBOOK_COMMON_TEMPLATE = ANSIBLE_PLAYBOOK_DIR / "common_template.yml"
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 
 
@@ -284,13 +282,13 @@ def _write_template_playbook(
 
 
 def _render_template_playbook(scenario_playbook: str) -> str:
-    template = ACCEPTANCE_PLAYBOOK_TEMPLATE.read_text(encoding="utf-8")
+    template = ANSIBLE_PLAYBOOK_COMMON_TEMPLATE.read_text(encoding="utf-8")
     scenario_tasks = textwrap.indent(
         textwrap.dedent(scenario_playbook).strip("\n"),
         " " * 8,
     )
     if SCENARIO_TASKS_PLACEHOLDER not in template:
-        msg = f"{ACCEPTANCE_PLAYBOOK_TEMPLATE} does not define scenario placeholder"
+        msg = f"{ANSIBLE_PLAYBOOK_COMMON_TEMPLATE} does not define scenario placeholder"
         raise AssertionError(msg)
     return template.replace(SCENARIO_TASKS_PLACEHOLDER, scenario_tasks)
 
