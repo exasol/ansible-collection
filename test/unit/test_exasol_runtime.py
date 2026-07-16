@@ -16,6 +16,7 @@ from typing import Any
 import pytest
 
 from exasol.ansible_modules import (
+    common_query,
     exasol_query,
 )
 from exasol.ansible_modules.common_identifier_validation import (
@@ -249,6 +250,19 @@ def test_normalize_query_list_rejects_invalid_query(query: object) -> None:
     """Verify query parameters must be a string or list of strings."""
     with pytest.raises(ValueError, match="query must be"):
         exasol_query.normalize_query_list(query)
+
+
+@pytest.mark.parametrize("value", [object(), "bad\x00value"])
+def test_quote_sql_string_literal_rejects_invalid_values(value: object) -> None:
+    """Verify SQL string literals reject unsupported values."""
+    with pytest.raises(ValueError):
+        common_query.quote_sql_string_literal(value)  # type: ignore[arg-type]
+
+
+def test_quote_sql_string_literal_escapes_single_quotes() -> None:
+    """Verify SQL string literals escape apostrophes without rejecting emptiness."""
+    assert common_query.quote_sql_string_literal("o'hara") == "'o''hara'"
+    assert common_query.quote_sql_string_literal("") == "''"
 
 
 def test_last_available_query_result_returns_last_statement_rows() -> None:
@@ -517,6 +531,8 @@ def test_execution_error_is_sanitized() -> None:
 def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
     """Verify schema, user, role, and object identifier helpers."""
     assert validate_schema_name("APP_SCHEMA") == "APP_SCHEMA"
+    assert validate_schema_name("App+/=Schema") == "App+/=Schema"
+    assert validate_schema_name('"App+/=Schema"') == "App+/=Schema"
     assert validate_user_name("App+/=User") == "App+/=User"
     assert validate_user_name('"App+/=User"') == "App+/=User"
     assert validate_role_name("App+/=Role") == "App+/=Role"
@@ -536,11 +552,6 @@ def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
     "name",
     [
         "",
-        "1APP",
-        "APP-TABLE",
-        "APP TABLE",
-        "APPÄ",
-        "APP.TABLE.EXTRA",
         f"A{'B' * 128}",
     ],
 )

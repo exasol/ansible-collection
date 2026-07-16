@@ -5,4 +5,5 @@ action_groups:
     - exasol.exasol.exasol_grants
     - exasol.exasol.exasol_query
     - exasol.exasol.exasol_role
+    - exasol.exasol.exasol_schema
     - exasol.exasol.exasol_user
