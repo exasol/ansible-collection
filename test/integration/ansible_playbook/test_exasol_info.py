@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 import pytest
-from acceptance_common.acceptance_test_common import (
+from ansible_playbook.common_helpers import (
     given_acceptance_context,
     when_module_scenario_runs,
 )

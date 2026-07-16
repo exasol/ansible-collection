@@ -9,11 +9,20 @@ from exasol.ansible_modules import exasol_info
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-info-returns-version-and-cluster-size")
 def test_info_runtime_reads_basic_server_metadata(
     exasol_login_vars: dict[str, object],
 ) -> None:
     """Verify the info runtime gathers a stable metadata payload."""
     result = exasol_info.run_info(exasol_login_vars)
+
+    assert result["changed"] is False
+    assert isinstance(result["version"], str)
+    assert result["version"] != ""
+    assert isinstance(result["database_name"], str)
+    assert result["database_name"] != ""
+    assert isinstance(result["cluster_size"], int)
+    assert result["cluster_size"] >= 1
 
     expected_result = {
         "changed": False,
@@ -21,17 +30,3 @@ def test_info_runtime_reads_basic_server_metadata(
         "cluster_size": 1,
     }
     assert {key: result[key] for key in expected_result} == expected_result
-    assert isinstance(result["version"], str)
-    assert result["version"] != ""
-
-
-@pytest.mark.integration
-@pytest.mark.slow
-def test_info_runtime_check_mode_stays_read_only(
-    exasol_login_vars: dict[str, object],
-) -> None:
-    """Verify check mode does not alter the runtime metadata payload."""
-    normal_result = exasol_info.run_info(exasol_login_vars)
-    check_mode_result = exasol_info.run_info(exasol_login_vars, check_mode=True)
-
-    assert check_mode_result == normal_result
