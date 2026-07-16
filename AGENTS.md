@@ -32,3 +32,7 @@
 - Keep assertions specific:
   verify both the returned module/runtime result and the observable database side effect where applicable.
 - For query integration coverage, separate read-only and mutating scenarios into different tests, and cover check-mode prediction behavior explicitly when the runtime supports it.
+
+## Formatting Python
+
+- Keep simple function calls on one line when they fit within the formatter's 88-character limit. Use multiline formatting when nested expressions, distinct argument groups, comments, or other complexity make the call materially easier to read. Avoid splitting trivial calls solely for visual symmetry.

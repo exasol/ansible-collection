@@ -41,6 +41,7 @@ Feature: exasol-schema specification
     Then changed is false
     And exists is true
     And executed_queries equals []
+    And schema "SALES" exists in EXA_SCHEMAS
 
   @exasol-schema-apply-unchanged-with-different-case-spelling
   Scenario: Applying same schema with different case spelling stays idempotent
@@ -117,7 +118,7 @@ Feature: exasol-schema specification
   Scenario: Drop existing non-empty schema using cascade
     Given an Exasol database is reachable at localhost
     And schema "SALES" exists in EXA_SCHEMAS
-    And schema "SALES" contains database objects
+    And schema "SALES" contains table "SALES_TAB"
     When exasol_schema runs with:
       | name  | state  | cascade |
       | SALES | absent | true    |

@@ -116,10 +116,7 @@ def validate_object_name(name: str, allow_qualified: bool = True) -> str:
 
 
 def _validate_identifier_part(part: str, identifier_type: str) -> None:
-    _validate_common_identifier_part(
-        part,
-        identifier_type,
-    )
+    _validate_common_identifier_part(part, identifier_type)
 
     if not _REGULAR_IDENTIFIER_PATTERN.match(part):
         raise ValueError(
@@ -165,27 +162,13 @@ def _exact_identifier_value(name: str, identifier_type: str) -> str:
 
 
 def _validate_exact_identifier_value(value: str, identifier_type: str) -> None:
-    _validate_common_identifier_part(
-        value,
-        identifier_type,
-    )
+    _validate_common_identifier_part(value, identifier_type)
 
 
 def _validate_common_identifier_part(part: str, identifier_type: str) -> None:
-    _validate_identifier_not_empty(
-        part,
-        identifier_type,
-    )
-
-    _validate_identifier_nul(
-        part,
-        identifier_type,
-    )
-
-    _validate_identifier_length(
-        part,
-        identifier_type,
-    )
+    _validate_identifier_not_empty(part, identifier_type)
+    _validate_identifier_nul(part, identifier_type)
+    _validate_identifier_length(part, identifier_type)
 
 
 def _validate_identifier_not_empty(

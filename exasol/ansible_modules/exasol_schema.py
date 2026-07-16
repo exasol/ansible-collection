@@ -44,31 +44,23 @@ class SchemaMetadata:
 
 
 def ensure_schema(
-    connection: object,
-    params: Mapping[str, object],
-    check_mode: bool = False,
+    connection: object, params: Mapping[str, object], check_mode: bool = False
 ) -> dict[str, object]:
     """Ensure an Exasol schema is present or absent."""
     schema_name = _exact_schema_name(validate_required_param(params, "name"))
 
     state = _state(params)
 
-    metadata = _schema_metadata(
-        connection,
-        schema_name,
-    )
+    metadata = _schema_metadata(connection, schema_name)
 
     statements = _planned_schema_statements(
-        schema_name=schema_name,
-        metadata=metadata,
-        params=params,
+        schema_name=schema_name, metadata=metadata, params=params
     )
 
     if statements:
         if not check_mode:
             common_query.execute_queries(
-                connection,
-                [statement.actual for statement in statements],
+                connection, [statement.actual for statement in statements]
             )
 
         exists = state == "present"
@@ -84,15 +76,9 @@ def ensure_schema(
     }
 
 
-def sanitize_error_message(
-    error: object,
-    params: Mapping[str, object],
-) -> str:
+def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
     """Sanitize schema-related errors."""
-    return common_query.sanitize_error_message(
-        error,
-        params,
-    )
+    return common_query.sanitize_error_message(error, params)
 
 
 def normalized_exasol_error_message(
@@ -102,9 +88,7 @@ def normalized_exasol_error_message(
 ) -> str:
     """Return normalized Exasol schema error."""
     return common_query.normalized_exasol_error_message(
-        error,
-        params=params,
-        operation=operation,
+        error, params=params, operation=operation
     )
 
 
@@ -112,18 +96,9 @@ def _exact_schema_name(name: str) -> str:
     return validate_schema_name(name)
 
 
-def _schema_metadata(
-    connection: object,
-    schema_name: str,
-) -> SchemaMetadata | None:
+def _schema_metadata(connection: object, schema_name: str) -> SchemaMetadata | None:
     result = common_query.execute_queries(
-        connection,
-        [
-            SCHEMA_METADATA_QUERY,
-        ],
-        named_args={
-            "schema_name": schema_name,
-        },
+        connection, [SCHEMA_METADATA_QUERY], named_args={"schema_name": schema_name}
     )
 
     rows = result["query_result"]
@@ -143,24 +118,16 @@ def _schema_metadata(
     if schema_name_value is None:
         raise ValueError("missing SCHEMA_NAME in Exasol schema metadata.")
 
-    return SchemaMetadata(
-        name=str(schema_name_value),
-    )
+    return SchemaMetadata(name=str(schema_name_value))
 
 
 def _planned_schema_statements(
-    schema_name: str,
-    metadata: SchemaMetadata | None,
-    params: Mapping[str, object],
+    schema_name: str, metadata: SchemaMetadata | None, params: Mapping[str, object]
 ) -> list[SchemaStatement]:
     state = _state(params)
 
     if state == "absent":
-        return _planned_drop_schema_statements(
-            schema_name,
-            metadata,
-            params,
-        )
+        return _planned_drop_schema_statements(schema_name, metadata, params)
 
     if metadata is not None:
         return []
@@ -169,66 +136,36 @@ def _planned_schema_statements(
 
 
 def _planned_drop_schema_statements(
-    schema_name: str,
-    metadata: SchemaMetadata | None,
-    params: Mapping[str, object],
+    schema_name: str, metadata: SchemaMetadata | None, params: Mapping[str, object]
 ) -> list[SchemaStatement]:
     if metadata is None:
         return []
 
     return [
         _drop_schema_statement(
-            schema_name,
-            cascade=bool(
-                params.get(
-                    "cascade",
-                    DEFAULT_CASCADE,
-                )
-            ),
+            schema_name, cascade=bool(params.get("cascade", DEFAULT_CASCADE))
         )
     ]
 
 
-def _create_schema_statement(
-    schema_name: str,
-) -> SchemaStatement:
-    quoted_schema = quote_exact_identifier_value(
-        schema_name,
-        identifier_type="schema",
-    )
+def _create_schema_statement(schema_name: str) -> SchemaStatement:
+    quoted_schema = quote_exact_identifier_value(schema_name, identifier_type="schema")
 
     query = f"CREATE SCHEMA {quoted_schema}"
 
-    return SchemaStatement(
-        actual=query,
-        public=query,
-    )
+    return SchemaStatement(actual=query, public=query)
 
 
-def _drop_schema_statement(
-    schema_name: str,
-    cascade: bool,
-) -> SchemaStatement:
-    quoted_schema = quote_exact_identifier_value(
-        schema_name,
-        identifier_type="schema",
-    )
+def _drop_schema_statement(schema_name: str, cascade: bool) -> SchemaStatement:
+    quoted_schema = quote_exact_identifier_value(schema_name, identifier_type="schema")
 
     query = f"DROP SCHEMA {quoted_schema}"
 
     if cascade:
         query += " CASCADE"
 
-    return SchemaStatement(
-        actual=query,
-        public=query,
-    )
+    return SchemaStatement(actual=query, public=query)
 
 
 def _state(params: Mapping[str, object]) -> str:
-    return validate_choice_param(
-        params,
-        "state",
-        DEFAULT_STATE,
-        STATES,
-    )
+    return validate_choice_param(params, "state", DEFAULT_STATE, STATES)

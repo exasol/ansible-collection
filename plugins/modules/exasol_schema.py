@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # Copyright: (c) 2026, Exasol AG <opensource@exasol.com>
-# GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 # MIT License (see LICENSE or https://opensource.org/license/mit)
 
 DOCUMENTATION = r"""
@@ -8,12 +7,7 @@ DOCUMENTATION = r"""
 module: exasol_schema
 short_description: Manage Exasol database schemas
 description:
-  - Creates and drops Exasol schemas using pyexasol.
-  - Schema names are treated as exact Exasol identifier values.
-  - The module preserves case and special characters by rendering schema names
-    as delimited SQL identifiers.
-  - Values already written using Exasol's delimited-identifier syntax are
-    accepted and normalized to the same exact identifier value.
+  - Creates and drops Exasol schemas.
   - Schema existence is checked through EXA_SCHEMAS before executing DDL.
   - The module supports idempotent schema creation and removal.
   - Dropping schemas can optionally use CASCADE.
@@ -25,10 +19,12 @@ extends_documentation_fragment:
 options:
   name:
     description:
-      - Name of the Exasol schema to manage.
-      - This value is used exactly as provided when the module generates SQL.
-      - To target a name that already uses Exasol's delimited-identifier
-        syntax, you can also pass the SQL form directly.
+     - Name of the Exasol schema to manage.
+     - Treated as an exact Exasol identifier value.
+     - Case and special characters are preserved
+       by rendering the name as a delimited SQL identifier.
+     - Delimited-identifier syntax is also accepted
+       and normalized to the same exact identifier value.
     type: str
     required: true
     aliases:
@@ -123,9 +119,7 @@ executed_queries:
 from typing import Any
 
 from ansible.module_utils.basic import AnsibleModule
-from ansible_collections.exasol.exasol.plugins.module_utils import (
-    common_runtime_import,
-)
+from ansible_collections.exasol.exasol.plugins.module_utils import common_runtime_import
 
 common_runtime_import.make_source_runtime_importable_for_ansible_sanity(__file__)
 
@@ -138,66 +132,40 @@ def main() -> None:
     """Run the Ansible module."""
     argument_spec = {
         **exasol_query_utils.exasol_connection_argument_spec(),
-        "name": {
-            "type": "str",
-            "required": True,
-            "aliases": ["schema"],
-        },
+        "name": {"type": "str", "required": True, "aliases": ["schema"]},
         "state": {
             "type": "str",
             "choices": ["present", "absent"],
             "default": "present",
         },
-        "cascade": {
-            "type": "bool",
-            "default": False,
-        },
+        "cascade": {"type": "bool", "default": False},
     }
 
-    module = AnsibleModule(
-        argument_spec=argument_spec,
-        supports_check_mode=True,
-    )
+    module = AnsibleModule(argument_spec=argument_spec, supports_check_mode=True)
 
     params = module.params
 
     try:
-        result = run_schema(
-            params,
-            check_mode=module.check_mode,
-        )
+        result = run_schema(params, check_mode=module.check_mode)
     except ValueError as error:
-        module.fail_json(
-            msg=exasol_schema_utils.sanitize_error_message(
-                error,
-                params,
-            )
-        )
+        module.fail_json(msg=exasol_schema_utils.sanitize_error_message(error, params))
     except Exception as error:  # noqa: BLE001 - Ansible modules report all failures.
         module.fail_json(
             msg=exasol_schema_utils.normalized_exasol_error_message(
-                error,
-                params=params,
-                operation="Exasol schema management",
+                error, params=params, operation="Exasol schema management"
             )
         )
 
     module.exit_json(**result)
 
 
-def run_schema(
-    params: dict[str, Any],
-    check_mode: bool = False,
-) -> dict[str, object]:
+def run_schema(params: dict[str, Any], check_mode: bool = False) -> dict[str, object]:
     """Connect to Exasol and manage the requested schema."""
     with common_query.connect_to_exasol(
-        params,
-        module_name="exasol_schema",
+        params, module_name="exasol_schema"
     ) as connection:
         return exasol_schema_utils.ensure_schema(
-            connection,
-            params,
-            check_mode=check_mode,
+            connection, params, check_mode=check_mode
         )
 
 

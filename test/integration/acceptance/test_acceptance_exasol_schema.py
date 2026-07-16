@@ -6,8 +6,13 @@ from typing import Any
 
 import pytest
 from acceptance_common.acceptance_test_common import (
+    connect_to_exasol,
     given_acceptance_context,
     when_module_scenario_runs,
+)
+
+from exasol.ansible_modules.common_identifier_validation import (
+    quote_exact_identifier_value,
 )
 
 MODULE_NAME = "exasol_schema"
@@ -16,20 +21,13 @@ MODULE_NAME = "exasol_schema"
 @pytest.mark.integration
 @pytest.mark.slow
 def test_exasol_schema_create_missing_schema(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
+    ansible_runner_workspace: Any, exasol_login_vars: dict[str, object]
 ) -> None:
     scenario_id = "exasol-schema-create-missing-schema"
 
     playbook = """
     - name: Create missing schema
       block:
-        - name: Given schema does not exist
-          exasol.exasol.exasol_schema:
-            name: "{{ test_schema }}"
-            state: absent
-            cascade: true
-
         - name: When exasol_schema runs with state present
           exasol.exasol.exasol_schema:
             name: "{{ test_schema }}"
@@ -47,10 +45,7 @@ def test_exasol_schema_create_missing_schema(
     context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
 
     result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        scenario_id,
-        scenario_playbook=playbook,
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
     )
 
     _assert_schema_module_result(
@@ -65,20 +60,13 @@ def test_exasol_schema_create_missing_schema(
 @pytest.mark.integration
 @pytest.mark.slow
 def test_exasol_schema_preserves_exact_identifier(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
+    ansible_runner_workspace: Any, exasol_login_vars: dict[str, object]
 ) -> None:
     scenario_id = "exasol-schema-preserves-exact-identifier"
 
     playbook = """
     - name: Preserve exact schema identifier
       block:
-        - name: Given exact schema does not exist
-          exasol.exasol.exasol_schema:
-            name: "{{ exact_test_schema }}"
-            state: absent
-            cascade: true
-
         - name: When exasol_schema runs with exact identifier
           exasol.exasol.exasol_schema:
             name: "{{ exact_test_schema }}"
@@ -96,10 +84,7 @@ def test_exasol_schema_preserves_exact_identifier(
     context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
 
     result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        scenario_id,
-        scenario_playbook=playbook,
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
     )
 
     _assert_schema_module_result(
@@ -119,19 +104,13 @@ def test_exasol_schema_preserves_exact_identifier(
 @pytest.mark.integration
 @pytest.mark.slow
 def test_exasol_schema_apply_unchanged(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
+    ansible_runner_workspace: Any, exasol_login_vars: dict[str, object]
 ) -> None:
     scenario_id = "exasol-schema-apply-unchanged"
 
     playbook = """
     - name: Applying identical schema state results in no changes
       block:
-        - name: Given schema already exists
-          exasol.exasol.exasol_schema:
-            name: "{{ test_schema }}"
-            state: present
-
         - name: When exasol_schema runs again
           exasol.exasol.exasol_schema:
             name: "{{ test_schema }}"
@@ -147,38 +126,27 @@ def test_exasol_schema_apply_unchanged(
     """
 
     context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema)
 
     result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        scenario_id,
-        scenario_playbook=playbook,
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
     )
 
     _assert_schema_module_result(
-        result["module_result"],
-        changed=False,
-        exists=True,
-        executed_queries_len=0,
+        result["module_result"], changed=False, exists=True, executed_queries_len=0
     )
 
 
 @pytest.mark.integration
 @pytest.mark.slow
 def test_exasol_schema_apply_unchanged_with_different_case_spelling(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
+    ansible_runner_workspace: Any, exasol_login_vars: dict[str, object]
 ) -> None:
     scenario_id = "exasol-schema-apply-unchanged-with-different-case-spelling"
 
     playbook = """
     - name: Case insensitive schema lookup
       block:
-        - name: Given exact schema exists
-          exasol.exasol.exasol_schema:
-            name: "{{ exact_test_schema }}"
-            state: present
-
         - name: When schema is applied with different case
           exasol.exasol.exasol_schema:
             name: "{{ exact_test_schema | lower }}"
@@ -205,12 +173,10 @@ def test_exasol_schema_apply_unchanged_with_different_case_spelling(
     """
 
     context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.exact_test_schema)
 
     result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        scenario_id,
-        scenario_playbook=playbook,
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
     )
 
     _assert_schema_module_result(
@@ -229,20 +195,13 @@ def test_exasol_schema_apply_unchanged_with_different_case_spelling(
 @pytest.mark.integration
 @pytest.mark.slow
 def test_exasol_schema_check_mode_create(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
+    ansible_runner_workspace: Any, exasol_login_vars: dict[str, object]
 ) -> None:
     scenario_id = "exasol-schema-check-mode-create"
 
     playbook = """
     - name: Check mode predicts create
       block:
-        - name: Given schema does not exist
-          exasol.exasol.exasol_schema:
-            name: "{{ check_mode_schema }}"
-            state: absent
-            cascade: true
-
         - name: When schema runs in check mode
           exasol.exasol.exasol_schema:
             name: "{{ check_mode_schema }}"
@@ -261,36 +220,24 @@ def test_exasol_schema_check_mode_create(
     context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
 
     result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        scenario_id,
-        scenario_playbook=playbook,
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
     )
 
     _assert_schema_module_result(
-        result["module_result"],
-        changed=True,
-        exists=True,
-        executed_queries_len=1,
+        result["module_result"], changed=True, exists=True, executed_queries_len=1
     )
 
 
 @pytest.mark.integration
 @pytest.mark.slow
 def test_exasol_schema_check_mode_drop(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
+    ansible_runner_workspace: Any, exasol_login_vars: dict[str, object]
 ) -> None:
     scenario_id = "exasol-schema-check-mode-drop"
 
     playbook = """
     - name: Check mode predicts drop
       block:
-        - name: Given schema exists
-          exasol.exasol.exasol_schema:
-            name: "{{ test_schema }}"
-            state: present
-
         - name: When schema drop is checked
           exasol.exasol.exasol_schema:
             name: "{{ test_schema }}"
@@ -307,45 +254,27 @@ def test_exasol_schema_check_mode_drop(
     """
 
     context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema)
 
     result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        scenario_id,
-        scenario_playbook=playbook,
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
     )
 
     _assert_schema_module_result(
-        result["module_result"],
-        changed=True,
-        exists=False,
-        executed_queries_len=1,
+        result["module_result"], changed=True, exists=False, executed_queries_len=1
     )
 
 
 @pytest.mark.integration
 @pytest.mark.slow
 def test_exasol_schema_check_mode_drop_cascade(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
+    ansible_runner_workspace: Any, exasol_login_vars: dict[str, object]
 ) -> None:
     scenario_id = "exasol-schema-check-mode-drop-cascade"
 
     playbook = """
     - name: Check mode predicts cascade drop
       block:
-        - name: Given an Exasol schema exists
-          exasol.exasol.exasol_schema:
-            name: "{{ test_schema }}"
-            state: present
-
-        - name: Given schema contains database objects
-          exasol.exasol.exasol_query:
-            query: >-
-              CREATE TABLE "{{ test_schema }}".TEST_TABLE (
-                ID INT
-              )
-
         - name: When exasol_schema predicts cascade drop in check mode
           exasol.exasol.exasol_schema:
             name: "{{ test_schema }}"
@@ -362,16 +291,11 @@ def test_exasol_schema_check_mode_drop_cascade(
             cacheable: true
     """
 
-    context = given_acceptance_context(
-        ansible_runner_workspace,
-        exasol_login_vars,
-    )
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema, with_table=True)
 
     result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        scenario_id,
-        scenario_playbook=playbook,
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
     )
 
     _assert_schema_module_result(
@@ -390,19 +314,13 @@ def test_exasol_schema_check_mode_drop_cascade(
 @pytest.mark.integration
 @pytest.mark.slow
 def test_exasol_schema_drop_existing_schema(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
+    ansible_runner_workspace: Any, exasol_login_vars: dict[str, object]
 ) -> None:
     scenario_id = "exasol-schema-drop-existing-schema"
 
     playbook = """
     - name: Drop existing empty schema
       block:
-        - name: Given schema exists
-          exasol.exasol.exasol_schema:
-            name: "{{ test_schema }}"
-            state: present
-
         - name: When exasol_schema drops schema
           exasol.exasol.exasol_schema:
             name: "{{ test_schema }}"
@@ -417,16 +335,11 @@ def test_exasol_schema_drop_existing_schema(
             cacheable: true
     """
 
-    context = given_acceptance_context(
-        ansible_runner_workspace,
-        exasol_login_vars,
-    )
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema)
 
     result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        scenario_id,
-        scenario_playbook=playbook,
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
     )
 
     _assert_schema_module_result(
@@ -445,26 +358,13 @@ def test_exasol_schema_drop_existing_schema(
 @pytest.mark.integration
 @pytest.mark.slow
 def test_exasol_schema_drop_existing_schema_cascade(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
+    ansible_runner_workspace: Any, exasol_login_vars: dict[str, object]
 ) -> None:
     scenario_id = "exasol-schema-drop-existing-schema-cascade"
 
     playbook = """
     - name: Drop existing schema using cascade
       block:
-        - name: Given schema exists
-          exasol.exasol.exasol_schema:
-            name: "{{ test_schema }}"
-            state: present
-
-        - name: Given schema contains objects
-          exasol.exasol.exasol_query:
-            query: >-
-              CREATE TABLE "{{ test_schema }}".TEST_TABLE (
-                ID INT
-              )
-
         - name: When exasol_schema drops schema with cascade
           exasol.exasol.exasol_schema:
             name: "{{ test_schema }}"
@@ -480,16 +380,11 @@ def test_exasol_schema_drop_existing_schema_cascade(
             cacheable: true
     """
 
-    context = given_acceptance_context(
-        ansible_runner_workspace,
-        exasol_login_vars,
-    )
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema, with_table=True)
 
     result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        scenario_id,
-        scenario_playbook=playbook,
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
     )
 
     _assert_schema_module_result(
@@ -508,19 +403,13 @@ def test_exasol_schema_drop_existing_schema_cascade(
 @pytest.mark.integration
 @pytest.mark.slow
 def test_exasol_schema_drop_missing_schema(
-    ansible_runner_workspace: Any,
-    exasol_login_vars: dict[str, object],
+    ansible_runner_workspace: Any, exasol_login_vars: dict[str, object]
 ) -> None:
     scenario_id = "exasol-schema-drop-missing-schema"
 
     playbook = """
     - name: Drop missing schema
       block:
-        - name: Given schema does not exist
-          exasol.exasol.exasol_schema:
-            name: "{{ test_schema }}"
-            state: absent
-
         - name: When schema absent is applied again
           exasol.exasol.exasol_schema:
             name: "{{ test_schema }}"
@@ -538,23 +427,30 @@ def test_exasol_schema_drop_missing_schema(
     context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
 
     result = when_module_scenario_runs(
-        context,
-        MODULE_NAME,
-        scenario_id,
-        scenario_playbook=playbook,
+        context, MODULE_NAME, scenario_id, scenario_playbook=playbook
     )
 
     _assert_schema_module_result(
-        result["module_result"],
-        changed=False,
-        exists=False,
-        executed_queries_len=0,
+        result["module_result"], changed=False, exists=False, executed_queries_len=0
     )
 
 
 # -----------------------
 # helpers
 # -----------------------
+
+
+def _create_schema(
+    login_vars: dict[str, object], schema_name: str, *, with_table: bool = False
+) -> None:
+    quoted_schema = quote_exact_identifier_value(schema_name, identifier_type="schema")
+    connection = connect_to_exasol(login_vars)
+    try:
+        connection.execute(f"CREATE SCHEMA {quoted_schema}")
+        if with_table:
+            connection.execute(f"CREATE TABLE {quoted_schema}.TEST_TABLE (ID INT)")
+    finally:
+        connection.close()
 
 
 def _assert_schema_module_result(
