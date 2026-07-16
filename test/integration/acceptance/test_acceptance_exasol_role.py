@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-import pytest
-from acceptance_common.acceptance_test_common import (
+from test.integration.acceptance_common.acceptance_test_common import (
     given_acceptance_context,
     when_module_scenario_runs,
 )
+from typing import Any
+
+import pytest
 
 from exasol.ansible_modules.common_identifier_validation import quote_exact_identifier
 

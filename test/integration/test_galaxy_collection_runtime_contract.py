@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import subprocess
 import tarfile
+from test.integration.conftest import InstalledCollectionEnvironment
 
 import pytest
-from conftest import InstalledCollectionEnvironment
 
 
 def test_galaxy_archive_excludes_python_runtime_package(

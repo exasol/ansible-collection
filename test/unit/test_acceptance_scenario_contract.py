@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import ast
 import re
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -251,11 +250,7 @@ def test_cleanup_database_object_filters_skip_system_principals() -> None:
 
 
 def _acceptance_common_module() -> Any:
-    integration_root = PROJECT_ROOT / "test" / "integration"
-    if str(integration_root) not in sys.path:
-        sys.path.insert(0, str(integration_root))
-
-    from acceptance_common import acceptance_test_common
+    from test.integration.acceptance_common import acceptance_test_common
 
     return acceptance_test_common
 

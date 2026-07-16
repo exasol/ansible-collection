@@ -21,14 +21,12 @@ from collection_manifest import ignore_collection_manifest_paths
 from noxconfig import PROJECT_CONFIG
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
-INTEGRATION_ROOT = Path(__file__).resolve().parent
 COLLECTION_NAMESPACE = "exasol"
 COLLECTION_NAME = "exasol"
 
-if str(INTEGRATION_ROOT) not in sys.path:
-    sys.path.insert(0, str(INTEGRATION_ROOT))
-
-from acceptance_common.acceptance_test_common import cleanup_database_objects
+from test.integration.acceptance_common.acceptance_test_common import (
+    cleanup_database_objects,
+)
 
 
 @dataclass(frozen=True)

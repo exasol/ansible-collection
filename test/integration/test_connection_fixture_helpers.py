@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import conftest as integration_conftest
+import test.integration.conftest as integration_conftest
 
 
 def test_backend_certificate_fingerprint_prefers_dsn_value(
