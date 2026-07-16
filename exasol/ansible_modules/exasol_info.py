@@ -20,7 +20,7 @@ SELECT PARAM_VALUE AS DATABASE_NAME
 FROM SYS.EXA_METADATA
 WHERE PARAM_NAME = 'databaseName'
 """
-CLUSTER_SIZE_QUERY = "SELECT COUNT(CLUSTER_NAME) AS CLUSTER_SIZE FROM SYS.EXA_CLUSTERS"
+CLUSTER_SIZE_QUERY = "SELECT NODES AS CLUSTER_SIZE FROM EXA_SYSTEM_EVENTS"
 
 exasol_connection_argument_spec = common_query.exasol_connection_argument_spec
 connect_to_exasol = common_query.connect_to_exasol
