@@ -7,6 +7,8 @@
 * Only include required files into the uploaded bundle
 * Implemented exasol_role module
 * Replaced stale GPL module headers with MIT references
+* Split acceptance integration tests to ansible_playbook and ansible_modules types
+* Implemented exasol_schema module
 
 ## Security
 
@@ -17,6 +19,7 @@
 * #38: Support exact Exasol user and role identifiers
 * #36: Implement exasol_role module
 * #48: Automate publishing to Ansible Galaxy
+* #81: Implement exasol_schema module
 
 ## Refactorings
 
