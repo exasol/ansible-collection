@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import re
-from typing import Any
-
-import pytest
-from acceptance_common.acceptance_test_common import (
+from test.integration.acceptance_common.acceptance_test_common import (
     given_acceptance_context,
     when_module_scenario_runs,
 )
+from typing import Any
+
+import pytest
 
 MODULE_NAME = "exasol_info"
 SEMVER_LIKE_VERSION = re.compile(r"^\d+\.\d+(?:\.\d+)?(?:[-+][A-Za-z0-9._-]+)?$")
