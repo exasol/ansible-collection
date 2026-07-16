@@ -1,4 +1,4 @@
-"""Shared helpers for Python-package integration tests."""
+"""Shared helpers for Ansible module runtime integration tests."""
 
 from __future__ import annotations
 

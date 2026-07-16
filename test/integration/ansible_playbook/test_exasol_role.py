@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-from acceptance_common.acceptance_test_common import (
+from ansible_playbook.common_helpers import (
     given_acceptance_context,
     when_module_scenario_runs,
 )
@@ -17,12 +17,13 @@ MODULE_NAME = "exasol_role"
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-role-create-missing-role")
 def test_exasol_role_create_missing_role(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Create missing role."""
-    scenario_id = "exasol-role-create-missing-role"
     playbook = """
     - name: Create missing role
       block:
@@ -72,12 +73,13 @@ def test_exasol_role_create_missing_role(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-role-preserves-exact-identifier")
 def test_exasol_role_preserves_exact_identifier(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Create role with exact identifier semantics."""
-    scenario_id = "exasol-role-preserves-exact-identifier"
     playbook = """
     - name: Preserve exact role identifier
       block:
@@ -127,12 +129,13 @@ def test_exasol_role_preserves_exact_identifier(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-role-present-idempotent")
 def test_exasol_role_present_idempotent(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Present role is idempotent."""
-    scenario_id = "exasol-role-present-idempotent"
     playbook = """
     - name: Present role is idempotent
       block:
@@ -168,12 +171,13 @@ def test_exasol_role_present_idempotent(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-role-present-idempotent-with-different-case-spelling")
 def test_exasol_role_present_idempotent_with_different_case_spelling(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Present role stays idempotent across case-only spelling changes."""
-    scenario_id = "exasol-role-present-idempotent-with-different-case-spelling"
     playbook = """
     - name: Present role with different case spelling is idempotent
       block:
@@ -221,12 +225,13 @@ def test_exasol_role_present_idempotent_with_different_case_spelling(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-role-check-mode-create")
 def test_exasol_role_check_mode_create(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Check mode predicts create."""
-    scenario_id = "exasol-role-check-mode-create"
     playbook = """
     - name: Check mode predicts create
       block:
@@ -277,12 +282,13 @@ def test_exasol_role_check_mode_create(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-role-check-mode-drop")
 def test_exasol_role_check_mode_drop(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Check mode predicts drop."""
-    scenario_id = "exasol-role-check-mode-drop"
     playbook = """
     - name: Check mode predicts drop
       block:
@@ -333,12 +339,13 @@ def test_exasol_role_check_mode_drop(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-role-drop-existing-role")
 def test_exasol_role_drop_existing_role(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Drop existing role."""
-    scenario_id = "exasol-role-drop-existing-role"
     playbook = """
     - name: Drop existing role
       block:
@@ -388,12 +395,13 @@ def test_exasol_role_drop_existing_role(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-role-drop-missing-role")
 def test_exasol_role_drop_missing_role(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
+    scenario_id: str,
 ) -> None:
     """Scenario: Drop missing role."""
-    scenario_id = "exasol-role-drop-missing-role"
     playbook = """
     - name: Drop missing role
       block:
