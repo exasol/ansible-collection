@@ -34,8 +34,18 @@ class FakeStatement:
 class FakeConnection:
     """Small stateful pyexasol connection stand-in."""
 
-    def __init__(self, schemas: set[str] | None = None) -> None:
+    def __init__(
+        self,
+        schemas: set[str] | None = None,
+        *,
+        owners: dict[str, str] | None = None,
+        comments: dict[str, str | None] | None = None,
+        raw_size_limits: dict[str, int | None] | None = None,
+    ) -> None:
         self.schemas = schemas or set()
+        self.owners = owners or {}
+        self.comments = comments or {}
+        self.raw_size_limits = raw_size_limits or {}
         self.executed: list[tuple[str, dict[str, Any] | None]] = []
 
     def execute(
@@ -45,7 +55,7 @@ class FakeConnection:
 
         self.executed.append((normalized_query, query_params))
 
-        if normalized_query.startswith("SELECT SCHEMA_NAME"):
+        if normalized_query.startswith("SELECT S.SCHEMA_NAME"):
             schema_name = str((query_params or {})["schema_name"])
 
             matched_schema = _matching_identifier(self.schemas, schema_name)
@@ -53,13 +63,46 @@ class FakeConnection:
             rows = []
 
             if matched_schema is not None:
-                rows = [{"SCHEMA_NAME": matched_schema}]
+                rows = [
+                    {
+                        "SCHEMA_NAME": matched_schema,
+                        "SCHEMA_OWNER": self.owners.get(matched_schema, "SYS"),
+                        "SCHEMA_COMMENT": self.comments.get(matched_schema),
+                        "RAW_SIZE_LIMIT": self.raw_size_limits.get(matched_schema),
+                    }
+                ]
 
             return FakeStatement(rows=rows, rowcount=len(rows))
 
         if normalized_query.startswith("CREATE SCHEMA"):
             self.schemas.add(_quoted_identifier(normalized_query))
 
+            return FakeStatement(result_type="rowCount")
+
+        if normalized_query.startswith("RENAME SCHEMA"):
+            old_name, new_name = _quoted_identifiers(normalized_query)
+            matched_schema = _matching_identifier(self.schemas, old_name)
+            if matched_schema is not None:
+                self.schemas.remove(matched_schema)
+                self.schemas.add(new_name)
+                _move_metadata(self.owners, matched_schema, new_name)
+                _move_metadata(self.comments, matched_schema, new_name)
+                _move_metadata(self.raw_size_limits, matched_schema, new_name)
+            return FakeStatement(result_type="rowCount")
+
+        if normalized_query.startswith("COMMENT ON SCHEMA"):
+            schema_name = _quoted_identifier(normalized_query)
+            self.comments[schema_name] = _sql_comment(normalized_query)
+            return FakeStatement(result_type="rowCount")
+
+        if " SET RAW_SIZE_LIMIT = " in normalized_query:
+            schema_name = _quoted_identifier(normalized_query)
+            self.raw_size_limits[schema_name] = int(normalized_query.rsplit(" ", 1)[1])
+            return FakeStatement(result_type="rowCount")
+
+        if " CHANGE OWNER " in normalized_query:
+            schema_name, owner = _quoted_identifiers(normalized_query)
+            self.owners[schema_name] = owner
             return FakeStatement(result_type="rowCount")
 
         if normalized_query.startswith("DROP SCHEMA"):
@@ -106,6 +149,193 @@ def test_module_argument_spec_exposes_schema_specific_options() -> None:
     assert argument_spec["state"]["choices"] == ["absent", "present"]
     assert argument_spec["state"]["default"] == "present"
     assert argument_spec["cascade"]["default"] is False
+    assert argument_spec["owner"] == {"type": "str"}
+    assert argument_spec["comment"] == {"type": "str"}
+    assert argument_spec["new_name"] == {"type": "str"}
+    assert argument_spec["raw_size_limit"] == {"type": "int"}
+
+
+def test_ensure_schema_creates_schema_then_changes_owner() -> None:
+    """Verify Exasol ownership is assigned after schema creation."""
+    connection = FakeConnection()
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "SALES", "owner": "APP_USER"}
+    )
+
+    assert result["executed_queries"] == [
+        'CREATE SCHEMA "SALES"',
+        'ALTER SCHEMA "SALES" CHANGE OWNER "APP_USER"',
+    ]
+    assert connection.owners["SALES"] == "APP_USER"
+
+
+def test_ensure_schema_reconciles_owner() -> None:
+    """Verify owner drift is reconciled."""
+    connection = FakeConnection(schemas={"SALES"}, owners={"SALES": "OLD_USER"})
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "SALES", "owner": "NEW_USER"}
+    )
+
+    assert result["executed_queries"] == [
+        'ALTER SCHEMA "SALES" CHANGE OWNER "NEW_USER"'
+    ]
+    assert connection.owners["SALES"] == "NEW_USER"
+
+
+def test_ensure_schema_matching_owner_is_idempotent() -> None:
+    """Verify a matching owner does not produce SQL."""
+    connection = FakeConnection(schemas={"SALES"}, owners={"SALES": "APP_USER"})
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "SALES", "owner": "app_user"}
+    )
+
+    assert result["changed"] is False
+    assert result["executed_queries"] == []
+
+
+def test_ensure_schema_reconciles_comment() -> None:
+    """Verify schema comments are quoted and reconciled."""
+    connection = FakeConnection(schemas={"SALES"})
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "SALES", "comment": "Sales team's data"}
+    )
+
+    assert result["executed_queries"] == [
+        "COMMENT ON SCHEMA \"SALES\" IS 'Sales team''s data'"
+    ]
+    assert connection.comments["SALES"] == "Sales team's data"
+
+
+def test_ensure_schema_clears_comment() -> None:
+    """Verify an empty requested comment removes the current comment."""
+    connection = FakeConnection(schemas={"SALES"}, comments={"SALES": "Obsolete"})
+
+    result = exasol_schema.ensure_schema(connection, {"name": "SALES", "comment": ""})
+
+    assert result["executed_queries"] == ['COMMENT ON SCHEMA "SALES" IS NULL']
+    assert connection.comments["SALES"] is None
+
+
+def test_ensure_schema_renames_existing_schema() -> None:
+    """Verify an existing schema can be renamed."""
+    connection = FakeConnection(schemas={"OLD_NAME"})
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "OLD_NAME", "new_name": "NEW_NAME"}
+    )
+
+    assert result["schema"] == "NEW_NAME"
+    assert result["executed_queries"] == ['RENAME SCHEMA "OLD_NAME" TO "NEW_NAME"']
+    assert connection.schemas == {"NEW_NAME"}
+
+
+def test_ensure_schema_rename_is_idempotent_after_rename() -> None:
+    """Verify the desired rename target is recognized on repeated runs."""
+    connection = FakeConnection(schemas={"NEW_NAME"})
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "OLD_NAME", "new_name": "NEW_NAME"}
+    )
+
+    assert result["changed"] is False
+    assert result["schema"] == "NEW_NAME"
+
+
+def test_ensure_schema_reconciles_raw_size_limit() -> None:
+    """Verify schema quota drift is reconciled in bytes."""
+    connection = FakeConnection(schemas={"SALES"}, raw_size_limits={"SALES": 1024})
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "SALES", "raw_size_limit": 2048}
+    )
+
+    assert result["executed_queries"] == [
+        'ALTER SCHEMA "SALES" SET RAW_SIZE_LIMIT = 2048'
+    ]
+    assert connection.raw_size_limits["SALES"] == 2048
+
+
+def test_ensure_schema_matching_raw_size_limit_is_idempotent() -> None:
+    """Verify a matching quota does not produce SQL."""
+    connection = FakeConnection(schemas={"SALES"}, raw_size_limits={"SALES": 2048})
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "SALES", "raw_size_limit": 2048}
+    )
+
+    assert result["changed"] is False
+    assert result["executed_queries"] == []
+
+
+def test_ensure_schema_plans_owner_last_after_other_properties() -> None:
+    """Verify ownership transfer cannot remove access before other updates."""
+    connection = FakeConnection()
+
+    result = exasol_schema.ensure_schema(
+        connection,
+        {
+            "name": "OLD_NAME",
+            "new_name": "NEW_NAME",
+            "comment": "Sales",
+            "raw_size_limit": 2048,
+            "owner": "APP_ROLE",
+        },
+        check_mode=True,
+    )
+
+    assert result["executed_queries"] == [
+        'CREATE SCHEMA "NEW_NAME"',
+        "COMMENT ON SCHEMA \"NEW_NAME\" IS 'Sales'",
+        'ALTER SCHEMA "NEW_NAME" SET RAW_SIZE_LIMIT = 2048',
+        'ALTER SCHEMA "NEW_NAME" CHANGE OWNER "APP_ROLE"',
+    ]
+    assert connection.schemas == set()
+
+
+def test_ensure_schema_rejects_rename_when_source_and_target_exist() -> None:
+    """Verify ambiguous rename state fails without writing."""
+    connection = FakeConnection(schemas={"OLD_NAME", "NEW_NAME"})
+
+    with pytest.raises(ValueError, match="both identify existing schemas"):
+        exasol_schema.ensure_schema(
+            connection, {"name": "OLD_NAME", "new_name": "NEW_NAME"}
+        )
+
+
+@pytest.mark.parametrize(
+    ("params", "message"),
+    [
+        ({"name": "SALES", "owner": 1}, "owner must be a string"),
+        ({"name": "SALES", "comment": 1}, "comment must be a string"),
+        (
+            {"name": "SALES", "comment": "x" * 2001},
+            "comment must not exceed 2000 characters",
+        ),
+        ({"name": "SALES", "comment": "bad\x00value"}, "NUL characters"),
+        (
+            {"name": "SALES", "raw_size_limit": -1},
+            "raw_size_limit must be a non-negative integer",
+        ),
+        (
+            {"name": "SALES", "raw_size_limit": True},
+            "raw_size_limit must be a non-negative integer",
+        ),
+        (
+            {"name": "SALES", "state": "absent", "owner": "APP_ROLE"},
+            "owner can only be used with state=present",
+        ),
+    ],
+)
+def test_ensure_schema_rejects_invalid_property_parameters(
+    params: dict[str, object], message: str
+) -> None:
+    """Verify invalid mutable schema options fail before DDL."""
+    with pytest.raises(ValueError, match=message):
+        exasol_schema.ensure_schema(FakeConnection(), params)
 
 
 def test_ensure_schema_existing_schema_is_idempotent() -> None:
@@ -356,6 +586,30 @@ def _quoted_identifier(query: str) -> str:
     end = query.index('"', start + 1)
 
     return query[start + 1 : end]
+
+
+def _quoted_identifiers(query: str) -> list[str]:
+    """Extract simple quoted identifiers used by the fake connection."""
+    values: list[str] = []
+    remaining = query
+    while '"' in remaining:
+        start = remaining.index('"')
+        end = remaining.index('"', start + 1)
+        values.append(remaining[start + 1 : end])
+        remaining = remaining[end + 1 :]
+    return values
+
+
+def _move_metadata(values: dict[str, Any], old_name: str, new_name: str) -> None:
+    if old_name in values:
+        values[new_name] = values.pop(old_name)
+
+
+def _sql_comment(query: str) -> str | None:
+    value = query.split(" IS ", 1)[1]
+    if value == "NULL":
+        return None
+    return value[1:-1].replace("''", "'")
 
 
 def _matching_identifier(values: set[str], identifier: str) -> str | None:

@@ -13,7 +13,9 @@ playbooks and the reusable Python runtime package.
 
 In scope:
 
-* manage schema creation, unchanged state, removal, and check-mode prediction
+* manage schema creation, unchanged state, rename, removal, and check-mode prediction
+* reconcile schema owner, comment, and raw-size limit when requested
+* preserve non-cascading drop safety unless `cascade=true` is explicit
 * preserve exact schema identifier values in generated SQL
 * keep playbook-backed and runtime-package integration scenarios synchronized
   with their respective Gherkin feature files
@@ -21,7 +23,8 @@ In scope:
 Out of scope:
 
 * managing objects contained within schemas
-* changing the existing schema lifecycle behavior
+* additive schema privileges, which belong to grant management
+* virtual schema properties and refresh behavior
 
 ## Design References
 
@@ -42,6 +45,8 @@ playbooks and direct calls to the runtime package's high-level entry point.
 
 - [x] Confirm that separating the acceptance specifications changes verification structure, not schema behavior
 - [x] Record the verification structure and runtime entry-point alignment in this changeset
+- [x] Verify schema lifecycle SQL against the Exasol SQL reference
+- [x] Specify intrinsic schema-property reconciliation and safe drop behavior
 
 ### Implementation
 
@@ -51,6 +56,11 @@ playbooks and direct calls to the runtime package's high-level entry point.
 - [x] Add basic schema runtime scenarios and backend integration tests
 - [x] Centralize SQL string-literal quoting in the shared query runtime
 - [x] Normalize schema identifiers before direct catalog verification
+- [x] Reconcile owner through `ALTER SCHEMA ... CHANGE OWNER`
+- [x] Reconcile comments through `COMMENT ON SCHEMA`
+- [x] Reconcile names through `RENAME SCHEMA`
+- [x] Reconcile schema quota through `ALTER SCHEMA ... SET RAW_SIZE_LIMIT`
+- [x] Keep owner, comment, rename, and quota unmanaged when omitted
 
 ### Verification
 
@@ -60,3 +70,7 @@ playbooks and direct calls to the runtime package's high-level entry point.
 - [x] Run focused SQL-literal, schema runtime, and scenario-contract tests
 - [x] Run formatting checks
 - [x] Run `poetry run nox -s requirements:trace`
+- [x] Add runtime integration scenarios for every new schema behavior
+- [x] Add representative playbook smoke scenarios for new schema behavior
+- [x] Run updated schema unit and synchronization-contract tests
+- [x] Run formatting, linting, typing, and requirement tracing
