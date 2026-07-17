@@ -481,10 +481,7 @@ def test_module_argument_spec_exposes_grant_specific_options() -> None:
     assert argument_spec["state"]["choices"] == ["absent", "present"]
     assert argument_spec["system_privileges"]["elements"] == "str"
     assert argument_spec["object_privileges"]["elements"] == "dict"
-    assert (
-        "schema"
-        not in argument_spec["object_privileges"]["options"]["object_type"]["choices"]
-    )
+    assert ("schema" not in argument_spec["object_privileges"]["options"]["object_type"]["choices"])
     assert argument_spec["object_privileges"]["options"]["privileges"] == {
         "type": "list",
         "elements": "str",

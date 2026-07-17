@@ -245,11 +245,7 @@ def run_grants(
         params,
         module_name="exasol_grants",
     ) as connection:
-        return ensure_grants(
-            connection,
-            params,
-            check_mode=check_mode,
-        )
+        return ensure_grants(connection, params, check_mode=check_mode)
 
 
 def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
@@ -422,10 +418,7 @@ def _object_grant_requests(
     index: int,
 ) -> list[ObjectGrant]:
     prefix = f"object_privileges[{index}]"
-    schema_name = validate_identifier(
-        _non_empty_string(item.get("schema"), "schema"),
-        identifier_type="schema",
-    )
+    schema_name = validate_identifier(_non_empty_string(item.get("schema"), "schema"),identifier_type="schema",)
     object_name = _optional_object_name(item.get("object"))
     object_type = _object_type(item.get("object_type"))
     privileges = _privilege_list(
@@ -484,11 +477,7 @@ def _privilege_list(
         raise ValueError(f"{option_name} must not be empty when supplied.")
 
     return [
-        _normalize_privilege(
-            item,
-            allowed=allowed,
-            privilege_type=privilege_type,
-        )
+        _normalize_privilege(item, allowed=allowed, privilege_type=privilege_type)
         for item in value
     ]
 

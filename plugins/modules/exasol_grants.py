@@ -205,10 +205,7 @@ def main() -> None:
     params = module.params
 
     try:
-        result = exasol_grants_utils.run_grants(
-            params,
-            check_mode=module.check_mode,
-        )
+        result = exasol_grants_utils.run_grants(params, check_mode=module.check_mode)
     except ValueError as error:
         module.fail_json(msg=exasol_grants_utils.sanitize_error_message(error, params))
     except Exception as error:  # noqa: BLE001 - Ansible modules report all failures.
