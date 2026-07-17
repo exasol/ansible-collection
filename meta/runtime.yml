@@ -2,6 +2,8 @@
 requires_ansible: ">=2.16.0"
 action_groups:
   connection:
+    - exasol.exasol.exasol_info
+    - exasol.exasol.exasol_grants
     - exasol.exasol.exasol_query
     - exasol.exasol.exasol_role
     - exasol.exasol.exasol_schema

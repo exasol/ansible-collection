@@ -150,3 +150,230 @@ change. This avoids partially executing a mixed read/write batch.
          - SELECT COUNT(*) AS SCHEMA_COUNT FROM EXA_SCHEMAS
          - CREATE SCHEMA demo_check_mode
      check_mode: true
+
+exasol_info
+-----------
+
+Use ``exasol.exasol.exasol_info`` to gather basic Exasol server information
+from read-only metadata queries. The module returns the Exasol version,
+database name, and cluster size, and it always reports ``changed=false``.
+
+The module uses the same connection parameters as the other collection
+modules. Provide the Exasol login settings in the task as shown below:
+
+.. code-block:: yaml
+
+   ---
+   - hosts: localhost
+     gather_facts: false
+     collections:
+       - exasol.exasol
+     tasks:
+       - name: Gather Exasol server information
+         exasol.exasol.exasol_info:
+           login_host: db.example.com
+           login_user: "{{ vault_exasol_user }}"
+           login_password: "{{ vault_exasol_password }}"
+
+Use check mode if you want to verify the module behavior in a dry run. The
+module still queries metadata and returns the same information:
+
+.. code-block:: yaml
+
+   - name: Gather Exasol server information in check mode
+     exasol.exasol.exasol_info:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_user }}"
+       login_password: "{{ vault_exasol_password }}"
+     check_mode: true
+
+exasol_grants
+--------------
+
+Use ``exasol.exasol.exasol_grants`` to grant or revoke requested Exasol
+privileges for exactly one user or role. The module checks Exasol privilege
+metadata first, so repeated runs report ``changed=false`` when the requested
+grant state already matches the database.
+
+``state=present`` grants missing privileges. ``state=absent`` revokes only the
+privileges listed in the task; it does not remove unrelated grants from the
+principal.
+
+Supported principals and grants:
+
+* exactly one principal, either ``user`` or ``role``
+* direct system privileges through ``system_privileges``
+* schema-level object privileges through ``object_privileges`` with ``schema``
+  and no ``object``
+* schema-qualified object privileges through ``object_privileges`` with both
+  ``schema`` and ``object``
+
+Supply at least one requested privilege. When an optional privilege list is not
+needed, omit the option instead of passing an empty list.
+
+Supported system privileges:
+
+``ACCESS ANY CONNECTION``, ``ALTER ANY CONNECTION``, ``ALTER ANY SCHEMA``,
+``ALTER ANY TABLE``, ``ALTER ANY VIRTUAL SCHEMA``,
+``ALTER ANY VIRTUAL SCHEMA REFRESH``, ``ALTER SYSTEM``, ``ALTER USER``,
+``CREATE ANY FUNCTION``, ``CREATE ANY SCRIPT``, ``CREATE ANY TABLE``,
+``CREATE ANY VIEW``, ``CREATE CONNECTION``, ``CREATE FUNCTION``,
+``CREATE ROLE``, ``CREATE SCHEMA``, ``CREATE SCRIPT``, ``CREATE SESSION``,
+``CREATE TABLE``, ``CREATE USER``, ``CREATE VIEW``,
+``CREATE VIRTUAL SCHEMA``, ``DELETE ANY TABLE``, ``DROP ANY CONNECTION``,
+``DROP ANY FUNCTION``, ``DROP ANY ROLE``, ``DROP ANY SCHEMA``,
+``DROP ANY SCRIPT``, ``DROP ANY TABLE``, ``DROP ANY VIEW``,
+``DROP ANY VIRTUAL SCHEMA``, ``DROP USER``, ``EXECUTE ANY FUNCTION``,
+``EXECUTE ANY SCRIPT``, ``EXPORT``, ``GRANT ANY CONNECTION``,
+``GRANT ANY OBJECT PRIVILEGE``, ``GRANT ANY PRIVILEGE``, ``GRANT ANY ROLE``,
+``IMPERSONATE ANY USER``, ``IMPORT``, ``INSERT ANY TABLE``,
+``KILL ANY SESSION``, ``MANAGE CONSUMER GROUPS``,
+``SELECT ANY DICTIONARY``, ``SELECT ANY TABLE``, ``SET ANY CONSUMER GROUP``,
+``UPDATE ANY TABLE``, ``USE ANY CONNECTION``, and ``USE ANY SCHEMA``.
+
+Supported object privileges:
+
+``ACCESS``, ``ALTER``, ``DELETE``, ``EXECUTE``, ``IMPERSONATION``, ``INSERT``,
+``REFERENCES``, ``REFRESH``, ``SELECT``, ``UPDATE``, and ``USAGE``.
+
+Supported object types are ``function``, ``script``, ``table``, ``view``, and
+``virtual_schema``. The ``object_type`` option is optional; omit it for
+schema-level grants and ordinary table grants.
+
+This version does not manage role grants, connection object grants,
+``WITH ADMIN OPTION``, ``WITH GRANT OPTION``, exclusive reconciliation, or broad
+``ALL PRIVILEGES`` requests. User and role names are exact Exasol identifier
+values. Schema and object names use the collection's conservative
+regular-identifier validation.
+
+Grant a system privilege to a user:
+
+.. code-block:: yaml
+
+   - name: Grant CREATE SESSION to an application user
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_user
+       system_privileges:
+         - CREATE SESSION
+
+Grant multiple system privileges to a user:
+
+.. code-block:: yaml
+
+   - name: Grant application user login and schema creation privileges
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_user
+       system_privileges:
+         - CREATE SESSION
+         - CREATE SCHEMA
+         - USE ANY SCHEMA
+
+Grant a schema-scoped object privilege to a role:
+
+.. code-block:: yaml
+
+   - name: Grant schema usage to a reader role
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       role: app_reader
+       object_privileges:
+         - schema: app_schema
+           privileges:
+             - USAGE
+
+Grant multiple object privileges to a role:
+
+.. code-block:: yaml
+
+   - name: Grant reader and writer privileges on application objects
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       role: app_writer
+       object_privileges:
+         - schema: app_schema
+           privileges:
+             - USAGE
+         - schema: app_schema
+           object: fact_sales
+           privileges:
+             - SELECT
+             - INSERT
+             - UPDATE
+         - schema: app_schema
+           object: sales_view
+           object_type: view
+           privileges:
+             - SELECT
+
+Grant system and object privileges in one task:
+
+.. code-block:: yaml
+
+   - name: Grant all requested privileges for an application service user
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_service
+       system_privileges:
+         - CREATE SESSION
+       object_privileges:
+         - schema: app_schema
+           privileges:
+             - USAGE
+         - schema: app_schema
+           object: fact_sales
+           privileges:
+             - SELECT
+             - INSERT
+
+Revoke a requested object privilege without touching other grants:
+
+.. code-block:: yaml
+
+   - name: Revoke table SELECT from a user
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_user
+       state: absent
+       object_privileges:
+         - schema: app_schema
+           object: fact_sales
+           privileges:
+             - SELECT
+
+Revoke multiple requested privileges from a role:
+
+.. code-block:: yaml
+
+   - name: Revoke write privileges while keeping unrelated grants intact
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       role: app_writer
+       state: absent
+       system_privileges:
+         - CREATE SCHEMA
+       object_privileges:
+         - schema: app_schema
+           object: fact_sales
+           privileges:
+             - INSERT
+             - UPDATE
+
+In check mode, ``exasol_grants`` still reads metadata but does not execute
+planned ``GRANT`` or ``REVOKE`` statements. The result's ``executed_queries``
+contains the statements that would run.

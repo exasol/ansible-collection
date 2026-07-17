@@ -20,6 +20,21 @@ Covers:
 
 Needs: impl, utest, itest
 
+### Exasol Info Read-Only Metadata Retrieval
+`dsn~exasol-info-read-only-metadata-retrieval~1`
+
+**Given** an Ansible Operator requests information from `exasol_info`
+**When** the module reads the required server metadata
+**Then** it returns version, database name, and cluster size
+**And** the result always reports `changed=false`
+
+Status: draft
+
+Covers:
+- `scn~exasol-info-returns-version-and-cluster-size~1`
+
+Needs: impl, utest, itest
+
 ## Physical Schema Lifecycle Planning
 
 ### Intrinsic Schema Property Reconciliation

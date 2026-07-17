@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import subprocess
 import tarfile
+from test.integration.conftest import InstalledCollectionEnvironment
 
 import pytest
-from conftest import InstalledCollectionEnvironment
 
 
 def test_galaxy_archive_excludes_python_runtime_package(
@@ -22,16 +22,17 @@ def test_galaxy_archive_excludes_python_runtime_package(
 
 
 @pytest.mark.parametrize(
-    ("module_name", "expected_missing_args"),
+    ("module_name", "expected_messages"),
     [
-        ("exasol_query", "login_user, query"),
-        ("exasol_user", "login_user, name"),
+        ("exasol_grants", ("missing required arguments: login_user",)),
+        ("exasol_query", ("missing required arguments: login_user, query",)),
+        ("exasol_user", ("missing required arguments: login_user, name",)),
     ],
 )
 def test_galaxy_installed_module_uses_configured_python_runtime(
     installed_collection_environment: InstalledCollectionEnvironment,
     module_name: str,
-    expected_missing_args: str,
+    expected_messages: tuple[str, ...],
 ) -> None:
     """Verify installed modules import with the configured runtime interpreter."""
     result = subprocess.run(
@@ -60,5 +61,6 @@ def test_galaxy_installed_module_uses_configured_python_runtime(
     output = result.stdout + result.stderr
 
     assert result.returncode != 0
-    assert f"missing required arguments: {expected_missing_args}" in output
+    for expected_message in expected_messages:
+        assert expected_message in output
     assert "No module named 'exasol'" not in output

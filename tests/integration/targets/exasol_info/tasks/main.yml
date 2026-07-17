@@ -1,0 +1,68 @@
+---
+- name: Create mock pyexasol module directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: exasol-info-pyexasol
+  register: exasol_info_mock_directory
+
+- name: Configure writable Ansible remote temp directory
+  ansible.builtin.set_fact:
+    ansible_remote_tmp: "{{ exasol_info_mock_directory.path }}/ansible-tmp"
+
+- name: Install shared pyexasol mock support module
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../setup_pyexasol_mock/files/pyexasol_mock_base.py"
+    dest: "{{ exasol_info_mock_directory.path }}/pyexasol_mock_base.py"
+    mode: "0600"
+
+- name: Install exasol_info mock pyexasol module
+  ansible.builtin.copy:
+    src: pyexasol_mock.py
+    dest: "{{ exasol_info_mock_directory.path }}/pyexasol.py"
+    mode: "0600"
+
+- name: Configure mocked exasol_info integration environment
+  ansible.builtin.set_fact:
+    exasol_info_mock_environment:
+      PYTHONPATH: "{{ exasol_info_mock_directory.path }}"
+
+- name: Run mocked exasol_info contract scenarios
+  block:
+    - name: Gather server information
+      exasol.exasol.exasol_info:
+        login_host: db.example.com
+        login_user: sys
+        login_password: secret
+      environment: "{{ exasol_info_mock_environment }}"
+      register: exasol_info_result
+
+    - name: Verify server information result
+      ansible.builtin.assert:
+        that:
+          - exasol_info_result is not changed
+          - exasol_info_result.version == "8.39.1"
+          - exasol_info_result.database_name == "EXA_DB"
+          - exasol_info_result.cluster_size == 1
+
+    - name: Gather server information in check mode
+      exasol.exasol.exasol_info:
+        login_host: db.example.com
+        login_user: sys
+        login_password: secret
+      check_mode: true
+      environment: "{{ exasol_info_mock_environment }}"
+      register: exasol_info_check_mode_result
+
+    - name: Verify check mode server information result
+      ansible.builtin.assert:
+        that:
+          - exasol_info_check_mode_result is not changed
+          - exasol_info_check_mode_result.version == "8.39.1"
+          - exasol_info_check_mode_result.database_name == "EXA_DB"
+          - exasol_info_check_mode_result.cluster_size == 1
+
+  always:
+    - name: Remove mock pyexasol module directory
+      ansible.builtin.file:
+        path: "{{ exasol_info_mock_directory.path }}"
+        state: absent

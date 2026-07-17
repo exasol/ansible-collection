@@ -4,6 +4,7 @@
 
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 from functools import lru_cache
@@ -97,6 +98,7 @@ def _ansible_env(tmp_path: Path) -> dict[str, str]:
         "ANSIBLE_HOME": str(ansible_home),
         "ANSIBLE_LOCAL_TEMP": str(ansible_local_tmp),
         "HOME": str(tmp_path),
+        "TMPDIR": str(ansible_tmpdir),
     }
 
 
@@ -160,8 +162,14 @@ def _prepare_ansible_test_collection_layout(tmp_path: Path) -> Path:
         collection_path,
         ignore=_ignore_ansible_test_source_paths,
     )
+    _initialize_temporary_git_repository(collection_path)
 
     return collection_path
+
+
+def _initialize_temporary_git_repository(path: Path) -> None:
+    """Create Git metadata needed by ansible-test source discovery."""
+    subprocess.run(["git", "init", "--quiet"], cwd=path, check=True)
 
 
 @nox.session(name="collection:build", python=False)
