@@ -150,3 +150,39 @@ change. This avoids partially executing a mixed read/write batch.
          - SELECT COUNT(*) AS SCHEMA_COUNT FROM EXA_SCHEMAS
          - CREATE SCHEMA demo_check_mode
      check_mode: true
+
+exasol_info
+-----------
+
+Use ``exasol.exasol.exasol_info`` to gather basic Exasol server information
+from read-only metadata queries. The module returns the Exasol version,
+database name, and cluster size, and it always reports ``changed=false``.
+
+The module uses the same connection parameters as the other collection
+modules. Provide the Exasol login settings in the task as shown below:
+
+.. code-block:: yaml
+
+   ---
+   - hosts: localhost
+     gather_facts: false
+     collections:
+       - exasol.exasol
+     tasks:
+       - name: Gather Exasol server information
+         exasol.exasol.exasol_info:
+           login_host: db.example.com
+           login_user: "{{ vault_exasol_user }}"
+           login_password: "{{ vault_exasol_password }}"
+
+Use check mode if you want to verify the module behavior in a dry run. The
+module still queries metadata and returns the same information:
+
+.. code-block:: yaml
+
+   - name: Gather Exasol server information in check mode
+     exasol.exasol.exasol_info:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_user }}"
+       login_password: "{{ vault_exasol_password }}"
+     check_mode: true

@@ -182,6 +182,19 @@ Covers:
 
 Needs: scn
 
+### Gather Basic Exasol Server Metadata
+`req~gather-basic-exasol-server-information~1`
+
+The `exasol_info` module must gather the Exasol server version, database name, and cluster size through read-only metadata queries, always report `changed=false`, and not alter the Exasol state.
+
+Rationale:
+
+Operators often need lightweight server facts for compatibility checks and deployment logic.
+
+Status: draft
+
+Needs: scn
+
 ## Acceptance Scenarios
 
 The following scenarios describe observable behavior in Given-When-Then form.
@@ -257,6 +270,23 @@ Status: draft
 
 Covers:
 - `req~keep-authorization-changes-predictable~1`
+
+Needs: dsn
+
+### Exasol Info Returns Version And Cluster Size
+`scn~exasol-info-returns-version-and-cluster-size~1`
+
+**Given** an Exasol cluster reachable from the Ansible controller
+**When** an Ansible Operator runs `exasol_info` with valid login parameters
+**Then** the result contains `version`
+**And** the result contains `database_name`
+**And** the result contains `cluster_size`
+**And** the result reports `changed=false`
+
+Status: draft
+
+Covers:
+- `req~gather-basic-exasol-server-information~1`
 
 Needs: dsn
 
