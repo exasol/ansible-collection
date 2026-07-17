@@ -1,0 +1,243 @@
+---
+- name: Create mock pyexasol module directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: exasol-grants-pyexasol
+  register: exasol_grants_mock_directory
+
+- name: Configure writable Ansible remote temp directory
+  ansible.builtin.set_fact:
+    ansible_remote_tmp: "{{ exasol_grants_mock_directory.path }}/ansible-tmp"
+
+- name: Install shared pyexasol mock support module
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../setup_pyexasol_mock/files/pyexasol_mock_base.py"
+    dest: "{{ exasol_grants_mock_directory.path }}/pyexasol_mock_base.py"
+    mode: "0600"
+
+- name: Install exasol_grants mock pyexasol module
+  ansible.builtin.copy:
+    src: pyexasol_mock.py
+    dest: "{{ exasol_grants_mock_directory.path }}/pyexasol.py"
+    mode: "0600"
+
+- name: Configure mocked exasol_grants integration environment
+  ansible.builtin.set_fact:
+    exasol_grants_mock_environment:
+      PYTHONPATH: "{{ exasol_grants_mock_directory.path }}"
+      EXASOL_GRANTS_MOCK_STATE: "{{ exasol_grants_mock_directory.path }}/state.json"
+
+- name: Run mocked exasol_grants contract scenarios
+  block:
+    - name: Grant missing system privilege
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        user: app_user
+        system_privileges:
+          - CREATE SESSION
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_system_create
+
+    - name: Verify missing system privilege grant result
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_system_create is changed
+          - exasol_grants_system_create.principal == "app_user"
+          - exasol_grants_system_create.principal_type == "user"
+          - exasol_grants_system_create.state == "present"
+          - exasol_grants_system_create.executed_queries == ['GRANT CREATE SESSION TO "app_user"']
+
+    - name: Existing system privilege is unchanged
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        user: app_user
+        system_privileges:
+          - CREATE SESSION
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_system_existing
+
+    - name: Verify existing system privilege idempotence
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_system_existing is not changed
+          - exasol_grants_system_existing.executed_queries == []
+
+    - name: Check mode predicts system grant without executing it
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        user: check_user
+        system_privileges:
+          - CREATE SESSION
+      check_mode: true
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_system_check
+
+    - name: Verify check mode system grant prediction
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_system_check is changed
+          - exasol_grants_system_check.executed_queries == ['GRANT CREATE SESSION TO "check_user"']
+
+    - name: Verify check mode did not grant the system privilege
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        user: check_user
+        state: absent
+        system_privileges:
+          - CREATE SESSION
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_check_absent
+
+    - name: Assert check mode grant was not executed
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_check_absent is not changed
+          - exasol_grants_check_absent.executed_queries == []
+
+    - name: Grant missing schema object privilege
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        role: app_role
+        object_privileges:
+          - schema: app_schema
+            privileges:
+              - USAGE
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_schema_create
+
+    - name: Verify missing schema object privilege grant result
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_schema_create is changed
+          - exasol_grants_schema_create.principal == "app_role"
+          - exasol_grants_schema_create.principal_type == "role"
+          - exasol_grants_schema_create.executed_queries == ['GRANT USAGE ON "APP_SCHEMA" TO "app_role"']
+
+    - name: Grant multiple system and object privileges
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        user: multi_user
+        system_privileges:
+          - CREATE SESSION
+          - CREATE SCHEMA
+        object_privileges:
+          - schema: app_schema
+            privileges:
+              - USAGE
+          - schema: app_schema
+            object: fact_sales
+            privileges:
+              - SELECT
+              - INSERT
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_multi_create
+
+    - name: Verify multiple grant result
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_multi_create is changed
+          - exasol_grants_multi_create.principal == "multi_user"
+          - exasol_grants_multi_create.principal_type == "user"
+          - exasol_grants_multi_create.executed_queries == ['GRANT CREATE SESSION TO "multi_user"', 'GRANT CREATE SCHEMA TO "multi_user"', 'GRANT USAGE ON "APP_SCHEMA" TO "multi_user"', 'GRANT SELECT ON "APP_SCHEMA"."FACT_SALES" TO "multi_user"', 'GRANT INSERT ON "APP_SCHEMA"."FACT_SALES" TO "multi_user"']
+
+    - name: Revoke multiple requested privileges
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        user: multi_user
+        state: absent
+        system_privileges:
+          - CREATE SCHEMA
+        object_privileges:
+          - schema: app_schema
+            object: fact_sales
+            privileges:
+              - INSERT
+              - UPDATE
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_multi_revoke
+
+    - name: Verify multiple revoke result
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_multi_revoke is changed
+          - exasol_grants_multi_revoke.state == "absent"
+          - exasol_grants_multi_revoke.executed_queries == ['REVOKE CREATE SCHEMA FROM "multi_user"', 'REVOKE INSERT ON "APP_SCHEMA"."FACT_SALES" FROM "multi_user"']
+
+    - name: Revoke existing schema object privilege
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        role: app_role
+        state: absent
+        object_privileges:
+          - schema: app_schema
+            privileges:
+              - USAGE
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_schema_revoke
+
+    - name: Verify schema object privilege revoke result
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_schema_revoke is changed
+          - exasol_grants_schema_revoke.state == "absent"
+          - exasol_grants_schema_revoke.executed_queries == ['REVOKE USAGE ON "APP_SCHEMA" FROM "app_role"']
+
+    - name: Revoking a missing schema object privilege is unchanged
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        role: app_role
+        state: absent
+        object_privileges:
+          - schema: app_schema
+            privileges:
+              - USAGE
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_schema_absent
+
+    - name: Verify missing schema object privilege revoke idempotence
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_schema_absent is not changed
+          - exasol_grants_schema_absent.executed_queries == []
+
+    - name: Invalid principal selection fails before SQL generation
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        user: app_user
+        role: app_role
+        system_privileges:
+          - CREATE SESSION
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_invalid_principal
+      ignore_errors: true
+
+    - name: Verify invalid principal selection failure
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_invalid_principal is failed
+          - "'mutually exclusive' in exasol_grants_invalid_principal.msg"
+
+    - name: Bad credentials fail without leaking secrets
+      exasol.exasol.exasol_grants:
+        login_user: sys
+        login_password: bad-secret
+        user: app_user
+        state: absent
+        system_privileges:
+          - CREATE SESSION
+      environment: "{{ exasol_grants_mock_environment }}"
+      register: exasol_grants_bad_credentials
+      ignore_errors: true
+
+    - name: Verify bad credential error is sanitized
+      ansible.builtin.assert:
+        that:
+          - exasol_grants_bad_credentials is failed
+          - "'authenticate' in exasol_grants_bad_credentials.msg"
+          - "'bad-secret' not in exasol_grants_bad_credentials.msg"
+
+  always:
+    - name: Remove mock pyexasol module directory
+      ansible.builtin.file:
+        path: "{{ exasol_grants_mock_directory.path }}"
+        state: absent

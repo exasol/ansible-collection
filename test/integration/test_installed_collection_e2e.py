@@ -219,6 +219,70 @@ def _assert_exasol_object_count(
     assert int(_row_value(rows[0], field_name, 0)) == expected
 
 
+@pytest.mark.integration
+@pytest.mark.slow
+def test_installed_exasol_grants_smoke_succeeds(
+    tmp_path: Path,
+    installed_collection_environment: InstalledCollectionEnvironment,
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Grant a privilege through the built collection and installed runtime."""
+    workspace = _installed_runner_workspace(tmp_path, installed_collection_environment)
+    context = given_acceptance_context(
+        workspace,
+        exasol_login_vars,
+        python_interpreter=installed_collection_environment.python_executable,
+    )
+
+    result = when_module_scenario_runs(
+        context,
+        "exasol_grants",
+        "installed-exasol-grants-smoke",
+        scenario_playbook="""
+        - name: Grant a system privilege through installed artifacts
+          block:
+            - name: Create a user without CREATE SESSION
+              exasol.exasol.exasol_user:
+                name: "{{ test_user }}"
+                password: "{{ test_user_password }}"
+                create_session: false
+
+            - name: Grant CREATE SESSION
+              exasol.exasol.exasol_grants:
+                user: "{{ test_user }}"
+                system_privileges:
+                  - CREATE SESSION
+              register: exasol_grants_create_session
+
+            - name: Store scenario result
+              ansible.builtin.set_fact:
+                acceptance_result:
+                  scenario_id: "{{ acceptance_scenario_id }}"
+                  module_result: "{{ exasol_grants_create_session }}"
+                cacheable: true
+        """,
+    )
+
+    module_result = result["module_result"]
+    assert module_result["changed"] is True
+    assert module_result["principal"] == context.test_user
+    assert module_result["principal_type"] == "user"
+    assert module_result["state"] == "present"
+    assert module_result["executed_queries"] == [
+        f'GRANT CREATE SESSION TO "{context.test_user}"'
+    ]
+    _assert_exasol_object_count(
+        exasol_login_vars,
+        (
+            "SELECT COUNT(*) AS PRIVILEGE_COUNT FROM EXA_DBA_SYS_PRIVS "
+            f"WHERE GRANTEE = '{context.test_user}' "
+            "AND PRIVILEGE = 'CREATE SESSION'"
+        ),
+        "PRIVILEGE_COUNT",
+        1,
+    )
+
+
 def _row_value(row: object, key: str, index: int) -> object:
     if isinstance(row, dict):
         return row[key]
