@@ -334,8 +334,10 @@ def test_ensure_schema_rejects_invalid_property_parameters(
     params: dict[str, object], message: str
 ) -> None:
     """Verify invalid mutable schema options fail before DDL."""
+    connection = FakeConnection()
+
     with pytest.raises(ValueError, match=message):
-        exasol_schema.ensure_schema(FakeConnection(), params)
+        exasol_schema.ensure_schema(connection, params)
 
 
 def test_ensure_schema_existing_schema_is_idempotent() -> None:

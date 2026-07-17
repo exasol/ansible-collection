@@ -474,6 +474,50 @@ def test_exasol_schema_create_with_owner(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-change-owner")
+def test_exasol_schema_change_owner(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _execute_sql(context.login_vars, f'CREATE ROLE "{context.test_role}"')
+    _execute_sql(context.login_vars, f'CREATE ROLE "{context.check_mode_role}"')
+    _create_schema(context.login_vars, context.test_schema)
+    _execute_sql(
+        context.login_vars,
+        f'ALTER SCHEMA "{context.test_schema}" CHANGE OWNER "{context.test_role}"',
+    )
+    playbook = """
+    - name: Change schema owner
+      block:
+        - name: Manage schema owner
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            owner: "{{ check_mode_role }}"
+          register: schema_result
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_result }}"
+            cacheable: true
+    """
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    assert result["module_result"]["changed"] is True
+    assert result["module_result"]["executed_queries"] == [
+        f'ALTER SCHEMA "{context.test_schema}" CHANGE OWNER "{context.check_mode_role}"',
+    ]
+    assert (
+        _schema_value(context.login_vars, context.test_schema, "SCHEMA_OWNER")
+        == context.check_mode_role
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-owner-idempotent")
 def test_exasol_schema_owner_idempotent(
     ansible_runner_workspace: Any,

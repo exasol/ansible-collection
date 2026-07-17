@@ -150,6 +150,16 @@ Feature: exasol-schema specification
     And CREATE SCHEMA is followed by ALTER SCHEMA CHANGE OWNER
     And EXA_SCHEMAS reports the requested owner
 
+  @exasol-schema-change-owner
+  Scenario: Change the owner of an existing schema through a playbook
+    Given an Exasol database is reachable at localhost
+    And the schema exists with a different owner
+    And the requested owner exists
+    When a playbook runs exasol_schema with state present and owner
+    Then changed is true
+    And executed_queries equals a single ALTER SCHEMA CHANGE OWNER statement
+    And EXA_SCHEMAS reports the requested owner
+
   @exasol-schema-owner-idempotent
   Scenario: Keep an identical schema owner unchanged
     Given an Exasol database is reachable at localhost
