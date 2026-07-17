@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pyexasol
 import pytest
 from ansible_modules.common_helpers import (
     catalog_count,
@@ -205,7 +206,7 @@ def test_schema_runtime_rejects_non_existent_owner(
     schema_name = unique_name("ANSIBLE_SCHEMA")
     non_existent_owner = unique_name("ANSIBLE_MISSING_OWNER")
 
-    with pytest.raises(Exception):
+    with pytest.raises(pyexasol.ExaQueryError):
         exasol_schema.run_schema(
             {**exasol_login_vars, "name": schema_name, "owner": non_existent_owner}
         )
