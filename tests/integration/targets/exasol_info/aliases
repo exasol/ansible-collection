@@ -1,0 +1,2 @@
+# Run the shared pyexasol mock setup target before exasol_info.
+needs/target/setup_pyexasol_mock
