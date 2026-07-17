@@ -9,15 +9,14 @@ import pytest
 import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+MODULE_DIR = PROJECT_ROOT / "plugins" / "modules"
 
 
 @pytest.mark.parametrize(
     "module_path",
     [
-        PROJECT_ROOT / "plugins" / "modules" / "exasol_grants.py",
-        PROJECT_ROOT / "plugins" / "modules" / "exasol_query.py",
-        PROJECT_ROOT / "plugins" / "modules" / "exasol_role.py",
-        PROJECT_ROOT / "plugins" / "modules" / "exasol_user.py",
+        pytest.param(module_path, id=module_path.stem)
+        for module_path in sorted(MODULE_DIR.glob("exasol_*.py"))
     ],
 )
 def test_module_defines_documentation_examples_and_return(module_path: Path) -> None:
