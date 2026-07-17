@@ -396,6 +396,45 @@ def test_exasol_schema_drop_existing_schema_cascade(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-drop-non-empty-without-cascade")
+def test_exasol_schema_drop_non_empty_without_cascade(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Scenario: Refuse to drop a non-empty schema without cascade."""
+    playbook = """
+    - name: Refuse to drop a non-empty schema without cascade
+      block:
+        - name: When exasol_schema runs with state absent
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            state: absent
+          register: schema_drop_non_empty
+          ignore_errors: true
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_drop_non_empty }}"
+            cacheable: true
+    """
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema, with_table=True)
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    module_result = result["module_result"]
+    assert module_result["failed"] is True
+    assert "cascade" in str(module_result["msg"]).lower()
+    assert module_result["changed"] is False
+    assert "executed_queries" not in module_result
+    assert _schema_count(context.login_vars, context.test_schema) == 1
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-missing-schema")
 def test_exasol_schema_drop_missing_schema(
     ansible_runner_workspace: Any,
@@ -617,6 +656,40 @@ def test_exasol_schema_rename(
     result = _when_schema_scenario_runs(context, scenario_id, playbook)
 
     assert result["module_result"]["schema"] == context.check_mode_schema
+    assert _schema_count(context.login_vars, context.test_schema) == 0
+    assert _schema_count(context.login_vars, context.check_mode_schema) == 1
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-rename-idempotent")
+def test_exasol_schema_rename_idempotent(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.check_mode_schema)
+    playbook = """
+    - name: Leave an already renamed schema unchanged
+      block:
+        - name: Manage schema name again
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            new_name: "{{ check_mode_schema }}"
+          register: schema_result
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_result }}"
+            cacheable: true
+    """
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    assert result["module_result"]["changed"] is False
+    assert result["module_result"]["executed_queries"] == []
     assert _schema_count(context.login_vars, context.test_schema) == 0
     assert _schema_count(context.login_vars, context.check_mode_schema) == 1
 

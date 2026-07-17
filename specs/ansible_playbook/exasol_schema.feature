@@ -129,6 +129,18 @@ Feature: exasol-schema specification
       | DROP SCHEMA "SALES" CASCADE |
     And schema "SALES" no longer exists in EXA_SCHEMAS
 
+  @exasol-schema-drop-non-empty-without-cascade
+  Scenario: Refuse to drop a non-empty schema without cascade
+    Given an Exasol database is reachable at localhost
+    And schema "SALES" exists in EXA_SCHEMAS
+    And schema "SALES" contains table "SALES_TAB"
+    And exasol_schema does not check whether the schema contains objects before issuing the drop
+    When exasol_schema runs with:
+      | name  | state  |
+      | SALES | absent |
+    Then the module fails with an error mentioning CASCADE
+    And schema "SALES" still exists in EXA_SCHEMAS
+
   @exasol-schema-drop-missing-schema
   Scenario: Drop missing schema
     Given an Exasol database is reachable at localhost
@@ -186,6 +198,16 @@ Feature: exasol-schema specification
     When a playbook runs exasol_schema with new_name
     Then changed is true
     And executed_queries contains a RENAME SCHEMA statement
+    And only the target schema exists
+
+  @exasol-schema-rename-idempotent
+  Scenario: Leave an already renamed schema unchanged through a playbook
+    Given an Exasol database is reachable at localhost
+    And the source schema does not exist
+    And the target schema already exists
+    When a playbook runs exasol_schema with new_name again
+    Then changed is false
+    And executed_queries equals []
     And only the target schema exists
 
   @exasol-schema-raw-size-limit-check-mode

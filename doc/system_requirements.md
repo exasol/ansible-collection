@@ -263,9 +263,11 @@ Needs: dsn
 `scn~non-cascading-drop-protects-non-empty-schema~1`
 
 **Given** a physical schema contains database objects
+**And** the collection does not itself check whether the schema contains objects before issuing the drop
 **When** an Ansible Operator requests `state=absent` without `cascade=true`
-**Then** Exasol rejects the drop
+**Then** Exasol rejects the non-cascading `DROP SCHEMA` statement
 **And** the schema and contained objects remain present
+**And** Ansible reports an error, because the DROP fails
 
 Status: draft
 

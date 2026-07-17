@@ -60,8 +60,8 @@ options:
   new_name:
     description:
       - Desired final name of the schema.
-      - If O(name) is missing and O(new_name) already exists, the rename is
-        considered complete.
+      - If the schema referenced by O(name) is missing and O(new_name)
+        already exists, the rename is considered complete.
     type: str
   raw_size_limit:
     description:
@@ -96,7 +96,7 @@ EXAMPLES = r"""
     name: sales
     state: absent
 
-- name: Create a schema and assign it to a role
+- name: Create a schema and assign it to a user
   exasol.exasol.exasol_schema:
     login_host: db.example.com
     login_user: "{{ vault_exasol_admin_user }}"

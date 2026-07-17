@@ -198,6 +198,29 @@ def test_schema_runtime_creates_schema_with_owner(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-owner-does-not-exist")
+def test_schema_runtime_rejects_non_existent_owner(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    schema_name = unique_name("ANSIBLE_SCHEMA")
+    non_existent_owner = unique_name("ANSIBLE_MISSING_OWNER")
+
+    with pytest.raises(Exception):
+        exasol_schema.run_schema(
+            {**exasol_login_vars, "name": schema_name, "owner": non_existent_owner}
+        )
+
+    # CREATE SCHEMA and ALTER SCHEMA CHANGE OWNER run as separate autocommitted
+    # statements, so CREATE SCHEMA already committed before CHANGE OWNER failed.
+    assert _schema_count(exasol_login_vars, schema_name) == 1
+    assert (
+        _schema_metadata_value(exasol_login_vars, schema_name, "SCHEMA_OWNER")
+        != non_existent_owner
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-change-owner")
 def test_schema_runtime_changes_owner(exasol_login_vars: dict[str, object]) -> None:
     schema_name = unique_name("ANSIBLE_SCHEMA")
@@ -274,6 +297,31 @@ def test_schema_runtime_predicts_owner_change_without_writing(
     assert (
         _schema_metadata_value(exasol_login_vars, schema_name, "SCHEMA_OWNER")
         == original_owner
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-owner-check-mode-idempotent")
+def test_schema_runtime_check_mode_predicts_no_owner_change_when_matching(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    schema_name = unique_name("ANSIBLE_SCHEMA")
+    owner = unique_name("ANSIBLE_OWNER_ROLE")
+    execute_sql(exasol_login_vars, f'CREATE ROLE "{owner}"')
+    execute_sql(exasol_login_vars, f'CREATE SCHEMA "{schema_name}"')
+    execute_sql(
+        exasol_login_vars, f'ALTER SCHEMA "{schema_name}" CHANGE OWNER "{owner}"'
+    )
+
+    result = exasol_schema.run_schema(
+        {**exasol_login_vars, "name": schema_name, "owner": owner}, check_mode=True
+    )
+
+    assert result["changed"] is False
+    assert result["executed_queries"] == []
+    assert (
+        _schema_metadata_value(exasol_login_vars, schema_name, "SCHEMA_OWNER") == owner
     )
 
 
@@ -363,6 +411,32 @@ def test_schema_runtime_predicts_comment_change_without_writing(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-comment-check-mode-idempotent")
+def test_schema_runtime_check_mode_predicts_no_comment_change_when_matching(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    schema_name = unique_name("ANSIBLE_SCHEMA")
+    comment = "Sales reporting schema"
+    execute_sql(exasol_login_vars, f'CREATE SCHEMA "{schema_name}"')
+    execute_sql(
+        exasol_login_vars, f"COMMENT ON SCHEMA \"{schema_name}\" IS '{comment}'"
+    )
+
+    result = exasol_schema.run_schema(
+        {**exasol_login_vars, "name": schema_name, "comment": comment},
+        check_mode=True,
+    )
+
+    assert result["changed"] is False
+    assert result["executed_queries"] == []
+    assert (
+        _schema_metadata_value(exasol_login_vars, schema_name, "SCHEMA_COMMENT")
+        == comment
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-rename")
 def test_schema_runtime_renames_schema(exasol_login_vars: dict[str, object]) -> None:
     source = unique_name("ANSIBLE_SOURCE_SCHEMA")
@@ -416,6 +490,26 @@ def test_schema_runtime_predicts_rename_without_writing(
     assert result["executed_queries"] == [f'RENAME SCHEMA "{source}" TO "{target}"']
     assert _schema_count(exasol_login_vars, source) == 1
     assert _schema_count(exasol_login_vars, target) == 0
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-rename-check-mode-idempotent")
+def test_schema_runtime_check_mode_predicts_no_rename_when_already_renamed(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    source = unique_name("ANSIBLE_SOURCE_SCHEMA")
+    target = unique_name("ANSIBLE_TARGET_SCHEMA")
+    execute_sql(exasol_login_vars, f'CREATE SCHEMA "{target}"')
+
+    result = exasol_schema.run_schema(
+        {**exasol_login_vars, "name": source, "new_name": target}, check_mode=True
+    )
+
+    assert result["changed"] is False
+    assert result["executed_queries"] == []
+    assert _schema_count(exasol_login_vars, source) == 0
+    assert _schema_count(exasol_login_vars, target) == 1
 
 
 @pytest.mark.integration
@@ -501,6 +595,28 @@ def test_schema_runtime_predicts_raw_size_limit_change_without_writing(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-raw-size-limit-check-mode-idempotent")
+def test_schema_runtime_check_mode_predicts_no_raw_size_limit_change_when_matching(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    schema_name = unique_name("ANSIBLE_SCHEMA")
+    execute_sql(exasol_login_vars, f'CREATE SCHEMA "{schema_name}"')
+    execute_sql(
+        exasol_login_vars, f'ALTER SCHEMA "{schema_name}" SET RAW_SIZE_LIMIT = 2048'
+    )
+
+    result = exasol_schema.run_schema(
+        {**exasol_login_vars, "name": schema_name, "raw_size_limit": 2048},
+        check_mode=True,
+    )
+
+    assert result["changed"] is False
+    assert result["executed_queries"] == []
+    assert _raw_size_limit(exasol_login_vars, schema_name) == 2048
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-non-empty-without-cascade")
 def test_schema_runtime_does_not_drop_non_empty_schema_without_cascade(
     exasol_login_vars: dict[str, object],
@@ -550,12 +666,13 @@ def _raw_size_limit(login_vars: dict[str, object], schema_name: str) -> int | No
 def _object_size_value(
     login_vars: dict[str, object], schema_name: str, column: str
 ) -> object:
+    schema_literal = common_query.quote_sql_string_literal(schema_name)
     with exasol_query.connect_to_exasol(
         login_vars, module_name="schema integration verification"
     ) as connection:
         rows = connection.execute(
             f"SELECT {column} FROM EXA_ALL_OBJECT_SIZES "
-            f"WHERE OBJECT_TYPE = 'SCHEMA' AND OBJECT_NAME = '{schema_name}'"
+            f"WHERE OBJECT_TYPE = 'SCHEMA' AND OBJECT_NAME = {schema_literal}"
         ).fetchall()
     row = rows[0]
     return row[column] if isinstance(row, dict) else row[0]
@@ -564,12 +681,14 @@ def _object_size_value(
 def _table_count(
     login_vars: dict[str, object], schema_name: str, table_name: str
 ) -> int:
+    schema_literal = common_query.quote_sql_string_literal(schema_name)
+    table_literal = common_query.quote_sql_string_literal(table_name)
     with exasol_query.connect_to_exasol(
         login_vars, module_name="schema integration verification"
     ) as connection:
         rows = connection.execute(
             "SELECT COUNT(*) AS TABLE_COUNT FROM EXA_ALL_TABLES "
-            f"WHERE TABLE_SCHEMA = '{schema_name}' AND TABLE_NAME = '{table_name}'"
+            f"WHERE TABLE_SCHEMA = {schema_literal} AND TABLE_NAME = {table_literal}"
         ).fetchall()
     row = rows[0]
     return int(row["TABLE_COUNT"] if isinstance(row, dict) else row[0])

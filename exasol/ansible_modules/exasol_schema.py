@@ -177,7 +177,7 @@ def _schema_metadata(connection: object, schema_name: str) -> SchemaMetadata | N
         name=str(schema_name_value),
         owner=_optional_string_metadata(row.get("SCHEMA_OWNER")),
         comment=_optional_string_metadata(row.get("SCHEMA_COMMENT")),
-        raw_size_limit=_optional_integer_metadata(raw_size_limit),
+        raw_size_limit=_optional_raw_size_limit_metadata(raw_size_limit),
     )
 
 
@@ -185,7 +185,7 @@ def _optional_string_metadata(value: object) -> str | None:
     return None if value is None else str(value)
 
 
-def _optional_integer_metadata(value: object) -> int | None:
+def _optional_raw_size_limit_metadata(value: object) -> int | None:
     if value is None:
         return None
     if isinstance(value, bool) or not isinstance(value, (str, int, float)):
