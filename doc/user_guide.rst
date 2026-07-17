@@ -172,6 +172,9 @@ Supported principals and grants:
 * schema-qualified object privileges through ``object_privileges`` with both
   ``schema`` and ``object``
 
+Supply at least one requested privilege. When an optional privilege list is not
+needed, omit the option instead of passing an empty list.
+
 Supported system privileges:
 
 ``ACCESS ANY CONNECTION``, ``ALTER ANY CONNECTION``, ``ALTER ANY SCHEMA``,

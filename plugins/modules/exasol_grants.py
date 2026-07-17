@@ -51,6 +51,7 @@ options:
     description:
       - Direct system privileges to grant or revoke, for example
         C(CREATE SESSION) or C(USE ANY SCHEMA).
+      - Must not be empty when supplied.
       - Supported values are C(ACCESS ANY CONNECTION),
         C(ALTER ANY CONNECTION), C(ALTER ANY SCHEMA), C(ALTER ANY TABLE),
         C(ALTER ANY VIRTUAL SCHEMA), C(ALTER ANY VIRTUAL SCHEMA REFRESH),
@@ -76,6 +77,7 @@ options:
   object_privileges:
     description:
       - Schema-scoped object privileges to grant or revoke.
+      - Must not be empty when supplied.
     type: list
     elements: dict
     suboptions:
@@ -97,7 +99,6 @@ options:
         type: str
         choices:
           - function
-          - schema
           - script
           - table
           - view

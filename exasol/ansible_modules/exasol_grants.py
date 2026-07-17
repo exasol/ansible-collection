@@ -12,9 +12,9 @@ from exasol.ansible_modules import common_query
 from exasol.ansible_modules.common_identifier_validation import (
     quote_exact_identifier_value,
     quote_identifier,
+    validate_identifier,
     validate_object_name,
     validate_role_name,
-    validate_schema_name,
     validate_user_name,
 )
 from exasol.ansible_modules.common_param_validation import validate_choice_param
@@ -93,7 +93,6 @@ OBJECT_PRIVILEGES = frozenset(
 )
 OBJECT_TYPE_SQL = {
     "function": "FUNCTION",
-    "schema": "SCHEMA",
     "script": "SCRIPT",
     "table": "TABLE",
     "view": "VIEW",
@@ -423,7 +422,10 @@ def _object_grant_requests(
     index: int,
 ) -> list[ObjectGrant]:
     prefix = f"object_privileges[{index}]"
-    schema_name = validate_schema_name(_non_empty_string(item.get("schema"), "schema"))
+    schema_name = validate_identifier(
+        _non_empty_string(item.get("schema"), "schema"),
+        identifier_type="schema",
+    )
     object_name = _optional_object_name(item.get("object"))
     object_type = _object_type(item.get("object_type"))
     privileges = _privilege_list(
@@ -452,6 +454,9 @@ def _object_privilege_items(params: Mapping[str, object]) -> list[Mapping[str, o
 
     if not isinstance(value, list):
         raise ValueError("object_privileges must be a list of dictionaries.")
+
+    if not value:
+        raise ValueError("object_privileges must not be empty when supplied.")
 
     items: list[Mapping[str, object]] = []
     for index, item in enumerate(value):
@@ -527,7 +532,7 @@ def _object_type(value: object) -> str | None:
 
 
 def _object_type_sql(value: str | None) -> str | None:
-    if value is None or value == "schema":
+    if value is None:
         return None
 
     return OBJECT_TYPE_SQL[value]
