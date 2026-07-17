@@ -418,7 +418,10 @@ def _object_grant_requests(
     index: int,
 ) -> list[ObjectGrant]:
     prefix = f"object_privileges[{index}]"
-    schema_name = validate_identifier(_non_empty_string(item.get("schema"), "schema"),identifier_type="schema",)
+    schema_name = validate_identifier(
+        _non_empty_string(item.get("schema"), "schema"),
+        identifier_type="schema",
+    )
     object_name = _optional_object_name(item.get("object"))
     object_type = _object_type(item.get("object_type"))
     privileges = _privilege_list(
