@@ -105,7 +105,7 @@ Test Types
 ----------
 
 The collection uses several complementary test types. Choose the narrowest
-test that proves the behavior you changed, then add a broader test when the
+test that proves the behavior you changed, and then add a broader test when the
 boundary itself is part of the change.
 
 * **Unit tests** in ``test/unit/`` exercise Python code in isolation, using
@@ -126,18 +126,21 @@ boundary itself is part of the change.
 * **Runtime integration tests** in ``test/integration/ansible_modules/`` call
   the reusable Python runtime entry points directly against a real Exasol
   backend. They verify connection creation and database effects without the
-  Ansible playbook layer. After loading ``.env``, run them with
+  Ansible playbook layer. Follow :ref:`backend-test-environment` and run them
+  with
   ``poetry run pytest test/integration/ansible_modules/ -q``.
 * **Playbook acceptance tests** in ``test/integration/ansible_playbook/`` run
   documented feature scenarios through ``ansible-runner`` against a real
   Exasol backend. They verify the collection module, Ansible execution path,
-  and resulting database state together. After loading ``.env``, run them
-  with ``poetry run pytest test/integration/ansible_playbook/ -q``.
+  and resulting database state together. Follow
+  :ref:`backend-test-environment` and run them with
+  ``poetry run pytest test/integration/ansible_playbook/ -q``.
 * **Installed-artifact E2E tests** build and install the Galaxy collection and
   the Python runtime package into isolated temporary locations before running
   smoke playbooks against a real Exasol backend. They protect the packaging
-  boundary in addition to module behavior. After loading ``.env``, run them
-  with ``poetry run pytest test/integration/test_installed_collection_e2e.py -q``.
+  boundary in addition to module behavior. Follow
+  :ref:`backend-test-environment` and run them with
+  ``poetry run pytest test/integration/test_installed_collection_e2e.py -q``.
 
 Collection Integration Tests
 ----------------------------
@@ -149,6 +152,33 @@ Collection Integration Tests
 Non-Mocked Exasol Integration Tests
 -----------------------------------
 
+.. _backend-test-environment:
+
+Backend test environment
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create an untracked ``.env`` file to hold the local backend-test configuration.
+For an external disposable database, replace every placeholder with its
+connection details:
+
+.. code-block:: bash
+
+   export PYTEST_ADDOPTS="--backend=onprem --itde-db-version=external --exasol-host=<host> --exasol-port=8563 --exasol-username=<user> --exasol-password=<password>"
+
+``PYTEST_ADDOPTS`` selects the on-premises backend and tells
+``pytest-exasol-backend`` to connect to the supplied instance rather than
+starting an ITDE container. Do not put a shared,
+development, or staging database in the `.env` file.
+
+Load this configuration once in the shell that will run backend tests:
+
+.. code-block:: bash
+
+   source .env
+
+All runtime integration, playbook acceptance, and installed-artifact E2E test
+commands in this guide assume that setup.
+
 Runtime integration, playbook acceptance, and installed-artifact E2E tests are
 pytest-driven and can start an actual Exasol database backend through
 ``pytest-exasol-backend`` instead of using the mocked ``pyexasol`` module from
@@ -159,41 +189,15 @@ through ``exasol-ansible-runner-wrapper``.
 
    poetry run -- nox -s test:integration -- --backend=onprem --itde-db-version 2026.1.0
 
-To run a focused backend test, load the local backend configuration first and
-then invoke pytest with a path or test selector:
+To run a focused backend test, invoke pytest with a path or test selector:
 
 .. code-block:: bash
 
-   source .env
    poetry run pytest test/integration/ansible_playbook/test_exasol_query.py -q
-
-Use the same ``source .env`` setup before the runtime and E2E commands listed
-above.
 
 Use ``--itde-db-version external`` together with the connection options below
 when an already running database should be used instead of a managed ITDE
 container.
-
-To reuse an external database for all local backend-test runs, create the
-untracked ``.env`` file with the following values, replacing every placeholder
-with the connection details for a disposable database:
-
-.. code-block:: bash
-
-   export PYTEST_ADDOPTS="--backend=onprem --itde-db-version=external --exasol-host=<host> --exasol-port=8563 --exasol-username=<user> --exasol-password=<password>"
-
-``PYTEST_ADDOPTS`` selects the on-premises backend and tells
-``pytest-exasol-backend`` to connect to the supplied instance rather than
-starting an ITDE container. The ``export`` keyword makes the setting available
-to pytest after a plain ``source .env``. Keep the file untracked and do not put
-a shared, development, or staging database in it.
-
-Then load the configuration before running one of the backend-test commands:
-
-.. code-block:: bash
-
-   source .env
-   poetry run pytest test/integration/ansible_playbook/ -q
 
 Before each DB-backed integration test, the shared pytest fixture drops all
 non-system schemas, users, and roles from the target database. When using
