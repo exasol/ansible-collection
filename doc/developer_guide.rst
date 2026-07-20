@@ -101,13 +101,46 @@ The hook updates ``galaxy.yml``, ``requirements.txt``, and
 ``meta/ee-requirements.txt`` to the version declared in ``pyproject.toml`` and
 adds them to the release-prepare commit.
 
+Test Types
+----------
+
+The collection uses several complementary test types. Choose the narrowest
+test that proves the behavior you changed, then add a broader test when the
+boundary itself is part of the change.
+
+* **Unit tests** in ``test/unit/`` exercise Python code in isolation, using
+  fakes where a database or Ansible process would otherwise be needed. They
+  cover SQL planning, input validation, result reporting, check mode, and
+  error sanitization. Run them with ``poetry run nox -s test:unit``.
+* **Acceptance-scenario contract tests** in
+  ``test/unit/test_acceptance_scenario_contract.py`` keep the Gherkin feature
+  files in ``specs/`` aligned with their pytest acceptance tests. They run as
+  part of the unit-test suite; run only these checks with
+  ``poetry run pytest test/unit/test_acceptance_scenario_contract.py``.
+* **Collection integration tests** run through ``ansible-test integration``.
+  They use the mocked ``pyexasol`` contract target and verify module
+  interfaces, result shapes, argument handling, check mode behavior, and
+  error sanitization without a running Exasol database. Run all of them with
+  ``poetry run nox -s collection:integration``. To target one module, run
+  ``poetry run -- nox -s collection:integration -- exasol_query``.
+* **Runtime integration tests** in ``test/integration/ansible_modules/`` call
+  the reusable Python runtime entry points directly against a real Exasol
+  backend. They verify connection creation and database effects without the
+  Ansible playbook layer. After loading ``.env``, run them with
+  ``poetry run pytest test/integration/ansible_modules/ -q``.
+* **Playbook acceptance tests** in ``test/integration/ansible_playbook/`` run
+  documented feature scenarios through ``ansible-runner`` against a real
+  Exasol backend. They verify the collection module, Ansible execution path,
+  and resulting database state together. After loading ``.env``, run them
+  with ``poetry run pytest test/integration/ansible_playbook/ -q``.
+* **Installed-artifact E2E tests** build and install the Galaxy collection and
+  the Python runtime package into isolated temporary locations before running
+  smoke playbooks against a real Exasol backend. They protect the packaging
+  boundary in addition to module behavior. After loading ``.env``, run them
+  with ``poetry run pytest test/integration/test_installed_collection_e2e.py -q``.
+
 Collection Integration Tests
 ----------------------------
-
-The standard Ansible integration target for ``exasol_query`` is a mocked
-contract test. It runs through ``ansible-test integration`` and verifies the
-module interface, result shape, argument handling, check mode behavior, and
-error sanitization without requiring a running Exasol database.
 
 .. code-block:: bash
 
@@ -116,14 +149,26 @@ error sanitization without requiring a running Exasol database.
 Non-Mocked Exasol Integration Tests
 -----------------------------------
 
-The pytest-driven integration tests can start an actual Exasol database backend
-through ``pytest-exasol-backend`` instead of using the mocked ``pyexasol`` module
-from the Ansible collection target tests. They execute Ansible playbooks through
-``exasol-ansible-runner-wrapper``.
+Runtime integration, playbook acceptance, and installed-artifact E2E tests are
+pytest-driven and can start an actual Exasol database backend through
+``pytest-exasol-backend`` instead of using the mocked ``pyexasol`` module from
+the collection integration tests. The playbook and E2E layers execute Ansible
+through ``exasol-ansible-runner-wrapper``.
 
 .. code-block:: bash
 
    poetry run -- nox -s test:integration -- --backend=onprem --itde-db-version 2026.1.0
+
+To run a focused backend test, load the local backend configuration first and
+then invoke pytest with a path or test selector:
+
+.. code-block:: bash
+
+   set -a; source .env; set +a
+   poetry run pytest test/integration/ansible_playbook/test_exasol_query.py -q
+
+Use the same ``set -a; source .env; set +a`` setup before the runtime and E2E
+commands listed above.
 
 Use ``--itde-db-version external`` together with the ``EXASOL_*`` environment
 variables when an already running database should be used instead of a managed
