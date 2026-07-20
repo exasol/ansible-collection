@@ -108,6 +108,7 @@ _JSON_SAFE_MISSING = object()
 
 
 # [impl -> dsn~mark-secret-bearing-parameters-no-log~1]
+# [impl -> dsn~secret-redaction~1]
 def exasol_connection_argument_spec() -> AnsibleArgumentSpec:
     """Return the common Ansible connection argument spec for Exasol modules."""
     return {

@@ -154,7 +154,7 @@ complete. The implementation should create a focused test before adding the
   passing scenario.
 - [ ] Stop and ask user for a review of the system requirements and security
   scenario mapping.
-- [ ] Update the security design only if the evidence review finds a semantic
+- [x] Update the security design only if the evidence review finds a semantic
   mismatch; preserve IDs where the documented behavior is accurate.
 - [ ] Stop and ask user for a review of the design changes.
 
@@ -162,10 +162,10 @@ complete. The implementation should create a focused test before adding the
 
 - [ ] Preserve the existing unfiltered `requirements:trace` invocation in
   `noxfile.py`; do not reintroduce `--wanted-artifact-types` filtering.
-- [ ] Add source-level `Covers:` tags beside the smallest existing runtime
+- [x] Add source-level OpenFastTrace coverage tags beside the smallest existing runtime
   functions/classes that implement each item in the “Already Implemented”
   inventory.
-- [ ] Add `Covers:` tags to existing unit and integration tests only after
+- [x] Add OpenFastTrace coverage tags to existing unit and integration tests only after
   confirming each assertion proves the tagged behavior.
 - [ ] Extend `test_acceptance_scenario_contract.py` and pytest marker
   registration to require and validate `requirement_id` together with
@@ -177,7 +177,7 @@ complete. The implementation should create a focused test before adding the
 ### Verification
 
 - [ ] Run the scenario/requirement contract test and its focused unit tests.
-- [ ] Run focused unit tests for connection security, redaction, identifier
+- [x] Run focused unit tests for connection security, redaction, identifier
   handling, planning, check mode, and changed reporting.
 - [ ] Run the affected backend integration tests with `.env` loaded when it is
   present; use escalation if the local Exasol service is blocked by the
@@ -187,7 +187,7 @@ complete. The implementation should create a focused test before adding the
   explicitly uncovered.
 - [ ] Run `poetry run nox -s collection:sanity` and
   `poetry run nox -s collection:doc`.
-- [ ] Run SonarQube secrets scanning on changed specification, source, test,
+- [x] Run SonarQube secrets scanning on changed specification, source, test,
   and workflow files.
 
 ## Version and Changelog Update

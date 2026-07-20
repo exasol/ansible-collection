@@ -30,6 +30,7 @@ from exasol.ansible_modules.common_identifier_validation import (
 from plugins.doc_fragments.connection import ModuleDocFragment
 
 
+# [utest -> dsn~secret-redaction~1]
 def test_runtime_argument_spec_import_does_not_require_sqlglot(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -560,6 +561,7 @@ def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
         f"A{'B' * 128}",
     ],
 )
+# [utest -> dsn~validate-inputs-before-risky-sql-paths~1]
 def test_identifier_validation_helpers_reject_invalid_schema_names(name: str) -> None:
     """Verify invalid identifiers are rejected before dynamic SQL generation."""
     with pytest.raises(ValueError):
