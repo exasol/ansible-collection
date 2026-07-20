@@ -7,9 +7,9 @@ DOCUMENTATION = r"""
 module: exasol_schema
 short_description: Manage Exasol database schemas
 description:
-  - Creates and drops Exasol schemas.
-  - Schema existence is checked through EXA_SCHEMAS before executing DDL.
-  - The module supports idempotent schema creation and removal.
+  - Creates, renames, updates, and drops physical Exasol schemas.
+  - Schema metadata is checked before executing DDL.
+  - Omitted mutable properties remain unmanaged.
   - Dropping schemas can optionally use CASCADE.
 version_added: "0.1.0"
 author:
@@ -45,6 +45,29 @@ options:
       - Required when dropping schemas that contain database objects.
     type: bool
     default: false
+  owner:
+    description:
+      - User or role that should own the schema.
+      - Ownership is assigned with C(ALTER SCHEMA ... CHANGE OWNER) after
+        creation and is reconciled only when this option is provided.
+    type: str
+  comment:
+    description:
+      - Comment assigned to the schema.
+      - An empty value removes an existing comment; an omitted value leaves the
+        comment unmanaged.
+    type: str
+  new_name:
+    description:
+      - Desired final name of the schema.
+      - If the schema referenced by O(name) is missing and O(new_name)
+        already exists, the rename is considered complete.
+    type: str
+  raw_size_limit:
+    description:
+      - Maximum raw size of the schema in bytes.
+      - Must be a non-negative integer and is reconciled only when provided.
+    type: int
 requirements:
   - exasol-ansible-modules
 """
@@ -72,6 +95,24 @@ EXAMPLES = r"""
     login_password: "{{ vault_exasol_admin_password }}"
     name: sales
     state: absent
+
+- name: Create a schema and assign it to a user
+  exasol.exasol.exasol_schema:
+    login_host: db.example.com
+    login_user: "{{ vault_exasol_admin_user }}"
+    login_password: "{{ vault_exasol_admin_password }}"
+    name: sales
+    owner: reporting_role
+    comment: Sales reporting schema
+    raw_size_limit: 134217728
+
+- name: Rename an Exasol schema
+  exasol.exasol.exasol_schema:
+    login_host: db.example.com
+    login_user: "{{ vault_exasol_admin_user }}"
+    login_password: "{{ vault_exasol_admin_password }}"
+    name: old_sales
+    new_name: sales
 
 - name: Drop an Exasol schema and all contained objects
   exasol.exasol.exasol_schema:
