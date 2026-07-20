@@ -160,6 +160,94 @@ complete. The implementation should create a focused test before adding the
   behavior that exists. Keep any `exasol_script` or other future-module claims
   uncovered until those modules exist.
 
+### Remaining Unfiltered OpenFastTrace Failures
+
+The following is the complete list of design items that fail the unfiltered
+trace because their required implementation or executable-test evidence is
+missing. The feature, requirement, and scenario entries also printed by the
+trace are parent relationships; they do not themselves need an `impl`,
+`utest`, or `itest` tag.
+
+* `dsn~apply-the-security-model-to-future-administrative-modules~1` — `impl`
+* `dsn~avoid-extra-control-plane-services~1` — `impl`
+* `dsn~delegate-authorization-decisions-to-exasol~1` — `impl`
+* `dsn~exasol-authorization-enforcement~1` — `impl`
+* `dsn~keep-secret-rotation-and-revocation-outside-the-collection~1` — `impl`
+  (the required `uman` evidence already exists)
+* `dsn~keep-the-trust-boundary-at-the-authenticated-account-and-operator-environment~1`
+  — `impl`
+* `dsn~make-privilege-changes-reviewable-through-planned-sql-and-exasol-audit-trails~1`
+  — `impl`, `utest`, `itest`
+* `dsn~rely-on-exasol-for-authoritative-audit-trails~1` — `impl`
+* `dsn~require-explicit-compliance-review-for-security-relevant-integrations~1`
+  — `impl`
+* `dsn~review-dependency-changes-during-release-verification~1` — `impl`
+* `dsn~surface-exasol-authorization-rejections-without-local-privilege-logic~1`
+  — `impl`, `utest`
+* `dsn~treat-ci-redaction-and-publishing-credential-protection-as-release-gates~1`
+  — `impl`
+
+### Proposed Implementation Slices
+
+* `dsn~apply-the-security-model-to-future-administrative-modules~1` — extract
+  the shared connection, error-normalization, and secret-safe result boundary
+  used by `exasol_query`, `exasol_grants`, and `exasol_schema` into an explicit
+  administrative-module contract. Add a narrow contract test for those current
+  modules, and use the same contract as the required entry criterion for any
+  future administrative module; then place the `impl` tag on that shared
+  contract.
+* `dsn~avoid-extra-control-plane-services~1` — make the direct-client topology
+  explicit in the runtime/package manifest: modules may open a task-scoped
+  Exasol connection but may not register a broker, worker, queue, daemon, or
+  persistent store. Place the `impl` tag on that topology declaration and add
+  a packaging/structural test only if the design item is expanded to require
+  `utest` evidence.
+* `dsn~delegate-authorization-decisions-to-exasol~1` — centralize all
+  database connection and statement execution through the shared Exasol
+  helper, without a local privilege-evaluation branch. Tag that helper as the
+  implementation after reviewing every administrative runtime entry point.
+* `dsn~exasol-authorization-enforcement~1` — retire this overlapping legacy
+  design item by forwarding it to
+  `dsn~delegate-authorization-decisions-to-exasol~1`, or keep it and tag the
+  same shared execution boundary after verifying it cannot elevate or replace
+  the authenticated account.
+* `dsn~keep-secret-rotation-and-revocation-outside-the-collection~1` — add an
+  explicit task-scoped credential lifecycle statement to the shared connection
+  helper, ensure every connection is closed at task completion, and tag that
+  helper. Retain the existing operator guidance as the `uman` evidence.
+* `dsn~keep-the-trust-boundary-at-the-authenticated-account-and-operator-environment~1`
+  — implement the boundary as a shared runtime policy: accept only the
+  operator-supplied connection account, make no account-selection or
+  privilege-escalation decisions locally, and tag the common connection
+  boundary.
+* `dsn~make-privilege-changes-reviewable-through-planned-sql-and-exasol-audit-trails~1`
+  — make user, role, and grant results return the sanitized statement plan and
+  `changed` decision from one shared result builder. Add unit tests for the
+  plan/result pair and an Exasol integration test that verifies the reported
+  statements match the state transition; tag the builder and those tests.
+* `dsn~rely-on-exasol-for-authoritative-audit-trails~1` — add a result/document
+  contract that identifies the collection output as a redacted execution
+  summary and directs operators to Exasol auditing as the authoritative record.
+  Tag that contract rather than claiming that the collection provides an audit
+  store.
+* `dsn~require-explicit-compliance-review-for-security-relevant-integrations~1`
+  — add a pull-request/release workflow gate requiring an explicit compliance
+  decision when integration, release, or sensitive-data paths change. Tag the
+  workflow step as `impl`.
+* `dsn~review-dependency-changes-during-release-verification~1` — add a CI
+  rule that detects changes to dependency metadata/lockfiles and requires a
+  reviewed dependency-security checklist before release. Tag that release
+  workflow gate as `impl`.
+* `dsn~surface-exasol-authorization-rejections-without-local-privilege-logic~1`
+  — preserve sanitized Exasol authorization errors in the shared error wrapper
+  without retry or credential fallback. Add a unit test for an authorization
+  denial and an integration test that runs a restricted account against an
+  administrative operation; tag the wrapper and unit test.
+* `dsn~treat-ci-redaction-and-publishing-credential-protection-as-release-gates~1`
+  — make publishing depend on secrets scanning and required security checks,
+  pass the Galaxy token only as a GitHub Actions secret, and keep checkout
+  credentials disabled. Tag the publish workflow gate as `impl`.
+
 ## Task List
 
 - [x] Create and checkout a new Git branch `feature/100-trace-requirements-and-security-mitigations`
