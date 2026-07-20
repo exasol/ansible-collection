@@ -50,6 +50,90 @@ If you do not use an execution environment, install
 ``exasol-ansible-modules`` for the configured ``ansible_python_interpreter`` on
 the control node or remote host that executes the module.
 
+Security And Secret Handling
+----------------------------
+
+Vault-Backed Secrets
+^^^^^^^^^^^^^^^^^^^^
+`uman~document-vault-backed-secret-handling~1`
+
+Store Exasol credentials and other secret values in Ansible Vault or an
+equivalent external secret manager. Pass secrets into module parameters such as
+``login_password`` from that protected source instead of writing them directly
+in playbooks, inventory, CI variables that are printed in logs, or reusable
+examples.
+
+Use the same pattern for every automation environment that runs the collection:
+the playbook should receive the current secret value at runtime, and logs or
+shared artifacts should contain only variable names or redacted module output.
+
+
+.. raw:: html
+
+   <!--
+
+Status: draft
+Covers:
+- dsn~document-vault-backed-secret-handling~1
+
+.. raw:: html
+
+   -->
+
+Secret Rotation And Revocation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+`uman~keep-secret-rotation-and-revocation-outside-the-collection~1`
+
+Rotate and revoke credentials in their source systems: update the external
+secret store and the corresponding Exasol account state, then run playbooks
+with the updated secret values. The collection does not retain credentials
+across tasks and does not provide a credential-rotation workflow of its own.
+
+When a credential is revoked or replaced, remove or update the old value in the
+secret source used by Ansible. Subsequent collection tasks should receive the
+new value through normal playbook variable resolution.
+
+
+.. raw:: html
+
+   <!--
+
+Status: draft
+Covers:
+- dsn~keep-secret-rotation-and-revocation-outside-the-collection~1
+
+.. raw:: html
+
+   -->
+
+Least-Privilege Service Accounts
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+`uman~require-least-privilege-service-accounts-for-automation-tiers~1`
+
+Use separate Exasol service accounts for separate automation roles, and grant
+each account only the privileges needed by the playbooks it runs. For example,
+an account used for metadata checks does not need the same privileges as an
+account that manages users, roles, schemas, grants, or trusted direct SQL
+through ``exasol_query``.
+
+Keep these privilege boundaries in Exasol account provisioning and in the
+secret store that supplies the credentials. The collection executes with the
+permissions of the authenticated account and cannot downgrade an account that
+has already been granted broader privileges than the playbook requires.
+
+Status: draft
+
+.. raw:: html
+
+   <!--
+
+Covers:
+- dsn~require-least-privilege-service-accounts-for-automation-tiers~1
+
+.. raw:: html
+
+   -->
+
 Basic Playbook
 --------------
 
