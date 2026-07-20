@@ -64,3 +64,200 @@ Feature: exasol-schema Ansible module runtime specification
     And exists is false
     And executed_queries equals a single DROP SCHEMA CASCADE statement
     And the schema still exists in EXA_SCHEMAS
+
+  @exasol-schema-create-with-owner
+  Scenario: Create a schema with an owner
+    Given an Exasol database is reachable at localhost
+    And the schema does not exist
+    And the requested owner exists
+    When the schema runtime runs with state present and owner
+    Then changed is true
+    And executed_queries equals CREATE SCHEMA followed by ALTER SCHEMA CHANGE OWNER
+    And EXA_SCHEMAS reports the requested owner
+
+  @exasol-schema-owner-does-not-exist
+  Scenario: Refuse to assign a non-existent owner
+    Given an Exasol database is reachable at localhost
+    And the schema does not exist
+    And the requested owner does not exist
+    When the schema runtime runs with state present and owner
+    Then the operation fails with an error
+    And the CREATE SCHEMA statement already committed before the failure
+    And the schema exists but is not owned by the requested owner
+
+  @exasol-schema-change-owner
+  Scenario: Change the owner of an existing schema
+    Given an Exasol database is reachable at localhost
+    And the schema exists with a different owner
+    And the requested owner exists
+    When the schema runtime runs with state present and owner
+    Then changed is true
+    And executed_queries equals a single ALTER SCHEMA CHANGE OWNER statement
+    And EXA_SCHEMAS reports the requested owner
+
+  @exasol-schema-owner-idempotent
+  Scenario: Leave an identical schema owner unchanged
+    Given an Exasol database is reachable at localhost
+    And the schema exists with the requested owner
+    When the schema runtime runs with state present and owner
+    Then changed is false
+    And executed_queries equals []
+    And EXA_SCHEMAS still reports the requested owner
+
+  @exasol-schema-owner-check-mode
+  Scenario: Check mode predicts an owner change without writing
+    Given an Exasol database is reachable at localhost
+    And the schema exists with a different owner
+    And the requested owner exists
+    When the schema runtime runs in check mode with state present and owner
+    Then changed is true
+    And executed_queries equals a single ALTER SCHEMA CHANGE OWNER statement
+    And EXA_SCHEMAS still reports the original owner
+
+  @exasol-schema-owner-check-mode-idempotent
+  Scenario: Check mode predicts no owner change when already matching
+    Given an Exasol database is reachable at localhost
+    And the schema exists with the requested owner
+    When the schema runtime runs in check mode with state present and owner
+    Then changed is false
+    And executed_queries equals []
+    And EXA_SCHEMAS still reports the requested owner
+
+  @exasol-schema-set-comment
+  Scenario: Set a schema comment
+    Given an Exasol database is reachable at localhost
+    And the schema exists without a comment
+    When the schema runtime runs with state present and comment
+    Then changed is true
+    And executed_queries equals a single COMMENT ON SCHEMA statement
+    And EXA_SCHEMAS reports the requested comment
+
+  @exasol-schema-clear-comment
+  Scenario: Clear a schema comment
+    Given an Exasol database is reachable at localhost
+    And the schema exists with a comment
+    When the schema runtime runs with state present and an empty comment
+    Then changed is true
+    And executed_queries equals COMMENT ON SCHEMA IS NULL
+    And EXA_SCHEMAS reports no comment
+
+  @exasol-schema-comment-idempotent
+  Scenario: Leave an identical schema comment unchanged
+    Given an Exasol database is reachable at localhost
+    And the schema exists with the requested comment
+    When the schema runtime runs with state present and comment
+    Then changed is false
+    And executed_queries equals []
+    And EXA_SCHEMAS still reports the requested comment
+
+  @exasol-schema-comment-check-mode
+  Scenario: Check mode predicts a comment change without writing
+    Given an Exasol database is reachable at localhost
+    And the schema exists with a different comment
+    When the schema runtime runs in check mode with state present and comment
+    Then changed is true
+    And executed_queries equals a single COMMENT ON SCHEMA statement
+    And EXA_SCHEMAS still reports the original comment
+
+  @exasol-schema-comment-check-mode-idempotent
+  Scenario: Check mode predicts no comment change when already matching
+    Given an Exasol database is reachable at localhost
+    And the schema exists with the requested comment
+    When the schema runtime runs in check mode with state present and comment
+    Then changed is false
+    And executed_queries equals []
+    And EXA_SCHEMAS still reports the requested comment
+
+  @exasol-schema-rename
+  Scenario: Rename an existing schema
+    Given an Exasol database is reachable at localhost
+    And the source schema exists
+    And the target schema does not exist
+    When the schema runtime runs with state present and new_name
+    Then changed is true
+    And executed_queries equals a single RENAME SCHEMA statement
+    And only the target schema exists in EXA_SCHEMAS
+
+  @exasol-schema-rename-idempotent
+  Scenario: Leave an already renamed schema unchanged
+    Given an Exasol database is reachable at localhost
+    And the source schema does not exist
+    And the target schema exists
+    When the schema runtime runs with state present and new_name
+    Then changed is false
+    And executed_queries equals []
+    And only the target schema exists in EXA_SCHEMAS
+
+  @exasol-schema-rename-check-mode
+  Scenario: Check mode predicts a rename without writing
+    Given an Exasol database is reachable at localhost
+    And the source schema exists
+    And the target schema does not exist
+    When the schema runtime runs in check mode with state present and new_name
+    Then changed is true
+    And executed_queries equals a single RENAME SCHEMA statement
+    And only the source schema exists in EXA_SCHEMAS
+
+  @exasol-schema-rename-check-mode-idempotent
+  Scenario: Check mode predicts no rename when already renamed
+    Given an Exasol database is reachable at localhost
+    And the source schema does not exist
+    And the target schema exists
+    When the schema runtime runs in check mode with state present and new_name
+    Then changed is false
+    And executed_queries equals []
+    And only the target schema exists in EXA_SCHEMAS
+
+  @exasol-schema-set-raw-size-limit
+  Scenario: Set a schema raw size limit
+    Given an Exasol database is reachable at localhost
+    And the schema exists without a raw size limit
+    When the schema runtime runs with state present and raw_size_limit
+    Then changed is true
+    And executed_queries equals a single ALTER SCHEMA SET RAW_SIZE_LIMIT statement
+    And EXA_ALL_OBJECT_SIZES reports the requested raw size limit
+
+  @exasol-schema-change-raw-size-limit
+  Scenario: Change a schema raw size limit
+    Given an Exasol database is reachable at localhost
+    And the schema exists with a different raw size limit
+    When the schema runtime runs with state present and raw_size_limit
+    Then changed is true
+    And executed_queries equals a single ALTER SCHEMA SET RAW_SIZE_LIMIT statement
+    And EXA_ALL_OBJECT_SIZES reports the requested raw size limit
+
+  @exasol-schema-raw-size-limit-idempotent
+  Scenario: Leave an identical schema raw size limit unchanged
+    Given an Exasol database is reachable at localhost
+    And the schema exists with the requested raw size limit
+    When the schema runtime runs with state present and raw_size_limit
+    Then changed is false
+    And executed_queries equals []
+    And EXA_ALL_OBJECT_SIZES still reports the requested raw size limit
+
+  @exasol-schema-raw-size-limit-check-mode
+  Scenario: Check mode predicts a raw size limit change without writing
+    Given an Exasol database is reachable at localhost
+    And the schema exists with a different raw size limit
+    When the schema runtime runs in check mode with state present and raw_size_limit
+    Then changed is true
+    And executed_queries equals a single ALTER SCHEMA SET RAW_SIZE_LIMIT statement
+    And EXA_ALL_OBJECT_SIZES still reports the original raw size limit
+
+  @exasol-schema-raw-size-limit-check-mode-idempotent
+  Scenario: Check mode predicts no raw size limit change when already matching
+    Given an Exasol database is reachable at localhost
+    And the schema exists with the requested raw size limit
+    When the schema runtime runs in check mode with state present and raw_size_limit
+    Then changed is false
+    And executed_queries equals []
+    And EXA_ALL_OBJECT_SIZES still reports the requested raw size limit
+
+  @exasol-schema-drop-non-empty-without-cascade
+  Scenario: Refuse to drop a non-empty schema without cascade
+    Given an Exasol database is reachable at localhost
+    And the schema contains a table
+    And the runtime does not check whether the schema contains objects before issuing the drop
+    When the schema runtime runs with state absent without cascade
+    Then the operation fails with an error mentioning CASCADE
+    And the schema and table still exist

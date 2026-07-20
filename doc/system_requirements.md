@@ -60,6 +60,17 @@ Status: draft
 
 Needs: req
 
+
+### Declarative Exasol Schema Management
+`feat~declarative-exasol-schema-management~1`
+
+The collection reconciles physical schema lifecycle state and intrinsic schema
+metadata while leaving additive access privileges to grant management.
+
+Status: draft
+
+Needs: req
+
 ### Documented Exasol Collection Usage
 `feat~documented-exasol-collection-usage~1`
 
@@ -191,6 +202,39 @@ Covers:
 
 Needs: scn
 
+### Reconcile Physical Schema State
+`req~reconcile-physical-schema-state~1`
+
+Schema management must idempotently reconcile existence, exact name, owner,
+comment, and raw-size limit, and must report the same statement plan without
+writing in check mode.
+
+Rationale:
+
+Existence and these singular metadata values form one schema's intrinsic state.
+Additional privileges remain independently managed grants.
+
+Status: draft
+
+Covers:
+- `feat~declarative-exasol-schema-management~1`
+
+Needs: scn
+
+### Preserve Safe Schema Removal
+`req~preserve-safe-schema-removal~1`
+
+Schema removal must use Exasol's non-cascading behavior by default and append
+`CASCADE` only when explicitly requested, so a non-empty schema is not removed
+accidentally.
+
+Status: draft
+
+Covers:
+- `feat~declarative-exasol-schema-management~1`
+
+Needs: scn
+
 ### Gather Basic Exasol Server Metadata
 `req~gather-basic-exasol-server-information~1`
 
@@ -223,6 +267,53 @@ Needs: scn
 ## Acceptance Scenarios
 
 The following scenarios describe observable behavior in Given-When-Then form.
+
+### Schema Intrinsic State Is Reconciled
+`scn~schema-intrinsic-state-is-reconciled~1`
+
+**Given** a physical schema is missing or its name, owner, comment, or raw-size limit differs from the requested state
+**When** an Ansible Operator manages the schema with `state=present`
+**Then** the collection emits only the supported Exasol DDL needed to reach the requested state
+**And** a repeated run emits no additional SQL
+
+Status: draft
+
+Covers:
+- `req~reconcile-physical-schema-state~1`
+
+Needs: dsn
+
+### Schema Check Mode Reports Property Changes Without Writing
+`scn~schema-check-mode-reports-property-changes-without-writing~1`
+
+**Given** a physical schema's intrinsic state differs from the requested state
+**When** an Ansible Operator manages the schema in check mode
+**Then** the collection reports the statements that would reconcile the schema
+**And** Exasol metadata remains unchanged
+
+Status: draft
+
+Covers:
+- `req~reconcile-physical-schema-state~1`
+
+Needs: dsn
+
+### Non-Cascading Drop Protects Non-Empty Schema
+`scn~non-cascading-drop-protects-non-empty-schema~1`
+
+**Given** a physical schema contains database objects
+**And** the collection does not itself check whether the schema contains objects before issuing the drop
+**When** an Ansible Operator requests `state=absent` without `cascade=true`
+**Then** Exasol rejects the non-cascading `DROP SCHEMA` statement
+**And** the schema and contained objects remain present
+**And** Ansible reports an error, because the DROP fails
+
+Status: draft
+
+Covers:
+- `req~preserve-safe-schema-removal~1`
+
+Needs: dsn
 
 ### Operation Uses Authenticated Exasol Permissions
 `scn~operation-uses-authenticated-exasol-permissions~1`

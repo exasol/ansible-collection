@@ -396,6 +396,45 @@ def test_exasol_schema_drop_existing_schema_cascade(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-drop-non-empty-without-cascade")
+def test_exasol_schema_drop_non_empty_without_cascade(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Scenario: Refuse to drop a non-empty schema without cascade."""
+    playbook = """
+    - name: Refuse to drop a non-empty schema without cascade
+      block:
+        - name: When exasol_schema runs with state absent
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            state: absent
+          register: schema_drop_non_empty
+          ignore_errors: true
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_drop_non_empty }}"
+            cacheable: true
+    """
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema, with_table=True)
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    module_result = result["module_result"]
+    assert module_result["failed"] is True
+    assert "cascade" in str(module_result["msg"]).lower()
+    assert module_result["changed"] is False
+    assert "executed_queries" not in module_result
+    assert _schema_count(context.login_vars, context.test_schema) == 1
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-missing-schema")
 def test_exasol_schema_drop_missing_schema(
     ansible_runner_workspace: Any,
@@ -434,6 +473,264 @@ def test_exasol_schema_drop_missing_schema(
     assert _schema_count(context.login_vars, context.test_schema) == 0
 
 
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-create-with-owner")
+def test_exasol_schema_create_with_owner(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _execute_sql(context.login_vars, f'CREATE ROLE "{context.test_role}"')
+    playbook = """
+    - name: Create schema with owner
+      block:
+        - name: Manage schema owner
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            owner: "{{ test_role }}"
+          register: schema_result
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_result }}"
+            cacheable: true
+    """
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    assert result["module_result"]["executed_queries"] == [
+        _create_schema_query(context.test_schema),
+        f'ALTER SCHEMA "{context.test_schema}" CHANGE OWNER "{context.test_role}"',
+    ]
+    assert (
+        _schema_value(context.login_vars, context.test_schema, "SCHEMA_OWNER")
+        == context.test_role
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-change-owner")
+def test_exasol_schema_change_owner(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _execute_sql(context.login_vars, f'CREATE ROLE "{context.test_role}"')
+    _execute_sql(context.login_vars, f'CREATE ROLE "{context.check_mode_role}"')
+    _create_schema(context.login_vars, context.test_schema)
+    _execute_sql(
+        context.login_vars,
+        f'ALTER SCHEMA "{context.test_schema}" CHANGE OWNER "{context.test_role}"',
+    )
+    playbook = """
+    - name: Change schema owner
+      block:
+        - name: Manage schema owner
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            owner: "{{ check_mode_role }}"
+          register: schema_result
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_result }}"
+            cacheable: true
+    """
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    assert result["module_result"]["changed"] is True
+    assert result["module_result"]["executed_queries"] == [
+        f'ALTER SCHEMA "{context.test_schema}" CHANGE OWNER "{context.check_mode_role}"',
+    ]
+    assert (
+        _schema_value(context.login_vars, context.test_schema, "SCHEMA_OWNER")
+        == context.check_mode_role
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-owner-idempotent")
+def test_exasol_schema_owner_idempotent(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _execute_sql(context.login_vars, f'CREATE ROLE "{context.test_role}"')
+    _create_schema(context.login_vars, context.test_schema)
+    _execute_sql(
+        context.login_vars,
+        f'ALTER SCHEMA "{context.test_schema}" CHANGE OWNER "{context.test_role}"',
+    )
+    playbook = """
+    - name: Keep matching schema owner
+      block:
+        - name: Manage schema owner
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            owner: "{{ test_role }}"
+          register: schema_result
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_result }}"
+            cacheable: true
+    """
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    assert result["module_result"]["changed"] is False
+    assert result["module_result"]["executed_queries"] == []
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-set-comment")
+def test_exasol_schema_set_comment(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema)
+    playbook = """
+    - name: Set schema comment
+      block:
+        - name: Manage schema comment
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            comment: Sales reporting schema
+          register: schema_result
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_result }}"
+            cacheable: true
+    """
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    assert result["module_result"]["changed"] is True
+    assert (
+        _schema_value(context.login_vars, context.test_schema, "SCHEMA_COMMENT")
+        == "Sales reporting schema"
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-rename")
+def test_exasol_schema_rename(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema)
+    playbook = """
+    - name: Rename schema
+      block:
+        - name: Manage schema name
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            new_name: "{{ check_mode_schema }}"
+          register: schema_result
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_result }}"
+            cacheable: true
+    """
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    assert result["module_result"]["schema"] == context.check_mode_schema
+    assert _schema_count(context.login_vars, context.test_schema) == 0
+    assert _schema_count(context.login_vars, context.check_mode_schema) == 1
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-rename-idempotent")
+def test_exasol_schema_rename_idempotent(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.check_mode_schema)
+    playbook = """
+    - name: Leave an already renamed schema unchanged
+      block:
+        - name: Manage schema name again
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            new_name: "{{ check_mode_schema }}"
+          register: schema_result
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_result }}"
+            cacheable: true
+    """
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    assert result["module_result"]["changed"] is False
+    assert result["module_result"]["executed_queries"] == []
+    assert _schema_count(context.login_vars, context.test_schema) == 0
+    assert _schema_count(context.login_vars, context.check_mode_schema) == 1
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-raw-size-limit-check-mode")
+def test_exasol_schema_raw_size_limit_check_mode(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema)
+    _execute_sql(
+        context.login_vars,
+        f'ALTER SCHEMA "{context.test_schema}" SET RAW_SIZE_LIMIT = 1024',
+    )
+    playbook = """
+    - name: Predict schema quota change
+      block:
+        - name: Manage schema quota in check mode
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            raw_size_limit: 2048
+          check_mode: true
+          register: schema_result
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_result }}"
+            cacheable: true
+    """
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    assert result["module_result"]["changed"] is True
+    assert _raw_size_limit(context.login_vars, context.test_schema) == 1024
+
+
 def _when_schema_scenario_runs(
     context: AcceptanceContext,
     scenario_id: str,
@@ -463,6 +760,14 @@ def _create_schema(
         connection.close()
 
 
+def _execute_sql(login_vars: dict[str, object], query: str) -> None:
+    connection = connect_to_exasol(login_vars)
+    try:
+        connection.execute(query)
+    finally:
+        connection.close()
+
+
 def _schema_count(login_vars: dict[str, object], schema_name: str) -> int:
     return len(_stored_schema_names(login_vars, schema_name))
 
@@ -479,6 +784,34 @@ def _stored_schema_names(login_vars: dict[str, object], schema_name: str) -> lis
     finally:
         connection.close()
     return [str(_row_value(row, "SCHEMA_NAME", 0)) for row in rows]
+
+
+def _schema_value(
+    login_vars: dict[str, object], schema_name: str, column: str
+) -> object:
+    schema_literal = common_query.quote_sql_string_literal(schema_name)
+    connection = connect_to_exasol(login_vars)
+    try:
+        rows = connection.execute(
+            f"SELECT {column} FROM EXA_SCHEMAS WHERE SCHEMA_NAME = {schema_literal}"
+        ).fetchall()
+    finally:
+        connection.close()
+    return _row_value(rows[0], column, 0)
+
+
+def _raw_size_limit(login_vars: dict[str, object], schema_name: str) -> int | None:
+    schema_literal = common_query.quote_sql_string_literal(schema_name)
+    connection = connect_to_exasol(login_vars)
+    try:
+        rows = connection.execute(
+            "SELECT RAW_OBJECT_SIZE_LIMIT FROM EXA_ALL_OBJECT_SIZES "
+            f"WHERE OBJECT_TYPE = 'SCHEMA' AND OBJECT_NAME = {schema_literal}"
+        ).fetchall()
+    finally:
+        connection.close()
+    value = _row_value(rows[0], "RAW_OBJECT_SIZE_LIMIT", 0)
+    return None if value is None else int(value)
 
 
 def _assert_schema_module_result(
