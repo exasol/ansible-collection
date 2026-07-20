@@ -66,6 +66,7 @@ def test_exasol_user_create_missing_user(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-preserves-exact-identifier")
+# [itest -> dsn~exact-principal-identifier-lifecycle~1]
 def test_exasol_user_preserves_exact_identifier(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -117,6 +118,9 @@ def test_exasol_user_preserves_exact_identifier(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-apply-unchanged")
+# [itest -> dsn~authorization-state-reconciliation~1]
+# [itest -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
+# [itest -> dsn~derive-changed-from-planned-sql~1]
 def test_exasol_user_apply_unchanged(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],

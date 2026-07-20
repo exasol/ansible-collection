@@ -96,11 +96,15 @@ def test_build_exasol_connect_kwargs_maps_ansible_arguments_to_pyexasol() -> Non
     }
 
 
+# [utest -> dsn~mark-secret-bearing-parameters-no-log~1]
 def test_connection_argument_spec_does_not_expose_encryption_option() -> None:
     """Verify TLS cannot be disabled through the public module interface."""
     assert "encryption" not in exasol_query.exasol_connection_argument_spec()
 
 
+# [utest -> dsn~encrypt-exasol-connections-by-default~2]
+# [utest -> dsn~encrypted-transport-by-default~2]
+# [utest -> dsn~centralize-connection-parameter-mapping-and-secret-sanitization~1]
 def test_build_exasol_connect_kwargs_forces_tls() -> None:
     """Verify legacy or client kwargs cannot disable TLS."""
     kwargs = exasol_query.build_exasol_connect_kwargs(
@@ -528,6 +532,7 @@ def test_execution_error_is_sanitized() -> None:
     assert exception == "SQL failed near ********"
 
 
+# [utest -> dsn~normalize-and-validate-identifiers-before-sql-generation~1]
 def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
     """Verify schema, user, role, and object identifier helpers."""
     assert validate_schema_name("APP_SCHEMA") == "APP_SCHEMA"

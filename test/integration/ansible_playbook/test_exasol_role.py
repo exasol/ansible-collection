@@ -74,6 +74,7 @@ def test_exasol_role_create_missing_role(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-preserves-exact-identifier")
+# [itest -> dsn~exact-principal-identifier-lifecycle~1]
 def test_exasol_role_preserves_exact_identifier(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -130,6 +131,9 @@ def test_exasol_role_preserves_exact_identifier(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-present-idempotent")
+# [itest -> dsn~authorization-state-reconciliation~1]
+# [itest -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
+# [itest -> dsn~derive-changed-from-planned-sql~1]
 def test_exasol_role_present_idempotent(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],

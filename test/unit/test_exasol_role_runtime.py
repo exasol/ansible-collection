@@ -98,6 +98,9 @@ def test_module_argument_spec_exposes_role_specific_options() -> None:
     assert argument_spec["cascade"]["default"] is False
 
 
+# [utest -> dsn~authorization-state-reconciliation~1]
+# [utest -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
+# [utest -> dsn~derive-changed-from-planned-sql~1]
 def test_ensure_role_existing_role_is_unchanged() -> None:
     """Verify existing roles are idempotent."""
     connection = FakeConnection(roles={"APP_ROLE"})
@@ -144,6 +147,7 @@ def test_ensure_role_missing_role_absent_is_unchanged() -> None:
     assert len(connection.executed) == 1
 
 
+# [utest -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
 def test_ensure_role_check_mode_predicts_create_without_writing() -> None:
     """Verify check mode does not execute planned CREATE ROLE statements."""
     connection = FakeConnection()
@@ -205,6 +209,7 @@ def test_ensure_role_rejects_invalid_state() -> None:
         exasol_role.ensure_role(connection, {"name": "app_role", "state": "invalid"})
 
 
+# [utest -> dsn~exact-principal-identifier-lifecycle~1]
 def test_ensure_role_accepts_delimited_identifier_input() -> None:
     """Verify delimited SQL identifier syntax is normalized to the exact value."""
     connection = FakeConnection()

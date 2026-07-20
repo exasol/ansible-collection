@@ -340,6 +340,8 @@ def test_ensure_schema_rejects_invalid_property_parameters(
         exasol_schema.ensure_schema(connection, params)
 
 
+# [utest -> dsn~intrinsic-schema-property-reconciliation~1]
+# [utest -> dsn~derive-changed-from-planned-sql~1]
 def test_ensure_schema_existing_schema_is_idempotent() -> None:
     """Verify existing schemas are not recreated."""
     connection = FakeConnection(schemas={"SALES"})
@@ -390,6 +392,7 @@ def test_ensure_schema_absent_drops_existing_schema() -> None:
     assert "SALES" not in connection.schemas
 
 
+# [utest -> dsn~explicit-schema-drop-cascade~1]
 def test_ensure_schema_absent_drops_with_cascade() -> None:
     """Verify DROP SCHEMA CASCADE syntax."""
     connection = FakeConnection(schemas={"SALES"})
@@ -418,6 +421,7 @@ def test_ensure_schema_missing_schema_absent_is_idempotent() -> None:
     assert result["executed_queries"] == []
 
 
+# [utest -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
 def test_ensure_schema_check_mode_predicts_create_without_writing() -> None:
     """Verify check mode predicts creation."""
     connection = FakeConnection()

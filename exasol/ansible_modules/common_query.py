@@ -107,6 +107,7 @@ _AUTHENTICATION_MARKERS = (
 _JSON_SAFE_MISSING = object()
 
 
+# [impl -> dsn~mark-secret-bearing-parameters-no-log~1]
 def exasol_connection_argument_spec() -> AnsibleArgumentSpec:
     """Return the common Ansible connection argument spec for Exasol modules."""
     return {
@@ -166,6 +167,9 @@ def build_exasol_dsn(params: Mapping[str, object]) -> str:
     return f"{host}:{port}"
 
 
+# [impl -> dsn~encrypt-exasol-connections-by-default~2]
+# [impl -> dsn~encrypted-transport-by-default~2]
+# [impl -> dsn~centralize-connection-parameter-mapping-and-secret-sanitization~1]
 def build_exasol_connect_kwargs(params: Mapping[str, object]) -> dict[str, object]:
     """Map connection parameters to pyexasol.connect keyword arguments."""
     resolved = connection_parameters_with_defaults(params)
@@ -286,6 +290,7 @@ def is_authentication_error(message: str) -> bool:
     return any(marker in normalized for marker in _AUTHENTICATION_MARKERS)
 
 
+# [impl -> dsn~redact-secrets-from-sql-and-surfaced-failures~1]
 def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
     """Redact known secret values from an error string."""
     message = str(error)
