@@ -42,6 +42,10 @@ Out of scope:
   CLI command for each type
 - [x] Document focused backend-test execution and configuration in the
   developer guide
+- [x] Document the `.env` configuration for reusing an external Exasol
+  database instead of starting an ITDE container
+- [x] Use exported `.env` variables so developers can load the configuration
+  with `source .env`
 
 ### Verification
 

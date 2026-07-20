@@ -12,7 +12,9 @@
 ## Running Tests
 
 - Check for a local `.env` file before running integration or acceptance tests.
-- If `.env` exists, load it for test commands with `set -a; source .env; set +a; ...` so `PYTEST_ADDOPTS` and backend flags are applied.
+- Define test settings in `.env` with `export`, for example `export PYTEST_ADDOPTS="..."`.
+  If `.env` exists, load it for test commands with `source .env; ...` so
+  `PYTEST_ADDOPTS` and backend flags are applied.
 - For `test/integration/acceptance/*`, a plain `poetry run pytest ...` can be misleading:
   it may skip tests because the backend selection and connection options were not loaded.
 - In this repository, the local `.env` currently sets `--backend=onprem` and Exasol connection arguments for acceptance tests.

@@ -164,15 +164,36 @@ then invoke pytest with a path or test selector:
 
 .. code-block:: bash
 
-   set -a; source .env; set +a
+   source .env
    poetry run pytest test/integration/ansible_playbook/test_exasol_query.py -q
 
-Use the same ``set -a; source .env; set +a`` setup before the runtime and E2E
-commands listed above.
+Use the same ``source .env`` setup before the runtime and E2E commands listed
+above.
 
-Use ``--itde-db-version external`` together with the ``EXASOL_*`` environment
-variables when an already running database should be used instead of a managed
-ITDE container.
+Use ``--itde-db-version external`` together with the connection options below
+when an already running database should be used instead of a managed ITDE
+container.
+
+To reuse an external database for all local backend-test runs, create the
+untracked ``.env`` file with the following values, replacing every placeholder
+with the connection details for a disposable database:
+
+.. code-block:: bash
+
+   export PYTEST_ADDOPTS="--backend=onprem --itde-db-version=external --exasol-host=<host> --exasol-port=8563 --exasol-username=<user> --exasol-password=<password>"
+
+``PYTEST_ADDOPTS`` selects the on-premises backend and tells
+``pytest-exasol-backend`` to connect to the supplied instance rather than
+starting an ITDE container. The ``export`` keyword makes the setting available
+to pytest after a plain ``source .env``. Keep the file untracked and do not put
+a shared, development, or staging database in it.
+
+Then load the configuration before running one of the backend-test commands:
+
+.. code-block:: bash
+
+   source .env
+   poetry run pytest test/integration/ansible_playbook/ -q
 
 Before each DB-backed integration test, the shared pytest fixture drops all
 non-system schemas, users, and roles from the target database. When using
