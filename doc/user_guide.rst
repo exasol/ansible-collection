@@ -53,6 +53,40 @@ the control node or remote host that executes the module.
 Basic Playbook
 --------------
 
+Module Names And FQCNs
+^^^^^^^^^^^^^^^^^^^^^^
+
+Ansible examples in this guide usually use fully qualified collection names
+(FQCNs), such as ``exasol.exasol.exasol_query``. The three parts are:
+
+* ``exasol``: the Ansible Galaxy namespace
+* ``exasol``: the collection name
+* ``exasol_query``: the module name
+
+The apparent repetition in names such as ``exasol.exasol.exasol_query`` is
+therefore expected Ansible convention. It appears because the namespace,
+collection, and module names all share the Exasol project prefix.
+
+Use FQCNs in reusable playbooks, shared snippets, role tasks, and documentation
+examples because they are unambiguous without relying on surrounding playbook
+context. Short module names are also valid when the playbook declares the
+collection:
+
+.. code-block:: yaml
+
+   ---
+   - hosts: localhost
+     gather_facts: false
+     collections:
+       - exasol.exasol
+     tasks:
+       - name: Read Exasol version metadata
+         exasol_query:
+           login_host: db.example.com
+           login_user: "{{ vault_exasol_user }}"
+           login_password: "{{ vault_exasol_password }}"
+           query: SELECT PARAM_VALUE FROM EXA_METADATA
+
 Declare the collection in a playbook and call modules with Exasol connection
 parameters:
 
