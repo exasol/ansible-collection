@@ -11,6 +11,7 @@
 * Split acceptance integration tests to ansible_playbook and ansible_modules types
 * Implemented exasol_schema module
 * Implemented exasol_info module
+* Clarified Exasol collection FQCN usage in the user guide
 
 ## Security
 
@@ -24,6 +25,7 @@
 * #48: Automate publishing to Ansible Galaxy
 * #81: Implement exasol_schema module
 * #15: Implement exasol_info module
+* #67: Clarify FQCN usage and module naming in the user guide
 
 ## Refactorings
 

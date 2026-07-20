@@ -13,6 +13,20 @@ Install the project dependencies with Poetry:
 The development environment includes the Ansible CLI tools used by the
 collection build and sanity sessions.
 
+Git Hooks
+---------
+
+Enable the project pre-commit and pre-push hooks after installing the Poetry
+environment:
+
+.. code-block:: bash
+
+   poetry run -- pre-commit install --hook-type pre-commit --hook-type pre-push
+
+The hooks run the configured local checks before commits and pushes. See the
+Python toolbox Git hooks documentation for background and troubleshooting:
+https://exasol.github.io/python-toolbox/main/user_guide/features/git_hooks/index.html
+
 Python Versions
 ---------------
 

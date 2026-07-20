@@ -60,11 +60,21 @@ Status: draft
 
 Needs: req
 
+
 ### Declarative Exasol Schema Management
 `feat~declarative-exasol-schema-management~1`
 
 The collection reconciles physical schema lifecycle state and intrinsic schema
 metadata while leaving additive access privileges to grant management.
+
+Status: draft
+
+Needs: req
+
+### Documented Exasol Collection Usage
+`feat~documented-exasol-collection-usage~1`
+
+The collection documents Ansible usage conventions so operators can copy examples into playbooks without misunderstanding collection and module names.
 
 Status: draft
 
@@ -235,6 +245,22 @@ Rationale:
 Operators often need lightweight server facts for compatibility checks and deployment logic.
 
 Status: draft
+
+Needs: scn
+
+### Explain Ansible Module Name Resolution
+`req~explain-ansible-module-name-resolution~1`
+
+The user guide must explain fully qualified collection names and shorter module names so Ansible Operators understand when to use `exasol.exasol.<module_name>` and when a short module name is sufficient.
+
+Rationale:
+
+The Exasol namespace, collection name, and module names share the `exasol` prefix. Documentation must make that repetition explicit so users do not mistake valid Ansible naming convention for a typo.
+
+Status: draft
+
+Covers:
+- `feat~documented-exasol-collection-usage~1`
 
 Needs: scn
 
@@ -453,6 +479,23 @@ Covers:
 - `req~keep-audit-output-secret-safe~1`
 
 Needs: dsn
+
+### Fully Qualified Collection Names Are Explained
+`scn~fully-qualified-collection-names-are-explained~1`
+
+**Given** an Ansible Operator reads the user guide examples
+**When** an example uses `exasol.exasol.exasol_query` or another collection module
+**Then** the guide explains the namespace, collection, and module-name parts of the fully qualified collection name
+**And** the guide explains that repeated `exasol` segments are expected when those parts share a prefix
+**And** the guide recommends fully qualified names for reusable or shared examples
+**And** the guide shows that short module names such as `exasol_query` are acceptable when the playbook declares `collections: [exasol.exasol]`
+
+Status: draft
+
+Covers:
+- `req~explain-ansible-module-name-resolution~1`
+
+Needs: uman
 
 ## Open Issues
 
