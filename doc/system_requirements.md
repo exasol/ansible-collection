@@ -406,18 +406,6 @@ Covers:
 
 Needs: uman
 
-## User Manual Coverage
-
-### User Guide Explains FQCN Module Naming
-`uman~explain-fqcn-module-naming~1`
-
-The user guide explains that `exasol.exasol.<module_name>` is a fully qualified collection name composed of the Exasol namespace, collection name, and module name. It recommends FQCNs for reusable and shared examples and documents short module names when the playbook declares the `exasol.exasol` collection.
-
-Status: draft
-
-Covers:
-- `scn~fully-qualified-collection-names-are-explained~1`
-
 ## Open Issues
 
 Record unresolved questions, contradictions, and weakly supported inferences. Do not remove an issue until the user has resolved it or a stronger source has been found.

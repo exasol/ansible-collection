@@ -55,6 +55,7 @@ Basic Playbook
 
 Module Names And FQCNs
 ^^^^^^^^^^^^^^^^^^^^^^
+`uman~explain-fqcn-module-naming~1`
 
 Ansible examples in this guide usually use fully qualified collection names
 (FQCNs), such as ``exasol.exasol.exasol_query``. The three parts are:
@@ -86,6 +87,11 @@ collection:
            login_user: "{{ vault_exasol_user }}"
            login_password: "{{ vault_exasol_password }}"
            query: SELECT PARAM_VALUE FROM EXA_METADATA
+
+Status: draft
+
+Covers:
+- scn~fully-qualified-collection-names-are-explained~1
 
 Declare the collection in a playbook and call modules with Exasol connection
 parameters:

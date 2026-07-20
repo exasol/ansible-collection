@@ -49,7 +49,7 @@ Keep FQCNs as the recommended default for reusable and shared examples, and docu
 ### Verification
 
 - [x] Run `poetry run nox -s requirements:trace`
-- [x] Run focused OFT trace for `feat,req,scn,uman` coverage in `doc/system_requirements.md`
+- [x] Run focused OFT trace for `feat,req,scn,uman` coverage in `doc/system_requirements.md` and `doc/user_guide.rst`
 - [x] Run `poetry run nox -s collection:doc`
 - [x] Run `poetry run nox -s docs:build`
 
