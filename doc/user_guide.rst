@@ -88,10 +88,18 @@ collection:
            login_password: "{{ vault_exasol_password }}"
            query: SELECT PARAM_VALUE FROM EXA_METADATA
 
+.. raw:: html
+
+   <!--
+
 Status: draft
 
 Covers:
 - scn~fully-qualified-collection-names-are-explained~1
+
+.. raw:: html
+
+   -->
 
 Declare the collection in a playbook and call modules with Exasol connection
 parameters:
