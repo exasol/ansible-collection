@@ -92,6 +92,25 @@ only evidence-based coverage tags after their existing tests are reviewed:
 * Explicit user-password behavior and read-only info retrieval
   (`dsn~password-update-semantics~1`,
   `dsn~exasol-info-read-only-metadata-retrieval~1`).
+* Transient connection-secret handling: `connect_to_exasol()` supplies the
+  credentials only to `pyexasol.connect()` and closes the connection when the
+  task exits; `test_connect_to_exasol_closes_connection_after_with_block`
+  exercises that lifecycle. The runtime helper has the corresponding `impl`
+  tag
+  (`dsn~keep-secret-handling-transient-within-task-execution~1`).
+* No autonomous query retry: `execute_queries()` sends each planned statement
+  once, and `test_execute_queries_returns_design_doc_result_shape` asserts the
+  exact calls made to the connection. The runtime function has the
+  corresponding `impl` tag
+  (`dsn~avoid-autonomous-retry-of-privileged-actions~1`).
+* Minimal runtime dependencies: the production dependency list in
+  `pyproject.toml` contains only `pyexasol` and `sqlglot`, with an `impl` tag
+  on that metadata (`dsn~limit-the-runtime-dependency-set~1`).
+* Runtime-package installation from a Galaxy collection is already covered:
+  `test_galaxy_installed_module_uses_configured_python_runtime` has both
+  `impl` and `itest` tags for
+  `dsn~verify-packaging-installs-runtime-dependencies~1`; it is not a
+  remaining coverage item.
 * Existing operator guidance already represented as `uman` coverage: Vault
   handling, TLS guidance, trusted direct-SQL boundary, and password-update
   limitations. Preserve and extend it only where the documentation explicitly
@@ -128,9 +147,10 @@ complete. The implementation should create a focused test before adding the
 * Release and supply-chain controls: dependency-set policy, installation of
   the runtime package from a built collection, dependency-change review,
   CI-log redaction/publishing-credential protection, and explicit compliance
-  review (`dsn~limit-the-runtime-dependency-set~1`,
-  `dsn~verify-packaging-installs-runtime-dependencies~1`,
-  `dsn~review-dependency-changes-during-release-verification~1`,
+  review. The runtime dependency-set and collection-installation evidence is
+  listed above; the remaining controls need a release-process implementation
+  or explicit test rather than a Python runtime tag
+  (`dsn~review-dependency-changes-during-release-verification~1`,
   `dsn~treat-ci-redaction-and-publishing-credential-protection-as-release-gates~1`,
   `dsn~require-explicit-compliance-review-for-security-relevant-integrations~1`).
   Some are release-process controls and must be implemented in CI/release
@@ -167,6 +187,10 @@ complete. The implementation should create a focused test before adding the
   inventory.
 - [x] Add OpenFastTrace coverage tags to existing unit and integration tests only after
   confirming each assertion proves the tagged behavior.
+- [x] Add the remaining evidence-based tags identified above for transient
+  secret handling, single-attempt query execution, and the runtime dependency
+  set; keep the process, audit, authorization-denial, and future-module items
+  below untagged until their complete behavior is implemented and tested.
 - [ ] Extend `test_acceptance_scenario_contract.py` and pytest marker
   registration to require and validate `requirement_id` together with
   `scenario_id`, including both directions of the scenario/test mapping.

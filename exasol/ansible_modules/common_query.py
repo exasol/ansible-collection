@@ -240,6 +240,7 @@ def _explicit_certificate_fingerprint(value: object) -> str | None:
     return fingerprint
 
 
+# [impl -> dsn~keep-secret-handling-transient-within-task-execution~1]
 @contextmanager
 def connect_to_exasol(
     params: Mapping[str, object],
@@ -327,6 +328,7 @@ def normalize_query_list(query: object) -> list[str]:
     raise ValueError("query must be a string or a list of strings.")
 
 
+# [impl -> dsn~avoid-autonomous-retry-of-privileged-actions~1]
 def execute_queries(
     connection: _ExasolConnection,
     query: str | list[str],
