@@ -5,7 +5,7 @@ Ansible Collection for automating Exasol database operations.
 ## Installation
 
 Installation and execution-environment setup are documented in the
-[user guide](doc/user_guide.rst).
+[user guide](https://exasol.github.io/ansible-collection/main/user_guide.html).
 
 ## Development
 
