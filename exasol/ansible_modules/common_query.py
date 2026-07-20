@@ -108,7 +108,6 @@ _JSON_SAFE_MISSING = object()
 
 
 # [impl -> dsn~mark-secret-bearing-parameters-no-log~1]
-# [impl -> dsn~secret-redaction~1]
 def exasol_connection_argument_spec() -> AnsibleArgumentSpec:
     """Return the common Ansible connection argument spec for Exasol modules."""
     return {
@@ -292,7 +291,9 @@ def is_authentication_error(message: str) -> bool:
     return any(marker in normalized for marker in _AUTHENTICATION_MARKERS)
 
 
+# [impl -> dsn~secret-redaction~1]
 # [impl -> dsn~redact-secrets-from-sql-and-surfaced-failures~1]
+# [impl -> dsn~centralize-connection-parameter-mapping-and-secret-sanitization~1]
 def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
     """Redact known secret values from an error string."""
     message = str(error)
