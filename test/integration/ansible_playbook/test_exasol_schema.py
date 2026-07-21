@@ -104,6 +104,7 @@ def test_exasol_schema_preserves_exact_identifier(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-apply-unchanged")
+# [itest -> dsn~intrinsic-schema-property-reconciliation~1]
 def test_exasol_schema_apply_unchanged(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -397,6 +398,7 @@ def test_exasol_schema_drop_existing_schema_cascade(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-non-empty-without-cascade")
+# [itest -> dsn~explicit-schema-drop-cascade~1]
 def test_exasol_schema_drop_non_empty_without_cascade(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],

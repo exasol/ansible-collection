@@ -46,6 +46,12 @@ class UserMetadata:
     ldap_dn: str | None = None
 
 
+# [impl -> dsn~authorization-state-reconciliation~1]
+# [impl -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
+# [impl -> dsn~derive-changed-from-planned-sql~1]
+# [impl -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
+# [impl -> dsn~password-update-semantics~1]
+# [impl -> dsn~exact-principal-identifier-lifecycle~1]
 def ensure_user(
     connection: object,
     params: Mapping[str, object],
@@ -76,6 +82,7 @@ def ensure_user(
     }
 
 
+# [impl -> dsn~mark-secret-bearing-parameters-no-log~1]
 def module_argument_spec() -> dict[str, object]:
     """Return the Ansible-facing argument spec for the user module."""
     return {
@@ -119,6 +126,9 @@ def run_user(
         )
 
 
+# [impl -> dsn~redact-secrets-from-sql-and-surfaced-failures~1]
+# [impl -> dsn~redact-sensitive-identifiers-unless-auditability-requires-them~1]
+# [impl -> dsn~expose-normalized-object-names-without-secret-values~1]
 def sanitize_error_message(error: object, params: Mapping[str, object]) -> str:
     """Redact Exasol connection and user secrets from an error string."""
     return common_query.sanitize_error_message(

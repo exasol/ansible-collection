@@ -1,6 +1,6 @@
 [project]
 name = "exasol-ansible-modules"
-version = "0.2.0"
+version = "0.3.0"
 description = "Python runtime package for Exasol Ansible collection modules."
 authors = [
     {name = "Mykhailo Skliar", email = "mykhailo.skliar@exasol.com"},
@@ -17,6 +17,7 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
+# [impl -> dsn~limit-the-runtime-dependency-set~1]
 dependencies = [
     "pyexasol>=2.3.0",
     "sqlglot>=30.11.0",

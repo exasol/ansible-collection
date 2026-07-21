@@ -12,6 +12,9 @@ _REGULAR_IDENTIFIER_PATTERN = re.compile(
 )
 
 
+# [impl -> dsn~normalize-and-validate-identifiers-before-sql-generation~1]
+# [impl -> dsn~validate-inputs-before-risky-sql-paths~1]
+# [impl -> dsn~exact-principal-identifier-handling~1]
 def validate_identifier(
     name: str,
     identifier_type: str = "identifier",

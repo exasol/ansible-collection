@@ -144,6 +144,9 @@ def test_ensure_grants_grants_missing_system_privilege_to_user() -> None:
     assert _system_key("app_user", "CREATE SESSION") in connection.system_grants
 
 
+# [utest -> dsn~authorization-state-reconciliation~1]
+# [utest -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
+# [utest -> dsn~derive-changed-from-planned-sql~1]
 def test_ensure_grants_existing_system_privilege_is_unchanged() -> None:
     """Verify repeated system grants are idempotent."""
     connection = FakeConnection(
@@ -342,6 +345,7 @@ def test_ensure_grants_revokes_multiple_requested_privileges_only() -> None:
     )
 
 
+# [utest -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
 def test_ensure_grants_check_mode_predicts_without_writing() -> None:
     """Verify check mode reports planned GRANT statements without execution."""
     connection = FakeConnection()

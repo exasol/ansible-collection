@@ -39,6 +39,11 @@ class RoleStatement:
 # -----------------------------
 
 
+# [impl -> dsn~authorization-state-reconciliation~1]
+# [impl -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
+# [impl -> dsn~derive-changed-from-planned-sql~1]
+# [impl -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
+# [impl -> dsn~exact-principal-identifier-lifecycle~1]
 def ensure_role(
     connection: object,
     params: Mapping[str, object],

@@ -44,6 +44,7 @@ def run_info(params: Mapping[str, Any]) -> dict[str, object]:
         return ensure_info(connection)
 
 
+# [impl -> dsn~exasol-info-read-only-metadata-retrieval~1]
 def ensure_info(
     connection: object,
 ) -> dict[str, object]:

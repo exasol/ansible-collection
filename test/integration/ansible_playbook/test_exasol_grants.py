@@ -76,6 +76,9 @@ def test_exasol_grants_grant_missing_system_privilege(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-system-privilege-idempotent")
+# [itest -> dsn~authorization-state-reconciliation~1]
+# [itest -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
+# [itest -> dsn~derive-changed-from-planned-sql~1]
 def test_exasol_grants_system_privilege_idempotent(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
