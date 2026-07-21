@@ -1,0 +1,90 @@
+@startuml
+title UC reconcile-schema
+left to right direction
+skinparam packageStyle rectangle
+skinparam rectangle {
+  BackgroundColor<<Command>> LightBlue
+  BackgroundColor<<Aggregate>> Khaki
+  BackgroundColor<<Event>> Orange
+  BackgroundColor<<Failure>> Tomato
+}
+
+actor "Ansible Operator" as operator
+
+package "reconcile-schema" {
+  rectangle "SCHEMA\n(Aggregate)" as AGG <<Aggregate>>
+
+  rectangle "CreateSchema\n(Command)" as CMD_Create <<Command>>
+  rectangle "SchemaCreated\n(Event)" as EVT_Created <<Event>>
+
+  rectangle "DropSchema\n(Command)" as CMD_Drop <<Command>>
+  rectangle "SchemaDropped\n(Event)" as EVT_Dropped <<Event>>
+
+  rectangle "ChangeSchemaOwner\n(Command)" as CMD_Owner <<Command>>
+  rectangle "SchemaOwnerChanged\n(Event)" as EVT_Owner <<Event>>
+
+  rectangle "SetSchemaComment\n(Command)" as CMD_Comment <<Command>>
+  rectangle "SchemaCommented\n(Event)" as EVT_Comment <<Event>>
+
+  rectangle "RenameSchema\n(Command)" as CMD_Rename <<Command>>
+  rectangle "SchemaRenamed\n(Event)" as EVT_Renamed <<Event>>
+
+  rectangle "SetSchemaRawSizeLimit\n(Command)" as CMD_Quota <<Command>>
+  rectangle "SchemaQuotaChanged\n(Event)" as EVT_Quota <<Event>>
+
+  rectangle "PredictSchemaChange\n(Command, check mode)\ncovers every branch above" as CMD_Predict <<Command>>
+  rectangle "SchemaChangePredicted\n(Event)\nsame plan, no statement executed" as EVT_Predicted <<Event>>
+
+  rectangle "DropSchema\n(Command, non-empty, no cascade)" as CMD_DropUnsafe <<Command>>
+  rectangle "SchemaDropRejected\n(Event, Failure)\nCASCADE required" as EVT_DropRejected <<Failure>>
+
+  rectangle "ChangeSchemaOwner\n(Command, owner missing)" as CMD_OwnerMissing <<Command>>
+  rectangle "SchemaOwnerAssignmentFailed\n(Event, Failure)\nCREATE SCHEMA already\ncommitted before the failure" as EVT_OwnerFailed <<Failure>>
+}
+
+operator --> CMD_Create
+operator --> CMD_Drop
+operator --> CMD_Owner
+operator --> CMD_Comment
+operator --> CMD_Rename
+operator --> CMD_Quota
+operator --> CMD_Predict
+operator --> CMD_DropUnsafe
+operator --> CMD_OwnerMissing
+
+CMD_Create --> AGG
+AGG --> EVT_Created
+
+CMD_Drop --> AGG
+AGG --> EVT_Dropped
+
+CMD_Owner --> AGG
+AGG --> EVT_Owner
+
+CMD_Comment --> AGG
+AGG --> EVT_Comment
+
+CMD_Rename --> AGG
+AGG --> EVT_Renamed
+
+CMD_Quota --> AGG
+AGG --> EVT_Quota
+
+CMD_Predict --> AGG
+AGG --> EVT_Predicted
+
+CMD_DropUnsafe --> AGG
+AGG --> EVT_DropRejected
+
+CMD_OwnerMissing --> AGG
+AGG --> EVT_OwnerFailed
+
+note bottom of AGG
+  When the observed schema state already matches the requested
+  state (existence, owner, comment, rename, quota), the runtime
+  issues no command and reports changed=false: an implicit
+  "leave unchanged" branch behind every command above.
+
+  Source scenario: specs/ansible_modules/exasol_schema.feature
+end note
+@enduml

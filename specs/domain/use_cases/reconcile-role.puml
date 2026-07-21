@@ -1,0 +1,46 @@
+@startuml
+title UC reconcile-role
+left to right direction
+skinparam packageStyle rectangle
+skinparam rectangle {
+  BackgroundColor<<Command>> LightBlue
+  BackgroundColor<<Aggregate>> Khaki
+  BackgroundColor<<Event>> Orange
+}
+
+actor "Ansible Operator" as operator
+
+package "reconcile-role" {
+  rectangle "EXASOL_ROLE\n(Aggregate)" as AGG <<Aggregate>>
+
+  rectangle "CreateRole\n(Command)" as CMD_Create <<Command>>
+  rectangle "RoleCreated\n(Event)" as EVT_Created <<Event>>
+
+  rectangle "DropRole\n(Command, cascade)" as CMD_Drop <<Command>>
+  rectangle "RoleDropped\n(Event)" as EVT_Dropped <<Event>>
+
+  rectangle "PredictRoleChange\n(Command, check mode)\ncovers every branch above" as CMD_Predict <<Command>>
+  rectangle "RoleChangePredicted\n(Event)\nsame plan, no statement executed" as EVT_Predicted <<Event>>
+}
+
+operator --> CMD_Create
+operator --> CMD_Drop
+operator --> CMD_Predict
+
+CMD_Create --> AGG
+AGG --> EVT_Created
+
+CMD_Drop --> AGG
+AGG --> EVT_Dropped
+
+CMD_Predict --> AGG
+AGG --> EVT_Predicted
+
+note bottom of AGG
+  When the role already exists (for CreateRole) or is already
+  absent (for DropRole), the runtime issues no command and
+  reports changed=false.
+
+  Source scenario: specs/ansible_modules/exasol_role.feature
+end note
+@enduml

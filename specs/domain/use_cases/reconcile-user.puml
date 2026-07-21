@@ -1,0 +1,74 @@
+@startuml
+title UC reconcile-user
+left to right direction
+skinparam packageStyle rectangle
+skinparam rectangle {
+  BackgroundColor<<Command>> LightBlue
+  BackgroundColor<<Aggregate>> Khaki
+  BackgroundColor<<Event>> Orange
+}
+
+actor "Ansible Operator" as operator
+
+package "reconcile-user" {
+  rectangle "EXASOL_USER\n(Aggregate)" as AGG <<Aggregate>>
+
+  rectangle "CreateUser\n(Command, authentication_method=password)\nCREATE USER ... IDENTIFIED BY, plus\nGRANT CREATE SESSION when create_session=true" as CMD_Create <<Command>>
+  rectangle "UserCreated\n(Event)" as EVT_Created <<Event>>
+
+  rectangle "CreateUser\n(Command, authentication_method=ldap)\nCREATE USER ... IDENTIFIED AT LDAP AS, plus\nGRANT CREATE SESSION when create_session=true" as CMD_CreateLdap <<Command>>
+
+  rectangle "UpdateUserPassword\n(Command, update_password=always)" as CMD_UpdatePwd <<Command>>
+  rectangle "UserPasswordUpdated\n(Event)" as EVT_PwdUpdated <<Event>>
+
+  rectangle "UpdateUserLdapDn\n(Command, authentication_method=ldap,\nldap_dn differs from DISTINGUISHED_NAME)" as CMD_UpdateLdap <<Command>>
+  rectangle "UserLdapDnUpdated\n(Event)" as EVT_LdapUpdated <<Event>>
+
+  rectangle "DropUser\n(Command, cascade)" as CMD_Drop <<Command>>
+  rectangle "UserDropped\n(Event)" as EVT_Dropped <<Event>>
+
+  rectangle "PredictUserChange\n(Command, check mode)\ncovers every branch above" as CMD_Predict <<Command>>
+  rectangle "UserChangePredicted\n(Event)\nsame plan, no statement executed" as EVT_Predicted <<Event>>
+}
+
+operator --> CMD_Create
+operator --> CMD_CreateLdap
+operator --> CMD_UpdatePwd
+operator --> CMD_UpdateLdap
+operator --> CMD_Drop
+operator --> CMD_Predict
+
+CMD_Create --> AGG
+AGG --> EVT_Created
+
+CMD_CreateLdap --> AGG
+AGG --> EVT_Created
+
+CMD_UpdatePwd --> AGG
+AGG --> EVT_PwdUpdated
+
+CMD_UpdateLdap --> AGG
+AGG --> EVT_LdapUpdated
+
+CMD_Drop --> AGG
+AGG --> EVT_Dropped
+
+CMD_Predict --> AGG
+AGG --> EVT_Predicted
+
+note bottom of AGG
+  update_password=on_create only sets a password while creating
+  the user; when the user already exists with a matching password
+  and update_password=on_create, the runtime issues no command and
+  reports changed=false. update_password does not apply to
+  LDAP-authenticated users.
+
+  authentication_method defaults to ldap when ldap_dn is supplied,
+  otherwise password. create_session (default true) makes the
+  CREATE SESSION grant on user creation optional rather than implicit.
+
+  Source scenarios:
+  specs/ansible_modules/exasol_user.feature
+  specs/ansible_playbook/exasol_user.feature
+end note
+@enduml

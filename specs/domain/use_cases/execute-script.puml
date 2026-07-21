@@ -1,0 +1,50 @@
+@startuml
+title UC execute-script
+left to right direction
+skinparam packageStyle rectangle
+skinparam rectangle {
+  BackgroundColor<<Command>> LightBlue
+  BackgroundColor<<Aggregate>> Khaki
+  BackgroundColor<<Event>> Orange
+  BackgroundColor<<Failure>> Tomato
+}
+
+actor "Ansible Operator" as operator
+
+package "execute-script" {
+  rectangle "SCRIPT_EXECUTION\n(Aggregate)" as AGG <<Aggregate>>
+
+  rectangle "ExecuteScript\n(Command)\na single multi-statement\nscript, including a script\nbody terminated by a\nstandalone \"/\" line" as CMD_Execute <<Command>>
+  rectangle "ScriptExecuted\n(Event)\nchanged=true for any\nnon-read-only statement\npyexasol split from the script" as EVT_Executed <<Event>>
+
+  rectangle "PredictScriptExecution\n(Command, check mode)" as CMD_Predict <<Command>>
+  rectangle "ScriptExecutionPredicted\n(Event)\nread-only scripts still run;\nany other script is predicted\nas one opaque unit, not the\nreal per-statement split" as EVT_Predicted <<Event>>
+
+  rectangle "ExecuteScript\n(Command, failing statement)" as CMD_Failing <<Command>>
+  rectangle "ScriptExecutionFailed\n(Event, Failure)\nstops at the first failing\nstatement; earlier statements'\neffects are not undone;\nsanitized error message" as EVT_Failed <<Failure>>
+}
+
+operator --> CMD_Execute
+operator --> CMD_Predict
+operator --> CMD_Failing
+
+CMD_Execute --> AGG
+AGG --> EVT_Executed
+
+CMD_Predict --> AGG
+AGG --> EVT_Predicted
+
+CMD_Failing --> AGG
+AGG --> EVT_Failed
+
+note bottom of AGG
+  ExecuteScript never accepts positional_args or named_args:
+  Ansible's own argument-spec validation rejects them before
+  the command reaches this aggregate, since pyexasol does not
+  support bound parameters for scripts.
+
+  Source scenarios:
+  specs/ansible_modules/exasol_script.feature
+  specs/ansible_playbook/exasol_script.feature
+end note
+@enduml

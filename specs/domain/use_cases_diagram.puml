@@ -1,0 +1,106 @@
+@startuml
+title Exasol Ansible Collection - EventStorming Use Case Overview
+left to right direction
+skinparam packageStyle rectangle
+skinparam rectangle {
+  BackgroundColor<<Command>> LightBlue
+  BackgroundColor<<Aggregate>> Khaki
+  BackgroundColor<<Event>> Orange
+  BackgroundColor<<ReadModel>> LightGray
+}
+
+actor "Ansible Operator" as operator
+
+' Timeline runs left to right: read-only server facts first, then direct SQL
+' execution surfaces (query, script), then declarative reconciliation surfaces
+' (schema, user, role, grants). Each package is one use case discovered from
+' the Gherkin scenarios in specs/ansible_modules and specs/ansible_playbook.
+' Detailed per-use-case diagrams under specs/domain/use_cases expand every
+' command/event branch a use case's scenarios exercise; this overview shows
+' one representative branch per use case.
+
+package "gather-server-info" {
+  rectangle "GatherServerInfo\n(Command)" as CMD_GatherInfo <<Command>>
+  rectangle "SERVER_INFO\n(Read Model)" as AGG_ServerInfo <<Aggregate>>
+  rectangle "ServerInfoReported\n(Read Model, no state change)" as EVT_InfoReported <<ReadModel>>
+}
+
+package "execute-query" {
+  rectangle "ExecuteQuery\n(Command)" as CMD_ExecuteQuery <<Command>>
+  rectangle "QUERY_EXECUTION\n(Aggregate)" as AGG_QueryExecution <<Aggregate>>
+  rectangle "QueryExecuted\n(Event)" as EVT_QueryExecuted <<Event>>
+}
+
+package "execute-script" {
+  rectangle "ExecuteScript\n(Command)" as CMD_ExecuteScript <<Command>>
+  rectangle "SCRIPT_EXECUTION\n(Aggregate)" as AGG_ScriptExecution <<Aggregate>>
+  rectangle "ScriptExecuted /\nScriptExecutionFailed\n(Event)" as EVT_ScriptExecuted <<Event>>
+}
+
+package "reconcile-schema" {
+  rectangle "CreateSchema\n(Command)" as CMD_CreateSchema <<Command>>
+  rectangle "SCHEMA\n(Aggregate)" as AGG_Schema <<Aggregate>>
+  rectangle "SchemaCreated\n(Event)" as EVT_SchemaCreated <<Event>>
+}
+
+package "reconcile-user" {
+  rectangle "CreateUser\n(Command)" as CMD_CreateUser <<Command>>
+  rectangle "EXASOL_USER\n(Aggregate)" as AGG_User <<Aggregate>>
+  rectangle "UserCreated\n(Event)" as EVT_UserCreated <<Event>>
+}
+
+package "reconcile-role" {
+  rectangle "CreateRole\n(Command)" as CMD_CreateRole <<Command>>
+  rectangle "EXASOL_ROLE\n(Aggregate)" as AGG_Role <<Aggregate>>
+  rectangle "RoleCreated\n(Event)" as EVT_RoleCreated <<Event>>
+}
+
+package "reconcile-grants" {
+  rectangle "GrantPrivilege\n(Command)" as CMD_GrantPrivilege <<Command>>
+  rectangle "GRANT\n(Aggregate)" as AGG_Grant <<Aggregate>>
+  rectangle "PrivilegeGranted\n(Event)" as EVT_PrivilegeGranted <<Event>>
+}
+
+operator --> CMD_GatherInfo
+operator --> CMD_ExecuteQuery
+operator --> CMD_ExecuteScript
+operator --> CMD_CreateSchema
+operator --> CMD_CreateUser
+operator --> CMD_CreateRole
+operator --> CMD_GrantPrivilege
+
+CMD_GatherInfo --> AGG_ServerInfo
+AGG_ServerInfo --> EVT_InfoReported
+
+CMD_ExecuteQuery --> AGG_QueryExecution
+AGG_QueryExecution --> EVT_QueryExecuted
+
+CMD_ExecuteScript --> AGG_ScriptExecution
+AGG_ScriptExecution --> EVT_ScriptExecuted
+
+CMD_CreateSchema --> AGG_Schema
+AGG_Schema --> EVT_SchemaCreated
+
+CMD_CreateUser --> AGG_User
+AGG_User --> EVT_UserCreated
+
+CMD_CreateRole --> AGG_Role
+AGG_Role --> EVT_RoleCreated
+
+CMD_GrantPrivilege --> AGG_Grant
+AGG_Grant --> EVT_PrivilegeGranted
+
+note bottom of AGG_Grant
+  GRANT records reference EXASOL_USER or EXASOL_ROLE
+  as the granted principal, and a schema or table as
+  the granted object.
+end note
+
+legend right
+  |= Color |= Meaning |
+  |<#LightBlue>| Command: what the Ansible Operator asked for |
+  |<#Khaki>| Aggregate: the consistency boundary that applies the command |
+  |<#Orange>| Event: the fact recorded once the command is applied |
+  |<#LightGray>| Read model: a query result with no state change |
+endlegend
+@enduml
