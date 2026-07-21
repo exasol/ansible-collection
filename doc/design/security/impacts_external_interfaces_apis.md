@@ -57,7 +57,7 @@ Needs: dsn
 * construct SQL safely for identifiers, literals, and grant targets
 * sanitize surfaced driver and database errors
 * support only encrypted connections with explicit trust anchors
-* treat `exasol_query` and any future `exasol_script` surface as trusted-operator interfaces, not sandboxes
+* treat `exasol_query` and `exasol_script` as trusted-operator interfaces, not sandboxes
 
 ## Mitigations
 

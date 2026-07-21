@@ -62,12 +62,21 @@ class MockConnection:
                 raise RuntimeError(message)
 
         if upper_query in self.statement_handlers:
-            return self.statement_handlers[upper_query](self, upper_query, params)
+            statement = self.statement_handlers[upper_query](self, upper_query, params)
+        elif is_rowcount_statement(upper_query):
+            statement = rowcount_statement()
+        else:
+            raise RuntimeError(f"unexpected mock query: {query}")
 
-        if is_rowcount_statement(upper_query):
-            return rowcount_statement()
+        statement.query = normalized_query
+        return statement
 
-        raise RuntimeError(f"unexpected mock query: {query}")
+    def execute_sql_script(self, script: str) -> list[MockStatement]:
+        """Execute a mock multi-statement SQL script, statement by statement."""
+        return [
+            self.execute(statement_text)
+            for statement_text in split_mock_sql_script(script)
+        ]
 
     def close(self) -> None:
         """Close the mock connection."""
@@ -90,6 +99,7 @@ class MockStatement:
         self._rowcount = rowcount
         self.execution_time = execution_time
         self.col_names = column_names or []
+        self.query = ""
 
     def fetchall(self) -> list[Any]:
         """Return mock result rows."""
@@ -137,6 +147,23 @@ def public_connect_kwargs(connect_kwargs: dict[str, Any]) -> dict[str, Any]:
     public_kwargs.pop("password", None)
     public_kwargs.pop("refresh_token", None)
     return public_kwargs
+
+
+def split_mock_sql_script(script: str) -> list[str]:
+    """Split a mock SQL script the way pyexasol splits Exasol scripts.
+
+    This mock only needs to support the script shapes exercised by
+    ansible-test integration targets: plain semicolon-separated statements,
+    or a single Exasol script body terminated by a standalone "/" line. It is
+    not a general-purpose SQL-script parser.
+    """
+    lines = script.splitlines()
+    for index, line in enumerate(lines):
+        if line.strip() == "/":
+            body = "\n".join(lines[:index]).strip()
+            return [body] if body else []
+
+    return [part.strip() for part in script.split(";") if part.strip()]
 
 
 def normalize_query(query: str) -> str:

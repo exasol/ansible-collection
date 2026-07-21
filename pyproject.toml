@@ -18,7 +18,7 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "pyexasol",
+    "pyexasol>=2.3.0",
     "sqlglot>=30.11.0",
 ]
 

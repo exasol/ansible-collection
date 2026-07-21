@@ -12,6 +12,8 @@
 * Implemented exasol_schema module
 * Implemented exasol_info module
 * Clarified Exasol collection FQCN usage in the user guide
+* Implemented exasol_script module
+* Required pyexasol>=2.3.0 for SQL-script execution support
 
 ## Security
 
@@ -26,6 +28,7 @@
 * #81: Implement exasol_schema module
 * #15: Implement exasol_info module
 * #67: Clarify FQCN usage and module naming in the user guide
+* #79: Implement exasol_script module
 
 ## Refactorings
 

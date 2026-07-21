@@ -1,0 +1,189 @@
+---
+- name: Create mock pyexasol module directory
+  ansible.builtin.tempfile:
+    state: directory
+    suffix: exasol-script-pyexasol
+  register: exasol_script_mock_directory
+
+- name: Configure writable Ansible remote temp directory
+  ansible.builtin.set_fact:
+    ansible_remote_tmp: "{{ exasol_script_mock_directory.path }}/ansible-tmp"
+
+- name: Install shared pyexasol mock support module
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../setup_pyexasol_mock/files/pyexasol_mock_base.py"
+    dest: "{{ exasol_script_mock_directory.path }}/pyexasol_mock_base.py"
+    mode: "0600"
+
+- name: Install exasol_script mock pyexasol module
+  ansible.builtin.copy:
+    src: pyexasol_mock.py
+    # The module under test imports pyexasol, so the copied test double must
+    # keep this destination filename.
+    dest: "{{ exasol_script_mock_directory.path }}/pyexasol.py"
+    mode: "0600"
+
+- name: Configure mocked exasol_script integration environment
+  ansible.builtin.set_fact:
+    exasol_script_mock_environment:
+      PYTHONPATH: "{{ exasol_script_mock_directory.path }}"
+
+- name: Run mocked exasol_script contract scenarios
+  block:
+    - name: Connection options map to pyexasol connect kwargs
+      exasol.exasol.exasol_script:
+        login_host: db.example.com
+        login_port: 8564
+        login_user: sys
+        login_password: secret
+        login_db: APP
+        script: SELECT MOCK_CONNECTION_KWARGS
+      environment: "{{ exasol_script_mock_environment }}"
+      register: exasol_script_connection
+
+    - name: Verify connection options
+      ansible.builtin.assert:
+        that:
+          - exasol_script_connection is not changed
+          - exasol_script_connection.query_result[0].KWARGS.dsn == "db.example.com:8564"
+          - exasol_script_connection.query_result[0].KWARGS.user == "sys"
+          - exasol_script_connection.query_result[0].KWARGS.schema == "APP"
+
+    - name: Multi-statement script returns ordered result shape
+      exasol.exasol.exasol_script:
+        login_user: sys
+        script: |
+          SELECT 1 AS A;
+          CREATE SCHEMA T;
+      environment: "{{ exasol_script_mock_environment }}"
+      register: exasol_script_batch
+
+    - name: Verify multi-statement script result shape
+      ansible.builtin.assert:
+        that:
+          - exasol_script_batch is changed
+          - exasol_script_batch.query_result == []
+          - 'exasol_script_batch.query_all_results == [[{"A": 1}], []]'
+          - exasol_script_batch.executed_queries == ["SELECT 1 AS A", "CREATE SCHEMA T"]
+          - exasol_script_batch.rowcount == [1, 0]
+          - exasol_script_batch.execution_time_ms == [1.0, 2.0]
+
+    - name: Read-only script does not report a change
+      exasol.exasol.exasol_script:
+        login_user: sys
+        script: |
+          SELECT 1 AS A;
+          SELECT 2 AS B;
+      environment: "{{ exasol_script_mock_environment }}"
+      register: exasol_script_read_only
+
+    - name: Verify read-only script result
+      ansible.builtin.assert:
+        that:
+          - exasol_script_read_only is not changed
+          - 'exasol_script_read_only.query_result == [{"B": 2}]'
+          - exasol_script_read_only.executed_queries == ["SELECT 1 AS A", "SELECT 2 AS B"]
+
+    - name: Script body terminated by a standalone slash line executes as one statement
+      exasol.exasol.exasol_script:
+        login_user: sys
+        script: |
+          CREATE SCRIPT T.S AS
+          a = 1; b = 2
+          /
+      environment: "{{ exasol_script_mock_environment }}"
+      register: exasol_script_body
+
+    - name: Verify script body result
+      ansible.builtin.assert:
+        that:
+          - exasol_script_body is changed
+          - exasol_script_body.executed_queries | length == 1
+          - "'a = 1; b = 2' in exasol_script_body.executed_queries[0]"
+
+    - name: Read-only script succeeds in check mode and does not change
+      exasol.exasol.exasol_script:
+        login_user: sys
+        script: |
+          SELECT 1 AS A;
+      check_mode: true
+      environment: "{{ exasol_script_mock_environment }}"
+      register: exasol_script_check_mode_read_only
+
+    - name: Verify check mode read-only script result
+      ansible.builtin.assert:
+        that:
+          - exasol_script_check_mode_read_only is not changed
+          - 'exasol_script_check_mode_read_only.query_result == [{"A": 1}]'
+
+    - name: Write script in check mode reports change without execution
+      exasol.exasol.exasol_script:
+        login_user: sys
+        script: |
+          CREATE SCHEMA T;
+      check_mode: true
+      environment: "{{ exasol_script_mock_environment }}"
+      register: exasol_script_check_mode_write
+
+    - name: Verify check mode write script result
+      ansible.builtin.assert:
+        that:
+          - exasol_script_check_mode_write is changed
+          - exasol_script_check_mode_write.query_result == []
+          - exasol_script_check_mode_write.query_all_results == []
+          - exasol_script_check_mode_write.executed_queries == ["CREATE SCHEMA T;\n"]
+          - exasol_script_check_mode_write.rowcount == []
+          - exasol_script_check_mode_write.execution_time_ms == []
+
+    - name: Bad credentials fail without leaking secrets
+      exasol.exasol.exasol_script:
+        login_user: sys
+        login_password: bad-secret
+        script: SELECT 1 AS A;
+      environment: "{{ exasol_script_mock_environment }}"
+      register: exasol_script_bad_credentials
+      ignore_errors: true
+
+    - name: Verify bad credential error is sanitized
+      ansible.builtin.assert:
+        that:
+          - exasol_script_bad_credentials is failed
+          - "'authenticate' in exasol_script_bad_credentials.msg"
+          - "'bad-secret' not in exasol_script_bad_credentials.msg"
+
+    - name: Execution errors redact known secret values
+      exasol.exasol.exasol_script:
+        login_user: sys
+        login_password: swordfish
+        script: SELECT MOCK_RAISE_SECRET AS ERROR_PROBE;
+      environment: "{{ exasol_script_mock_environment }}"
+      register: exasol_script_secret_error
+      ignore_errors: true
+
+    - name: Verify execution error redaction
+      ansible.builtin.assert:
+        that:
+          - exasol_script_secret_error is failed
+          - "'swordfish' not in exasol_script_secret_error.msg"
+
+    - name: Unsupported bound arguments are rejected
+      exasol.exasol.exasol_script:
+        login_user: sys
+        script: SELECT ? AS A
+        positional_args:
+          - 42
+      environment: "{{ exasol_script_mock_environment }}"
+      register: exasol_script_bound_args
+      ignore_errors: true
+
+    - name: Verify unsupported bound arguments failure
+      ansible.builtin.assert:
+        that:
+          - exasol_script_bound_args is failed
+          - "'positional_args' in exasol_script_bound_args.msg"
+
+  always:
+    - name: Remove mock pyexasol module directory
+      ansible.builtin.file:
+        path: "{{ exasol_script_mock_directory.path }}"
+        state: absent
