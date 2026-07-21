@@ -74,7 +74,7 @@ Covers:
 - `thrt~runtime-package-version-drift-breaks-security-expectations~1`
 - `thrt~release-artifacts-misinstall-runtime-dependencies~1`
 
-Needs: impl
+Needs: impl, itest
 
 ### Review Dependency Changes During Release Verification
 `dsn~review-dependency-changes-during-release-verification~1`

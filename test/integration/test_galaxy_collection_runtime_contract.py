@@ -29,6 +29,8 @@ def test_galaxy_archive_excludes_python_runtime_package(
         ("exasol_user", ("missing required arguments: login_user, name",)),
     ],
 )
+# [impl -> dsn~verify-packaging-installs-runtime-dependencies~1]
+# [itest -> dsn~verify-packaging-installs-runtime-dependencies~1]
 def test_galaxy_installed_module_uses_configured_python_runtime(
     installed_collection_environment: InstalledCollectionEnvironment,
     module_name: str,

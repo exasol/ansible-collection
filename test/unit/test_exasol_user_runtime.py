@@ -173,6 +173,9 @@ def test_ensure_user_creates_missing_ldap_user() -> None:
     )
 
 
+# [utest -> dsn~authorization-state-reconciliation~1]
+# [utest -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
+# [utest -> dsn~derive-changed-from-planned-sql~1]
 def test_ensure_user_existing_on_create_password_mode_is_unchanged() -> None:
     """Verify existing users are idempotent with update_password=on_create."""
     connection = FakeConnection(users={"APP_USER"})
@@ -188,6 +191,7 @@ def test_ensure_user_existing_on_create_password_mode_is_unchanged() -> None:
     assert len(connection.executed) == 1
 
 
+# [utest -> dsn~password-update-semantics~1]
 def test_ensure_user_alters_existing_password_when_requested() -> None:
     """Verify update_password=always plans a password change for existing users."""
     connection = FakeConnection(users={"APP_USER"})
@@ -295,6 +299,7 @@ def test_ensure_user_missing_user_absent_is_unchanged() -> None:
     assert len(connection.executed) == 1
 
 
+# [utest -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
 def test_ensure_user_check_mode_predicts_without_writing() -> None:
     """Verify check mode does not execute planned CREATE/GRANT statements."""
     connection = FakeConnection()
@@ -434,6 +439,7 @@ def test_user_metadata_rejects_unexpected_row_shape(
         exasol_user._user_metadata(object(), "app_user")
 
 
+# [utest -> dsn~exact-principal-identifier-lifecycle~1]
 def test_ensure_user_accepts_delimited_identifier_input() -> None:
     """Verify delimited SQL identifier syntax is normalized to the exact value."""
     connection = FakeConnection()
@@ -507,6 +513,8 @@ def test_normalized_error_message_redacts_user_secrets(
     )
 
 
+# [utest -> dsn~redact-secrets-from-sql-and-surfaced-failures~1]
+# [utest -> dsn~expose-normalized-object-names-without-secret-values~1]
 def test_sanitize_error_message_redacts_user_password() -> None:
     """Verify user password values are treated as sensitive."""
     message = exasol_user.sanitize_error_message(
@@ -517,6 +525,7 @@ def test_sanitize_error_message_redacts_user_password() -> None:
     assert message == "failed near ******** and ********"
 
 
+# [utest -> dsn~redact-sensitive-identifiers-unless-auditability-requires-them~1]
 def test_sanitize_error_message_redacts_ldap_dn() -> None:
     """Verify LDAP distinguished names are treated as sensitive values."""
     message = exasol_user.sanitize_error_message(

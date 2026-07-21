@@ -18,6 +18,7 @@ SEMVER_LIKE_VERSION = re.compile(r"^\d+\.\d+(?:\.\d+)?(?:[-+][A-Za-z0-9._-]+)?$"
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-info-return-cluster-info")
+# [itest -> dsn~exasol-info-read-only-metadata-retrieval~1]
 def test_exasol_info_return_cluster_info(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],

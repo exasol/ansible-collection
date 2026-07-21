@@ -30,6 +30,7 @@ from exasol.ansible_modules.common_identifier_validation import (
 from plugins.doc_fragments.connection import ModuleDocFragment
 
 
+# [utest -> dsn~mark-secret-bearing-parameters-no-log~1]
 def test_runtime_argument_spec_import_does_not_require_sqlglot(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -56,6 +57,7 @@ def test_runtime_argument_spec_import_does_not_require_sqlglot(
     assert module.exasol_connection_argument_spec()["login_password"]["no_log"] is True
 
 
+# [utest -> dsn~centralize-connection-parameter-mapping-and-secret-sanitization~1]
 def test_build_exasol_connect_kwargs_maps_ansible_arguments_to_pyexasol() -> None:
     """Verify Ansible connection parameters map to pyexasol keyword arguments."""
     kwargs = exasol_query.build_exasol_connect_kwargs(
@@ -101,6 +103,8 @@ def test_connection_argument_spec_does_not_expose_encryption_option() -> None:
     assert "encryption" not in exasol_query.exasol_connection_argument_spec()
 
 
+# [utest -> dsn~encrypt-exasol-connections-by-default~2]
+# [utest -> dsn~encrypted-transport-by-default~2]
 def test_build_exasol_connect_kwargs_forces_tls() -> None:
     """Verify legacy or client kwargs cannot disable TLS."""
     kwargs = exasol_query.build_exasol_connect_kwargs(
@@ -440,6 +444,8 @@ def test_statement_execution_time_defaults_to_zero() -> None:
     assert exasol_query.statement_execution_time_ms(statement) == 0.0
 
 
+# [utest -> dsn~secret-redaction~1]
+# [utest -> dsn~centralize-connection-parameter-mapping-and-secret-sanitization~1]
 def test_sanitize_error_message_redacts_nested_sensitive_values() -> None:
     """Verify nested secret values are redacted from client kwargs."""
     message = exasol_query.sanitize_error_message(
@@ -528,6 +534,7 @@ def test_execution_error_is_sanitized() -> None:
     assert exception == "SQL failed near ********"
 
 
+# [utest -> dsn~normalize-and-validate-identifiers-before-sql-generation~1]
 def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
     """Verify schema, user, role, and object identifier helpers."""
     assert validate_schema_name("APP_SCHEMA") == "APP_SCHEMA"
@@ -555,6 +562,7 @@ def test_identifier_validation_helpers_accept_regular_identifiers() -> None:
         f"A{'B' * 128}",
     ],
 )
+# [utest -> dsn~validate-inputs-before-risky-sql-paths~1]
 def test_identifier_validation_helpers_reject_invalid_schema_names(name: str) -> None:
     """Verify invalid identifiers are rejected before dynamic SQL generation."""
     with pytest.raises(ValueError):
