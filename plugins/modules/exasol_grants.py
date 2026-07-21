@@ -20,6 +20,11 @@ description:
   - This module does not manage role grants, connection object grants,
     C(WITH ADMIN OPTION), C(WITH GRANT OPTION), exclusive reconciliation, or
     broad C(ALL PRIVILEGES) requests.
+  - At least one of O(system_privileges) or O(object_privileges) is required.
+attributes:
+  check_mode:
+    description: Can predict grant changes without modifying Exasol.
+    support: full
 version_added: "0.3.0"
 author:
   - Exasol AG (@exasol)
@@ -51,6 +56,8 @@ options:
     description:
       - Direct system privileges to grant or revoke, for example
         C(CREATE SESSION) or C(USE ANY SCHEMA).
+      - At least one of O(system_privileges) or O(object_privileges) is
+        required.
       - Must not be empty when supplied.
       - Supported values are C(ACCESS ANY CONNECTION),
         C(ALTER ANY CONNECTION), C(ALTER ANY SCHEMA), C(ALTER ANY TABLE),
@@ -77,6 +84,8 @@ options:
   object_privileges:
     description:
       - Schema-scoped object privileges to grant or revoke.
+      - At least one of O(system_privileges) or O(object_privileges) is
+        required.
       - Must not be empty when supplied.
     type: list
     elements: dict

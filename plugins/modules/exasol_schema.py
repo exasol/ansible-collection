@@ -11,6 +11,10 @@ description:
   - Schema metadata is checked before executing DDL.
   - Omitted mutable properties remain unmanaged.
   - Dropping schemas can optionally use CASCADE.
+attributes:
+  check_mode:
+    description: Can predict schema lifecycle changes without modifying Exasol.
+    support: full
 version_added: "0.1.0"
 author:
   - Exasol AG (@exasol)

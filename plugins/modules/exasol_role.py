@@ -13,6 +13,10 @@ description:
     as delimited SQL identifiers.
   - Values that are already written using Exasol's delimited-identifier syntax
     are accepted and normalized to the same exact identifier value.
+attributes:
+  check_mode:
+    description: Can predict role lifecycle changes without modifying Exasol.
+    support: full
 version_added: "0.1.0"
 author:
   - Exasol AG (@exasol)

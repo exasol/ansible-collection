@@ -24,27 +24,9 @@ Recommended Execution Environment
 ---------------------------------
 
 We recommend using ``ansible-builder`` to create an execution environment and
-``ansible-navigator`` to run playbooks with that environment. This repository
-provides execution-environment metadata in ``meta/execution-environment.yml``:
-
-Add the collection to your execution-environment definition:
-
-.. code-block:: yaml
-
-   dependencies:
-     galaxy:
-       collections:
-         - name: exasol.exasol
-
-Then build the execution environment and run your playbook:
-
-.. code-block:: bash
-
-   ansible-builder build --tag exasol-ansible-ee --file execution-environment.yml
-   ansible-navigator run playbook.yml --execution-environment-image exasol-ansible-ee
-
-See the Ansible execution environment documentation for more details:
-https://docs.ansible.com/projects/ansible/latest/getting_started_ee/introduction.html
+``ansible-navigator`` to run playbooks with that environment. Follow the
+:doc:`execution-environment getting-started guide <getting_started>` for a
+complete project layout, image definition, inventory, and read-only playbook.
 
 If you do not use an execution environment, install
 ``exasol-ansible-modules`` for the configured ``ansible_python_interpreter`` on
@@ -66,6 +48,12 @@ examples.
 Use the same pattern for every automation environment that runs the collection:
 the playbook should receive the current secret value at runtime, and logs or
 shared artifacts should contain only variable names or redacted module output.
+
+``exasol_query`` is an explicit exception for SQL text: its
+``executed_queries`` result returns the SQL supplied to the module. Never embed
+passwords, tokens, or other secrets in ``query`` text. Use ``positional_args``
+or ``named_args`` for values that must be bound to a single statement, and
+source those values from Vault or another protected secret manager.
 
 
 .. raw:: html
@@ -208,6 +196,20 @@ parameters:
 
 exasol_query
 ------------
+`uman~document-direct-sql-secret-exposure~1`
+
+.. raw:: html
+
+   <!--
+
+Status: draft
+
+Covers:
+- scn~direct-sql-guidance-protects-secrets~1
+
+.. raw:: html
+
+   -->
 
 Use ``exasol.exasol.exasol_query`` to execute SQL statements directly from an
 Ansible playbook. ``query`` can be a single SQL string or a list of SQL
@@ -271,6 +273,9 @@ In check mode, read-only statements are executed. If any statement in a batch
 is writable, the whole batch is skipped and the module reports the predicted
 change. This avoids partially executing a mixed read/write batch.
 
+Because ``executed_queries`` returns the supplied SQL, do not put secret values
+in query text. Use the bound arguments described above for a single statement.
+
 .. code-block:: yaml
 
    - name: Preview a mixed read-write batch in check mode
@@ -285,6 +290,20 @@ change. This avoids partially executing a mixed read/write batch.
 
 exasol_info
 -----------
+`uman~document-public-module-workflows~1`
+
+.. raw:: html
+
+   <!--
+
+Status: draft
+
+Covers:
+- scn~public-module-workflows-are-documented~1
+
+.. raw:: html
+
+   -->
 
 Use ``exasol.exasol.exasol_info`` to gather basic Exasol server information
 from read-only metadata queries. The module returns the Exasol version,
@@ -509,3 +528,84 @@ Revoke multiple requested privileges from a role:
 In check mode, ``exasol_grants`` still reads metadata but does not execute
 planned ``GRANT`` or ``REVOKE`` statements. The result's ``executed_queries``
 contains the statements that would run.
+
+exasol_user
+-----------
+
+Use ``exasol.exasol.exasol_user`` to create, update, or remove one Exasol user.
+User names are exact Exasol identifier values, including names that need
+delimited-identifier syntax. A repeated ``state=present`` task is unchanged
+when the user already exists, except when ``update_password=always`` is used:
+Exasol cannot compare passwords, so this option always plans a password update
+for an existing user and reports ``changed=true``.
+
+``state=absent`` drops an existing user. It does not cascade by default;
+specify ``cascade=true`` only when removing the user's dependent objects is
+intended. LDAP distinguished names and passwords are sensitive and should come
+from a protected secret source.
+
+.. code-block:: yaml
+
+   - name: Create an application user
+     exasol.exasol.exasol_user:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       name: app_user
+       password: "{{ vault_app_user_password }}"
+
+In check mode, the module reads user metadata and returns the planned SQL
+without changing Exasol. Its ``exists`` value reports the predicted final
+existence state and ``executed_queries`` contains the redacted planned SQL.
+
+exasol_role
+-----------
+
+Use ``exasol.exasol.exasol_role`` to create or remove one Exasol role. The
+module checks role metadata first, so repeated runs are idempotent. Role names
+are exact Exasol identifier values, including names that need
+delimited-identifier syntax.
+
+``state=absent`` removes an existing role. It does not cascade by default;
+set ``cascade=true`` only when removing dependent objects is intended.
+
+.. code-block:: yaml
+
+   - name: Create an application role
+     exasol.exasol.exasol_role:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       name: app_reader
+
+In check mode, the module reads role metadata and returns the planned SQL
+without changing Exasol. Its ``exists`` value reports the predicted final
+existence state.
+
+exasol_schema
+-------------
+
+Use ``exasol.exasol.exasol_schema`` to manage a physical schema and its
+intrinsic metadata. ``state=present`` creates a missing schema and reconciles
+only supplied ``new_name``, ``owner``, ``comment``, and ``raw_size_limit``
+values. Omitted mutable properties remain unmanaged, and a repeated task that
+already matches the requested state reports ``changed=false``.
+
+``state=absent`` uses a non-cascading drop by default, so Exasol rejects the
+operation for a non-empty schema. Set ``cascade=true`` only when deleting all
+contained objects is intended.
+
+.. code-block:: yaml
+
+   - name: Create a reporting schema
+     exasol.exasol.exasol_schema:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       name: reporting
+       owner: app_reader
+       comment: Reporting data
+
+In check mode, the module reads schema metadata and returns the same SQL plan
+it would execute without changing Exasol. Its ``exists`` value reports the
+predicted final existence state.
