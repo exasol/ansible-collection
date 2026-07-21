@@ -33,3 +33,9 @@ Feature: exasol-query Ansible module runtime specification
     And executed_queries equals the planned CREATE SCHEMA statement
     And query_result is empty
     And the created schema does not exist in EXA_ALL_SCHEMAS
+
+  @exasol-query-check-mode-predicts-no-action-for-comment-only-query
+  Scenario: Check mode predicts no action for a query with no real statement
+    Given an Exasol database is reachable at localhost
+    When the query runtime executes a comment-only query in check mode
+    Then changed is false

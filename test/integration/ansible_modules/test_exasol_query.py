@@ -108,3 +108,25 @@ def test_query_runtime_check_mode_predicts_write_without_execution(
     assert predicted_result["executed_queries"] == [query]
     assert predicted_result["query_result"] == []
     assert schema_count == 0
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id(
+    "exasol-query-check-mode-predicts-no-action-for-comment-only-query"
+)
+def test_query_runtime_check_mode_predicts_no_action_for_comment_only_query(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify check mode predicts no action for a query with no real statement.
+
+    Regression test: a comment-only (or otherwise statement-less) query has no
+    real SQL to execute, matching pyexasol's own script splitter, which
+    discards such content rather than treating it as a pending write.
+    """
+    query = "-- nothing to do"
+    queries = exasol_query.normalize_query_list(query)
+
+    predicted_result = exasol_query.check_mode_result(queries)
+
+    assert predicted_result is None

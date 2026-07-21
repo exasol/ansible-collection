@@ -13,7 +13,6 @@ from typing import (
 
 from exasol.ansible_modules import common_query
 from exasol.ansible_modules.common_query import ExasolQueryResult
-from exasol.ansible_modules.exasol_query import is_read_only_query
 
 type ExasolScriptResult = ExasolQueryResult
 type _ExasolStatement = Any
@@ -38,6 +37,7 @@ statement_rowcount = common_query.statement_rowcount
 statement_execution_time_ms = common_query.statement_execution_time_ms
 to_json_safe = common_query.to_json_safe
 rows_to_json_safe = common_query.rows_to_json_safe
+is_read_only_query = common_query.is_read_only_query
 
 
 def module_argument_spec() -> dict[str, object]:

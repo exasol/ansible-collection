@@ -361,8 +361,11 @@ def test_is_read_only_query_classifies_common_sql_statements() -> None:
     assert (
         exasol_query.is_read_only_query(" \n -- comment\n /* block */ SELECT 1") is True
     )
-    assert exasol_query.is_read_only_query("  ;") is False
-    assert exasol_query.is_read_only_query("  ") is False
+    # pyexasol's real statement splitter treats a lone ";" or pure whitespace
+    # as zero statements (`split_sql_script("  ;") == []`), so there is
+    # nothing to change and both are read-only.
+    assert exasol_query.is_read_only_query("  ;") is True
+    assert exasol_query.is_read_only_query("  ") is True
     assert exasol_query.is_read_only_query("VALUES 1") is True
     assert exasol_query.is_read_only_query("SHOW TABLES") is True
     assert exasol_query.is_read_only_query("EXPLAIN SELECT 1") is True
@@ -397,7 +400,7 @@ def test_is_read_only_query_parse_error_fallback_is_conservative_for_select(
             raise ParserFailure()
 
     monkeypatch.setattr(
-        exasol_query,
+        common_query,
         "_sqlglot_parser_runtime",
         lambda: (Parser(), object(), (ParserFailure,)),
     )
