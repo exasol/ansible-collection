@@ -15,7 +15,7 @@ actor "Ansible Operator" as operator
 ' execution surfaces (query, script), then declarative reconciliation surfaces
 ' (schema, user, role, grants). Each package is one use case discovered from
 ' the Gherkin scenarios in specs/ansible_modules and specs/ansible_playbook.
-' Detailed per-use-case diagrams under specs/domain/use_cases expand every
+' Detailed per-use-case diagrams under doc/design/domain/use_cases expand every
 ' command/event branch a use case's scenarios exercise; this overview shows
 ' one representative branch per use case.
 
