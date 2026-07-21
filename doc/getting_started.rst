@@ -15,6 +15,7 @@ Create an empty directory containing these files:
 .. code-block:: text
 
    exasol-automation/
+   ├── ansible.cfg
    ├── execution-environment.yml
    ├── group_vars/all/exasol_vault.yml
    ├── inventory/hosts.yml
@@ -22,6 +23,14 @@ Create an empty directory containing these files:
 
 The examples use Podman, but another container runtime supported by
 ``ansible-builder`` and ``ansible-navigator`` can be configured instead.
+
+Create ``ansible.cfg`` so the command examples use the project's inventory:
+
+.. code-block:: ini
+
+   [defaults]
+   inventory = inventory/hosts.yml
+   show_custom_stats = true
 
 Define The Execution Environment
 --------------------------------
@@ -79,8 +88,8 @@ the vault password.
 .. code-block:: yaml
 
    ---
-   exasol_login_user: "{{ vault_exasol_login_user }}"
-   exasol_login_password: "{{ vault_exasol_login_password }}"
+   vault_exasol_login_user: exasol_user
+   vault_exasol_login_password: change-this-password
 
 Create ``test_playbook.yml``. It uses module defaults for the shared
 connection settings and runs only read-only operations.
@@ -99,8 +108,8 @@ connection settings and runs only read-only operations.
        group/exasol.exasol.connection:
          login_host: "{{ inventory_hostname }}"
          login_port: "{{ exasol_login_port }}"
-         login_user: "{{ exasol_login_user }}"
-         login_password: "{{ exasol_login_password }}"
+         login_user: "{{ vault_exasol_login_user }}"
+         login_password: "{{ vault_exasol_login_password }}"
          validate_certs: true
      tasks:
        - name: Gather Exasol server information
