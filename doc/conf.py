@@ -11,6 +11,7 @@ author = "Exasol"
 
 extensions = [
     "myst_parser",
+    "sphinxcontrib.mermaid",
     "exasol.toolbox.sphinx.multiversion",
 ]
 
