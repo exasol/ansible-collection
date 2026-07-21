@@ -70,6 +70,7 @@ their ``login_*`` arguments.
            # Exasol modules connect using their login_* arguments; execute them on
            # the Ansible controller rather than SSHing to the database endpoint.
            ansible_connection: local
+           ansible_python_interpreter: "{{ ansible_playbook_python }}"
 
 Store the login values in an encrypted
 ``group_vars/all/exasol_vault.yml`` file. Do not commit the unencrypted file or
