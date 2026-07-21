@@ -1,6 +1,6 @@
 namespace: exasol
 name: exasol
-version: "0.2.0"
+version: "0.3.0"
 readme: README.md
 authors:
   - Exasol AG <opensource@exasol.com>
