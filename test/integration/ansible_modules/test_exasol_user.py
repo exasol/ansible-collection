@@ -6,10 +6,10 @@ import uuid
 
 import pytest
 from ansible_modules.common_helpers import (
-    catalog_count,
     execute_sql,
     unique_name,
 )
+from common.catalog_assertions import catalog_count
 from common.user_assertions import assert_user_can_log_in
 
 from exasol.ansible_modules import exasol_user

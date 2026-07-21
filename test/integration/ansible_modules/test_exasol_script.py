@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import pyexasol
 import pytest
 from ansible_modules.common_helpers import (
-    catalog_count,
     execute_sql,
     unique_name,
 )
+from common.catalog_assertions import catalog_count
 
 from exasol.ansible_modules import exasol_script
 
@@ -106,7 +107,7 @@ def test_script_runtime_stops_after_failing_statement(
         f'CREATE TABLE "{schema_name}"."{table_name}" (ID DECIMAL(18,0));\n'
     )
 
-    with pytest.raises(Exception) as error_info:
+    with pytest.raises(pyexasol.ExaQueryError) as error_info:
         exasol_script.run_script({**exasol_login_vars, "script": script})
 
     assert "NO_SUCH_TABLE_AT_ALL" in str(error_info.value)
@@ -174,3 +175,97 @@ def test_script_runtime_check_mode_predicts_write_without_execution(
     assert predicted_result["executed_queries"] == [script]
     assert predicted_result["query_result"] == []
     assert schema_count == 0
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id(
+    "exasol-script-semicolon-in-string-literal-does-not-split-statement"
+)
+def test_script_runtime_semicolon_in_string_literal_does_not_split_statement(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify a semicolon inside a string literal does not terminate a statement early."""
+    schema_name = unique_name("ANSIBLE_PYTHON_SCRIPT_LITERAL_SCHEMA")
+    execute_sql(exasol_login_vars, f'CREATE SCHEMA "{schema_name}"')
+    execute_sql(exasol_login_vars, f'CREATE TABLE "{schema_name}"."T" (V VARCHAR(20))')
+    script = (
+        f'INSERT INTO "{schema_name}"."T" VALUES (\'a;b\');\n'
+        f'SELECT V FROM "{schema_name}"."T";\n'
+    )
+
+    result = exasol_script.run_script({**exasol_login_vars, "script": script})
+
+    assert result["changed"] is True
+    assert len(result["executed_queries"]) == 2
+    assert result["query_result"] == [{"V": "a;b"}]
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-script-semicolon-in-comment-does-not-split-statement")
+def test_script_runtime_semicolon_in_comment_does_not_split_statement(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify semicolons inside comments do not terminate statements early."""
+    script = (
+        "-- a comment with a ; semicolon\n"
+        "SELECT 1 AS A;\n"
+        "/* a block comment with a ; semicolon */\n"
+        "SELECT 2 AS B;\n"
+    )
+
+    result = exasol_script.run_script({**exasol_login_vars, "script": script})
+
+    assert result["changed"] is False
+    assert len(result["executed_queries"]) == 2
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-script-execute-script-invocation-side-effect")
+def test_script_runtime_execute_script_invocation_side_effect(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify EXECUTE SCRIPT invoking a created script has a write side effect."""
+    schema_name = unique_name("ANSIBLE_PYTHON_SCRIPT_EXEC_SCHEMA")
+    script_name = unique_name("CREATE_MARKER")
+    table_name = "MARKER"
+    script = (
+        f'CREATE SCHEMA "{schema_name}";\n'
+        f'CREATE SCRIPT "{schema_name}"."{script_name}" AS\n'
+        f'query([[CREATE TABLE "{schema_name}"."{table_name}" (ID DECIMAL(18,0))]])\n'
+        "/\n"
+        f'EXECUTE SCRIPT "{schema_name}"."{script_name}";\n'
+    )
+
+    result = exasol_script.run_script({**exasol_login_vars, "script": script})
+
+    table_count = catalog_count(
+        exasol_login_vars,
+        table="EXA_ALL_TABLES",
+        column="TABLE_NAME",
+        object_name=table_name,
+        result_key="TABLE_COUNT",
+    )
+
+    assert result["changed"] is True
+    assert len(result["executed_queries"]) == 3
+    assert table_count == 1
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-script-empty-script-executes-nothing")
+def test_script_runtime_empty_script_executes_nothing(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify a script containing only blank lines and a comment executes nothing."""
+    script = "\n-- nothing to do\n\n"
+
+    predicted_result = exasol_script.check_mode_result(script)
+    result = exasol_script.run_script({**exasol_login_vars, "script": script})
+
+    assert predicted_result is None
+    assert result["changed"] is False
+    assert result["executed_queries"] == []

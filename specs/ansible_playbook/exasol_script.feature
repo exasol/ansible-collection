@@ -59,3 +59,30 @@ Feature: exasol-script specification
     Given an Exasol database is reachable at localhost
     When exasol_script runs with a positional_args argument
     Then the module fails with an unsupported parameters error
+
+  @exasol-script-reports-per-statement-results-and-rowcount
+  Scenario: Report one result list and rowcount entry per statement
+    Given an Exasol database is reachable at localhost
+    When exasol_script runs a script creating a table, inserting a row, and selecting from it
+    Then query_all_results contains one entry per statement
+    And the entry for the SELECT statement contains the selected row
+    And rowcount contains one entry per statement
+
+  @exasol-script-reports-execution-time-per-statement
+  Scenario: Report execution time per statement
+    Given an Exasol database is reachable at localhost
+    When exasol_script runs a script containing two statements
+    Then execution_time_ms contains one entry per statement
+
+  @exasol-script-statement-failure-does-not-expose-password
+  Scenario: Statement failure error does not expose the connection password
+    Given an Exasol database is reachable at localhost
+    When exasol_script runs a script whose second statement fails
+    Then the module fails with an error mentioning the failing statement
+    And the login password is not exposed
+
+  @exasol-script-reject-named-args
+  Scenario: Reject named arguments
+    Given an Exasol database is reachable at localhost
+    When exasol_script runs with a named_args argument
+    Then the module fails with an unsupported parameters error

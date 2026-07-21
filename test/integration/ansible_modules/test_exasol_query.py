@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import pytest
-from ansible_modules.common_helpers import (
-    catalog_count,
-    unique_name,
-)
+from ansible_modules.common_helpers import unique_name
+from common.catalog_assertions import catalog_count
 
 from exasol.ansible_modules import exasol_query
 

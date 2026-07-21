@@ -48,3 +48,32 @@ Feature: exasol-script Ansible module runtime specification
     And executed_queries equals the whole planned script as one entry
     And query_result is empty
     And the created schema does not exist in EXA_ALL_SCHEMAS
+
+  @exasol-script-semicolon-in-string-literal-does-not-split-statement
+  Scenario: A semicolon inside a string literal does not split a statement
+    Given an Exasol database is reachable at localhost
+    When the script runtime executes a script whose INSERT statement embeds a semicolon inside a string literal
+    Then changed is true
+    And executed_queries contains exactly two statements
+    And query_result contains the value with the embedded semicolon
+
+  @exasol-script-semicolon-in-comment-does-not-split-statement
+  Scenario: A semicolon inside a comment does not split a statement
+    Given an Exasol database is reachable at localhost
+    When the script runtime executes a script whose line comment and block comment each embed a semicolon
+    Then changed is false
+    And executed_queries contains exactly two statements
+
+  @exasol-script-execute-script-invocation-side-effect
+  Scenario: Invoking a created script has a write side effect
+    Given an Exasol database is reachable at localhost
+    When the script runtime creates an administration script and invokes it with EXECUTE SCRIPT in the same script
+    Then changed is true
+    And the table created by the invoked script exists in EXA_ALL_TABLES
+
+  @exasol-script-empty-script-executes-nothing
+  Scenario: An empty script executes no statements
+    Given an Exasol database is reachable at localhost
+    When the script runtime executes a script containing only blank lines and a comment
+    Then changed is false
+    And executed_queries equals an empty list
