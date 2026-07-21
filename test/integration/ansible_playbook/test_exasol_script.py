@@ -120,7 +120,7 @@ def test_exasol_script_execute_script_body_with_slash_terminator(
     try:
         rows = connection.execute(
             "SELECT COUNT(*) AS SCRIPT_COUNT FROM EXA_ALL_SCRIPTS "
-            f"WHERE SCHEMA_NAME = '{context.test_schema}' "
+            f"WHERE SCRIPT_SCHEMA = '{context.test_schema}' "
             "AND SCRIPT_NAME = 'DOUBLE_VALUE'"
         ).fetchall()
     finally:
@@ -219,7 +219,7 @@ def test_exasol_script_failing_statement_blocks_later_statements(
         ).fetchall()
         table_rows = connection.execute(
             "SELECT COUNT(*) AS TABLE_COUNT FROM EXA_ALL_TABLES "
-            f"WHERE SCHEMA_NAME = '{context.test_schema}' "
+            f"WHERE TABLE_SCHEMA = '{context.test_schema}' "
             "AND TABLE_NAME = 'NEVER_CREATED'"
         ).fetchall()
     finally:
