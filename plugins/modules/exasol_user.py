@@ -16,6 +16,10 @@ description:
   - Passwords are quoted for Exasol's C(IDENTIFIED BY) syntax and are never
     returned in module results.
   - LDAP-authenticated users use Exasol's C(IDENTIFIED AT LDAP AS) syntax.
+attributes:
+  check_mode:
+    description: Can predict user lifecycle changes without modifying Exasol.
+    support: full
 version_added: "0.1.0"
 author:
   - Exasol AG (@exasol)
@@ -37,6 +41,7 @@ options:
       - Password used when creating the user or when O(update_password=always).
       - Required when the user has to be created with
         O(authentication_method=password).
+      - This sensitive option is protected with C(no_log=True).
     type: str
   authentication_method:
     description:
@@ -52,6 +57,7 @@ options:
       - LDAP distinguished name used when O(authentication_method=ldap).
       - This value is treated as sensitive in error messages and redacted from
         generated SQL returned in module results.
+      - This sensitive option is protected with C(no_log=True).
     type: str
   state:
     description:

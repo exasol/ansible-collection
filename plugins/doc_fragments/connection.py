@@ -26,6 +26,7 @@ options:
   login_password:
     description:
       - Password used to authenticate with Exasol.
+      - This sensitive option is protected with C(no_log=True).
     type: str
   login_db:
     description:
@@ -84,7 +85,7 @@ options:
   client_kwargs:
     description:
       - Additional keyword arguments passed to C(pyexasol.connect).
-      - This option is treated as sensitive by the shared module argument spec.
+      - This sensitive option is protected with C(no_log=True).
     type: dict
     default: {}
 requirements:
