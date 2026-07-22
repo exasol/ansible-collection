@@ -10,6 +10,10 @@ description:
   - Gathers basic Exasol server information through read-only metadata queries.
   - Returns the Exasol version, database name, and cluster size.
   - The module never changes Exasol state and always reports C(changed=false).
+attributes:
+  check_mode:
+    description: Runs the same read-only metadata queries in check mode.
+    support: full
 version_added: "0.1.0"
 author:
   - Exasol AG (@exasol)

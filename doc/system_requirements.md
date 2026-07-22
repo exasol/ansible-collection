@@ -264,6 +264,34 @@ Covers:
 
 Needs: scn
 
+### Document Public Module Workflows
+`req~document-public-module-workflows~1`
+
+The user documentation must describe the lifecycle behavior, idempotency,
+destructive-operation safeguards, and check-mode behavior of every public
+module so that Ansible Operators can use the collection safely.
+
+Status: draft
+
+Covers:
+- `feat~documented-exasol-collection-usage~1`
+
+Needs: scn
+
+### Warn About Direct SQL Secret Exposure
+`req~warn-about-direct-sql-secret-exposure~1`
+
+The documentation must warn that `exasol_query` returns operator-supplied SQL
+in `executed_queries`, so Ansible Operators must not put secrets directly in
+query text and should use bound arguments or protected variables instead.
+
+Status: draft
+
+Covers:
+- `feat~documented-exasol-collection-usage~1`
+
+Needs: scn
+
 ## Acceptance Scenarios
 
 The following scenarios describe observable behavior in Given-When-Then form.
@@ -494,6 +522,38 @@ Status: draft
 
 Covers:
 - `req~explain-ansible-module-name-resolution~1`
+
+Needs: uman
+
+### Public Module Workflows Are Documented
+`scn~public-module-workflows-are-documented~1`
+
+**Given** an Ansible Operator needs to manage Exasol users, roles, schemas, or
+privileges, execute SQL, or gather server information
+**When** the operator reads the user guide and embedded module documentation
+**Then** each public module has task-oriented lifecycle and check-mode guidance
+**And** destructive operations and idempotency limits are explained where they
+apply
+
+Status: draft
+
+Covers:
+- `req~document-public-module-workflows~1`
+
+Needs: uman
+
+### Direct SQL Guidance Protects Secrets
+`scn~direct-sql-guidance-protects-secrets~1`
+
+**Given** an Ansible Operator uses `exasol_query`
+**When** the operator reads its security guidance
+**Then** the guidance states that `executed_queries` returns the supplied SQL
+**And** the guidance directs the operator not to place secrets in query text
+
+Status: draft
+
+Covers:
+- `req~warn-about-direct-sql-secret-exposure~1`
 
 Needs: uman
 

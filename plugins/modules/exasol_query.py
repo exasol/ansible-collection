@@ -12,6 +12,12 @@ description:
   - A list of statements runs on one connection in the supplied order.
   - SELECT-only invocations report C(changed=false). DDL and DML statements
     report C(changed=true).
+  - SQL supplied through O(query) is returned in C(executed_queries). Do not
+    include passwords, tokens, or other secrets in query text.
+attributes:
+  check_mode:
+    description: Executes read-only SQL and predicts writable SQL without modifying Exasol.
+    support: full
 version_added: "0.1.0"
 author:
   - Exasol AG (@exasol)
@@ -21,6 +27,8 @@ options:
   query:
     description:
       - SQL statement or ordered list of SQL statements to execute.
+      - Do not include passwords, tokens, or other secrets because this value
+        is returned in C(executed_queries).
     type: raw
     required: true
   positional_args:
@@ -92,6 +100,7 @@ query_all_results:
 executed_queries:
   description:
     - SQL statements supplied to the module, in execution order.
+    - This result is not redacted. Do not include secrets in O(query).
   returned: always
   type: list
   elements: str
