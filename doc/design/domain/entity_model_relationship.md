@@ -25,65 +25,73 @@ per-invocation read model.
 ## Aggregate Boundary Diagram
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph schema_aggregate["Aggregate Root: SCHEMA"]
+        direction TB
         SCHEMA["SCHEMA\nRoot Entity"]
         SCHEMA_NAME["SCHEMA_NAME\nExact Identifier"]
         SCHEMA_OWNER["OWNER\nUser or Role Reference"]
         SCHEMA_COMMENT["COMMENT\nValue Object"]
         SCHEMA_QUOTA["RAW_SIZE_LIMIT\nValue Object"]
+        SCHEMA --> SCHEMA_NAME
+        SCHEMA --> SCHEMA_OWNER
+        SCHEMA --> SCHEMA_COMMENT
+        SCHEMA --> SCHEMA_QUOTA
     end
 
     subgraph user_aggregate["Aggregate Root: EXASOL_USER"]
+        direction TB
         EXASOL_USER["EXASOL_USER\nRoot Entity"]
         USER_NAME["USER_NAME\nExact Identifier"]
         USER_AUTH_METHOD["AUTHENTICATION_METHOD\nValue Object (password | ldap)"]
         USER_PASSWORD["PASSWORD\nSecret Value Object"]
         USER_LDAP_DN["LDAP_DN\nSecret Value Object"]
         USER_SESSION_GRANT["CREATE SESSION Grant\nOptional On Creation"]
+        EXASOL_USER --> USER_NAME
+        EXASOL_USER --> USER_AUTH_METHOD
+        EXASOL_USER --> USER_PASSWORD
+        EXASOL_USER --> USER_LDAP_DN
+        EXASOL_USER --> USER_SESSION_GRANT
     end
 
     subgraph role_aggregate["Aggregate Root: EXASOL_ROLE"]
+        direction TB
         EXASOL_ROLE["EXASOL_ROLE\nRoot Entity"]
         ROLE_NAME["ROLE_NAME\nExact Identifier"]
+        EXASOL_ROLE --> ROLE_NAME
     end
 
     subgraph grant_aggregate["Aggregate Root: GRANT"]
+        direction TB
         GRANT["GRANT\nRoot Entity"]
         GRANT_PRINCIPAL["PRINCIPAL\nUser or Role Reference"]
         GRANT_OBJECT["OBJECT\nSchema, Optionally Qualified\nby a Named Object"]
         GRANT_OBJECT_TYPE["OBJECT_TYPE\nValue Object (function | script |\ntable | view | virtual_schema)"]
         GRANT_PRIVILEGE["PRIVILEGE\nValue Object"]
+        GRANT --> GRANT_PRINCIPAL
+        GRANT --> GRANT_OBJECT
+        GRANT --> GRANT_OBJECT_TYPE
+        GRANT --> GRANT_PRIVILEGE
     end
 
     subgraph query_execution_aggregate["Read Model: QUERY_EXECUTION"]
+        direction TB
         QUERY_EXECUTION["QUERY_EXECUTION\nPer-Invocation Read Model"]
         EXECUTED_QUERIES_Q["EXECUTED_QUERIES\nOrdered Statement List"]
+        QUERY_EXECUTION --> EXECUTED_QUERIES_Q
     end
 
     subgraph script_execution_aggregate["Read Model: SCRIPT_EXECUTION"]
+        direction TB
         SCRIPT_EXECUTION["SCRIPT_EXECUTION\nPer-Invocation Read Model"]
         EXECUTED_QUERIES_S["EXECUTED_QUERIES\npyexasol-Split Statement List"]
+        SCRIPT_EXECUTION --> EXECUTED_QUERIES_S
     end
 
     SERVER_INFO["SERVER_INFO\nPer-Invocation Read Model"]
 
-    SCHEMA --> SCHEMA_NAME
-    SCHEMA --> SCHEMA_OWNER
-    SCHEMA --> SCHEMA_COMMENT
-    SCHEMA --> SCHEMA_QUOTA
-    EXASOL_USER --> USER_NAME
-    EXASOL_USER --> USER_AUTH_METHOD
-    EXASOL_USER --> USER_PASSWORD
-    EXASOL_USER --> USER_LDAP_DN
-    EXASOL_USER --> USER_SESSION_GRANT
-    EXASOL_ROLE --> ROLE_NAME
-    GRANT --> GRANT_PRINCIPAL
-    GRANT --> GRANT_OBJECT
-    GRANT --> GRANT_OBJECT_TYPE
-    GRANT --> GRANT_PRIVILEGE
-    QUERY_EXECUTION --> EXECUTED_QUERIES_Q
-    SCRIPT_EXECUTION --> EXECUTED_QUERIES_S
+    query_execution_aggregate ~~~ script_execution_aggregate
+    script_execution_aggregate ~~~ SERVER_INFO
 
     GRANT_PRINCIPAL -. "references" .-> EXASOL_USER
     GRANT_PRINCIPAL -. "references" .-> EXASOL_ROLE
@@ -102,6 +110,14 @@ erDiagram
     GRANTS }o--o| EXASOL_ROLES : grants_to_role
     GRANTS }o--o| SCHEMAS : grants_on_schema
 ```
+
+## Domain Entity attributes
+
+Each section represents a domain entity rather than a specific technical artifact. 
+The domain model is derived from the Gherkin acceptance scenarios,
+and the code should express the same domain concepts.
+The existing acceptance tests effectively define and shape the domain model described here.
+However, this alignment is not currently enforced.
 
 ### SCHEMA
 

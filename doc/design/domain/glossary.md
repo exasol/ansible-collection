@@ -1,8 +1,12 @@
 # Exasol Ansible Collection Glossary
 
+This chapter defines domain-specific terms used in the documentation.
+
 Terms derived from the Given/When/Then vocabulary used across
 `specs/ansible_modules/*.feature` (module-runtime specifications) and
-`specs/ansible_playbook/*.feature` (playbook-level specifications).
+`specs/ansible_playbook/*.feature` (playbook-level specifications)
+
+General System Requirements are defined in [System Requirements](../../system_requirements.md).
 
 | Term | Meaning |
 |------|---------|
@@ -14,6 +18,7 @@ Terms derived from the Given/When/Then vocabulary used across
 | State | The declarative `present` or `absent` value an operator requests for a schema, user, role, or grant; the runtime reconciles observed Exasol state toward it. |
 | Changed | The boolean result field reporting whether a scenario's run altered Exasol state (or, in check mode, would alter it). |
 | Check mode | A dry-run invocation that predicts the same statements and `changed` value a real run would produce, without executing any write statement. |
+| Check-mode no-action prediction | A check-mode result where the observed state already matches the desired state: `changed=false`, the observed `exists` value is preserved, and `executed_queries` is empty (metadata queries used to observe state may still run). Reported when an object already exists under `state=present`, or already does not exist under `state=absent`. |
 | Executed queries | The `executed_queries` result field: the SQL statements a scenario actually ran, in order, or — for check mode and `exasol_script` specifically — the statements or script predicted to run. |
 | Query result / Query all results | `query_result` (rows from the last statement) and `query_all_results` (one row list per statement) returned by `exasol_query` and `exasol_script`. |
 | Rowcount / Execution time | Per-statement `rowcount` and `execution_time_ms` values reported alongside executed queries. |
