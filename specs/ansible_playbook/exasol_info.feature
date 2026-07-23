@@ -1,9 +1,11 @@
 Feature: exasol-info specification
   Gather Exasol server information from Ansible playbooks.
 
+  Background:
+    Given an Exasol cluster reachable at login_host
+
     @exasol-info-return-cluster-info
     Scenario: Returns version and cluster info
-      Given an Exasol cluster reachable at login_host
       When exasol_info runs with valid credentials
       Then result MUST contain key "version"
       And result.version MUST match a semver-like pattern (e.g. "8.x.y")
@@ -14,7 +16,6 @@ Feature: exasol-info specification
 
     @exasol-info-check-mode
     Scenario: Supports check mode
-      Given an Exasol cluster reachable at login_host
       When exasol_info runs in check mode with valid credentials
       Then result MUST contain key "version"
       And result MUST contain key "database_name"

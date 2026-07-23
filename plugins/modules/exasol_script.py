@@ -18,7 +18,13 @@ description:
     original error is raised and later statements do not execute.
   - A script made up only of read-only statements reports C(changed=false).
     A script containing any DDL or DML statement reports C(changed=true).
-version_added: "0.1.0"
+  - SQL supplied through O(script) is returned in C(executed_queries). Do not
+    include passwords, tokens, or other secrets in query text.
+attributes:
+  check_mode:
+    description: Executes read-only SQL and predicts writable SQL without modifying Exasol.
+    support: full
+version_added: "0.4.0"
 author:
   - Exasol AG (@exasol)
 extends_documentation_fragment:
@@ -31,6 +37,8 @@ options:
         this is always a single string, never a list, and does not accept
         positional or named arguments; pyexasol does not support bound
         parameters for scripts.
+      - Do not include passwords, tokens, or other secrets because this value
+        is returned in C(executed_queries).
     type: str
     required: true
 requirements:
@@ -98,6 +106,7 @@ executed_queries:
     - In check mode, pyexasol does not split the script, so this contains
       the whole supplied script as a single entry instead of the real
       per-statement breakdown that execution produces.
+    - This result is not redacted. Do not include secrets in O(script).
   returned: always
   type: list
   elements: str

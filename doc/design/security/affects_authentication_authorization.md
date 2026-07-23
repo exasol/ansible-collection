@@ -2,7 +2,7 @@
 
 Yes.
 
-The collection authenticates to Exasol with `login_*` parameters and performs authorization-sensitive operations through `exasol_user`, `exasol_role`, `exasol_query`, `exasol_script`, planned grant-management and schema-management workflows, and future trusted-operator modules such as `exasol_grants` and `exasol_schema`.
+The collection authenticates to Exasol with `login_*` parameters and performs authorization-sensitive operations through `exasol_user`, `exasol_role`, `exasol_query`, `exasol_script`, `exasol_grants`, and `exasol_schema`.
 
 ## Main Threats
 

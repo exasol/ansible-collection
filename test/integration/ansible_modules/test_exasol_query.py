@@ -110,14 +110,10 @@ def test_query_runtime_check_mode_predicts_write_without_execution(
     assert schema_count == 0
 
 
-@pytest.mark.integration
-@pytest.mark.slow
 @pytest.mark.scenario_id(
     "exasol-query-check-mode-predicts-no-action-for-comment-only-query"
 )
-def test_query_runtime_check_mode_predicts_no_action_for_comment_only_query(
-    exasol_login_vars: dict[str, object],
-) -> None:
+def test_query_runtime_check_mode_predicts_no_action_for_comment_only_query() -> None:
     """Verify check mode predicts no action for a query with no real statement.
 
     Regression test: a comment-only (or otherwise statement-less) query has no

@@ -87,12 +87,13 @@ def test_exasol_script_execute_script_body_with_slash_terminator(
           exasol.exasol.exasol_query:
             query: CREATE SCHEMA {{ test_schema }}
 
-        - name: When exasol_script runs a CREATE SCRIPT body with embedded semicolons
+        - name: When exasol_script runs a CREATE SCRIPT body followed by SELECT 1
           exasol.exasol.exasol_script:
             script: |
               CREATE SCRIPT {{ test_schema }}.DOUBLE_VALUE AS
               x = 1; y = 2
               /
+              SELECT 1 AS A;
           register: exasol_script_body
 
         - name: Store scenario result
@@ -114,8 +115,10 @@ def test_exasol_script_execute_script_body_with_slash_terminator(
     module_result = result["module_result"]
 
     assert module_result["changed"] is True
-    assert len(module_result["executed_queries"]) == 1
+    assert len(module_result["executed_queries"]) == 2
     assert "x = 1; y = 2" in module_result["executed_queries"][0]
+    assert module_result["executed_queries"][1] == "SELECT 1 AS A"
+    assert module_result["query_result"] == [{"A": 1}]
 
     script_count = catalog_count(
         context.login_vars,
@@ -167,6 +170,13 @@ def test_exasol_script_read_only_script_reports_unchanged(
     assert module_result["changed"] is False
     assert module_result["executed_queries"] == ["SELECT 1 AS A", "SELECT 2 AS B"]
     assert module_result["query_result"] == [{"B": 2}]
+    assert module_result["query_all_results"] == [[{"A": 1}], [{"B": 2}]]
+    assert module_result["rowcount"] == [1, 1]
+    assert len(module_result["execution_time_ms"]) == 2
+    assert all(
+        isinstance(value, (int, float)) and value >= 0
+        for value in module_result["execution_time_ms"]
+    )
 
 
 @pytest.mark.integration
@@ -240,7 +250,7 @@ def test_exasol_script_check_mode_read_only_script(
     playbook = """
     - name: Check mode keeps a read-only script on the execution path
       block:
-        - name: When exasol_script runs a read-only script in check mode
+        - name: When exasol_script runs SELECT 13 AS A in check mode
           exasol.exasol.exasol_script:
             script: |
               SELECT 13 AS A;
@@ -267,6 +277,11 @@ def test_exasol_script_check_mode_read_only_script(
 
     assert module_result["changed"] is False
     assert module_result["query_result"] == [{"A": 13}]
+    assert module_result["query_all_results"] == [[{"A": 13}]]
+    assert module_result["executed_queries"] == ["SELECT 13 AS A"]
+    assert module_result["rowcount"] == [1]
+    assert len(module_result["execution_time_ms"]) == 1
+    assert module_result["execution_time_ms"][0] >= 0
 
 
 @pytest.mark.integration
@@ -280,10 +295,11 @@ def test_exasol_script_check_mode_write_script(
     playbook = """
     - name: Check mode predicts a write script without executing it
       block:
-        - name: When exasol_script predicts a schema-creating script in check mode
+        - name: When exasol_script predicts a schema-creating script followed by SELECT 1
           exasol.exasol.exasol_script:
             script: |
               CREATE SCHEMA {{ check_mode_schema }};
+              SELECT 1 AS A;
           check_mode: true
           register: exasol_script_check_mode_write
 
@@ -304,7 +320,7 @@ def test_exasol_script_check_mode_write_script(
     )
 
     module_result = result["module_result"]
-    expected_script = f"CREATE SCHEMA {context.check_mode_schema};\n"
+    expected_script = f"CREATE SCHEMA {context.check_mode_schema};\nSELECT 1 AS A;\n"
 
     assert module_result["changed"] is True
     assert module_result["executed_queries"] == [expected_script]

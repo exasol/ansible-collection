@@ -4,7 +4,7 @@
 
 The Exasol Ansible Collection lets operators automate Exasol administration tasks with Ansible modules while relying on Exasol as the authoritative system for authentication and authorization.
 
-This specification covers the current and planned database-administration surface for Exasol automation, including `exasol_user`, `exasol_role`, `exasol_query`, `exasol_script`, planned grant-management and schema-management workflows, and future trusted-operator modules such as `exasol_grants` and `exasol_schema`.
+This specification covers the current and planned database-administration surface for Exasol automation, including `exasol_user`, `exasol_role`, `exasol_query`, `exasol_script`, `exasol_grants`, and `exasol_schema`, as well as future trusted-operator modules.
 
 ## Goals
 
@@ -21,7 +21,7 @@ This draft was reverse-engineered from:
 * `doc/user_guide.rst`
 * the legacy Exasol user security design note migrated into this document
 * the current `exasol_user`, `exasol_role`, and `exasol_query` module behavior
-* the planned grant-management, schema-management, and trusted-operator administration surface described in the design chapters
+* the current grant-management, schema-management, and trusted-operator administration surface described in the design chapters
 
 ## Notation
 

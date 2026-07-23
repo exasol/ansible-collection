@@ -1,9 +1,11 @@
 Feature: exasol-user specification
   Manage Exasol database users from Ansible playbooks.
 
+  Background:
+    Given an Exasol database is reachable at localhost
+
   @exasol-user-create-missing-user
   Scenario: Create missing user
-    Given an Exasol database is reachable at localhost
     And user "ALICE" does not exist in EXA_ALL_USERS
     When exasol_user runs with:
       | name  | authentication_method | password          | state   |
@@ -20,7 +22,6 @@ Feature: exasol-user specification
 
   @exasol-user-preserves-exact-identifier
   Scenario: Create user with exact identifier semantics
-    Given an Exasol database is reachable at localhost
     And exact-identifier user "Alice+/=User" does not exist in EXA_ALL_USERS
     When exasol_user runs with:
       | name             | authentication_method | password          | state   |
@@ -37,7 +38,6 @@ Feature: exasol-user specification
 
   @exasol-user-apply-unchanged
   Scenario: Applying identical user state results in no changes
-    Given an Exasol database is reachable at localhost
     And user "ALICE" already exists after exasol_user created it with password "Initial_Secret_42"
     When exasol_user runs again with:
       | name  | authentication_method | password          | state   | update_password |
@@ -48,7 +48,6 @@ Feature: exasol-user specification
 
   @exasol-user-apply-unchanged-with-different-case-spelling
   Scenario: Applying same user with different case spelling stays idempotent
-    Given an Exasol database is reachable at localhost
     And exact-identifier user "Alice+/=User" already exists after exasol_user created it with password "Initial_Secret_42"
     When exasol_user runs again with:
       | name             | authentication_method | password          | state   | update_password |
@@ -61,7 +60,6 @@ Feature: exasol-user specification
 
   @exasol-user-change-authentication-to-ldap
   Scenario: Change authentication to LDAP
-    Given an Exasol database is reachable at localhost
     And user "ALICE" exists with password authentication and password "Initial_Secret_42"
     When exasol_user runs with:
       | name  | authentication_method | ldap_dn                                      |
@@ -77,7 +75,6 @@ Feature: exasol-user specification
 
   @exasol-user-rotate-password
   Scenario: Rotate password
-    Given an Exasol database is reachable at localhost
     And user "ALICE" exists with password "Initial_Secret_42"
     When exasol_user runs with:
       | name  | password          | update_password |
@@ -94,7 +91,6 @@ Feature: exasol-user specification
 
   @exasol-user-check-mode-create
   Scenario: Check mode predicts create
-    Given an Exasol database is reachable at localhost
     And user "BOB" does not exist in EXA_ALL_USERS
     When exasol_user runs in check mode with:
       | name | authentication_method | password        | state   |
@@ -110,7 +106,6 @@ Feature: exasol-user specification
 
   @exasol-user-check-mode-update-ldap
   Scenario: Check mode predicts LDAP update
-    Given an Exasol database is reachable at localhost
     And user "ALICE" exists with password authentication and password "Initial_Secret_42"
     When exasol_user runs in check mode with:
       | name  | authentication_method | ldap_dn                                            |
@@ -125,7 +120,6 @@ Feature: exasol-user specification
 
   @exasol-user-check-mode-drop
   Scenario: Check mode predicts drop
-    Given an Exasol database is reachable at localhost
     And user "ALICE" exists with password "Initial_Secret_42"
     When exasol_user runs in check mode with:
       | name  | state  | cascade |
@@ -139,7 +133,6 @@ Feature: exasol-user specification
 
   @exasol-user-drop-existing-user
   Scenario: Drop existing user
-    Given an Exasol database is reachable at localhost
     And user "ALICE" exists with password "Initial_Secret_42"
     When exasol_user runs with:
       | name  | state  | cascade |
@@ -153,7 +146,6 @@ Feature: exasol-user specification
 
   @exasol-user-drop-missing-user
   Scenario: Drop missing user
-    Given an Exasol database is reachable at localhost
     And user "ALICE" does not exist in EXA_ALL_USERS
     When exasol_user runs with:
       | name  | state  |

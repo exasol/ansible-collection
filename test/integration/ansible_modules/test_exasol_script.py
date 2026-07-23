@@ -78,6 +78,54 @@ def test_script_runtime_executes_script_body_terminated_by_slash(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id(
+    "exasol-script-execute-multiple-script-bodies-terminated-by-slash"
+)
+# [itest -> dsn~exasol-script-execution-via-pyexasol~1]
+def test_script_runtime_executes_multiple_script_bodies_terminated_by_slash(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify pyexasol splits two standalone-slash script bodies correctly."""
+    schema_name = unique_name("ANSIBLE_PYTHON_SCRIPT_UDF_SCHEMA")
+    first_script_name = unique_name("FIRST_VALUE")
+    second_script_name = unique_name("SECOND_VALUE")
+    execute_sql(exasol_login_vars, f'CREATE SCHEMA "{schema_name}"')
+    script = (
+        f'CREATE SCRIPT "{schema_name}"."{first_script_name}" AS\n'
+        "x = 1; y = 2\n"
+        "/\n"
+        f'CREATE SCRIPT "{schema_name}"."{second_script_name}" AS\n'
+        "x = 3; y = 4\n"
+        "/\n"
+    )
+
+    result = exasol_script.run_script({**exasol_login_vars, "script": script})
+
+    first_script_count = catalog_count(
+        exasol_login_vars,
+        table="EXA_ALL_SCRIPTS",
+        column="SCRIPT_NAME",
+        object_name=first_script_name,
+        result_key="FIRST_SCRIPT_COUNT",
+    )
+    second_script_count = catalog_count(
+        exasol_login_vars,
+        table="EXA_ALL_SCRIPTS",
+        column="SCRIPT_NAME",
+        object_name=second_script_name,
+        result_key="SECOND_SCRIPT_COUNT",
+    )
+
+    assert result["changed"] is True
+    assert len(result["executed_queries"]) == 2
+    assert "x = 1; y = 2" in result["executed_queries"][0]
+    assert "x = 3; y = 4" in result["executed_queries"][1]
+    assert first_script_count == 1
+    assert second_script_count == 1
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-execute-read-only-script-against-backend")
 def test_script_runtime_executes_read_only_script_against_backend(
     exasol_login_vars: dict[str, object],
@@ -160,6 +208,35 @@ def test_script_runtime_check_mode_predicts_write_without_execution(
     """Verify script check mode predicts a write script without executing it."""
     schema_name = unique_name("ANSIBLE_PYTHON_SCRIPT_CHECK_MODE_SCHEMA")
     script = f'CREATE SCHEMA "{schema_name}";\n'
+
+    predicted_result = exasol_script.check_mode_result(script)
+    schema_count = catalog_count(
+        exasol_login_vars,
+        table="EXA_ALL_SCHEMAS",
+        column="SCHEMA_NAME",
+        object_name=schema_name,
+        result_key="SCHEMA_COUNT",
+    )
+
+    assert predicted_result is not None
+    assert predicted_result["changed"] is True
+    assert predicted_result["executed_queries"] == [script]
+    assert predicted_result["query_result"] == []
+    assert schema_count == 0
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id(
+    "exasol-script-check-mode-predicts-mixed-write-and-read-script"
+)
+# [itest -> dsn~exasol-script-execution-via-pyexasol~1]
+def test_script_runtime_check_mode_predicts_mixed_write_and_read_script(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify a mixed script is predicted as one unexecuted write script."""
+    schema_name = unique_name("ANSIBLE_PYTHON_SCRIPT_CHECK_MODE_SCHEMA")
+    script = f'CREATE SCHEMA "{schema_name}";\nSELECT 1 AS A;\n'
 
     predicted_result = exasol_script.check_mode_result(script)
     schema_count = catalog_count(

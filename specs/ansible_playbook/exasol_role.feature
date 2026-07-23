@@ -1,9 +1,11 @@
 Feature: exasol-role specification
   Manage Exasol database roles from Ansible playbooks.
 
+  Background:
+    Given an Exasol database is reachable at localhost
+
   @exasol-role-create-missing-role
   Scenario: Create missing role
-    Given an Exasol database is reachable at localhost
     And role "READER" does not exist in EXA_ALL_ROLES
     When exasol_role runs with:
       | name   | state   |
@@ -18,7 +20,6 @@ Feature: exasol-role specification
 
   @exasol-role-preserves-exact-identifier
   Scenario: Create role with exact identifier semantics
-    Given an Exasol database is reachable at localhost
     And exact-identifier role "Reader+/=Role" does not exist in EXA_ALL_ROLES
     When exasol_role runs with:
       | name          | state   |
@@ -33,7 +34,6 @@ Feature: exasol-role specification
 
   @exasol-role-present-idempotent
   Scenario: Present role is idempotent
-    Given an Exasol database is reachable at localhost
     And role "READER" already exists in EXA_ALL_ROLES
     When exasol_role runs with:
       | name   | state   |
@@ -44,7 +44,6 @@ Feature: exasol-role specification
 
   @exasol-role-present-idempotent-with-different-case-spelling
   Scenario: Present role stays idempotent across case-only spelling changes
-    Given an Exasol database is reachable at localhost
     And exact-identifier role "Reader+/=Role" already exists in EXA_ALL_ROLES
     When exasol_role runs with:
       | name              | state   |
@@ -57,7 +56,6 @@ Feature: exasol-role specification
 
   @exasol-role-check-mode-create
   Scenario: Check mode predicts create
-    Given an Exasol database is reachable at localhost
     And role "CHECK_READER" does not exist in EXA_ALL_ROLES
     When exasol_role runs in check mode with:
       | name         | state   |
@@ -71,7 +69,6 @@ Feature: exasol-role specification
 
   @exasol-role-check-mode-drop
   Scenario: Check mode predicts drop
-    Given an Exasol database is reachable at localhost
     And role "READER" exists in EXA_ALL_ROLES
     When exasol_role runs in check mode with:
       | name   | state  | cascade |
@@ -85,7 +82,6 @@ Feature: exasol-role specification
 
   @exasol-role-drop-existing-role
   Scenario: Drop existing role
-    Given an Exasol database is reachable at localhost
     And role "READER" exists in EXA_ALL_ROLES
     When exasol_role runs with:
       | name   | state  | cascade |
@@ -99,7 +95,6 @@ Feature: exasol-role specification
 
   @exasol-role-drop-missing-role
   Scenario: Drop missing role
-    Given an Exasol database is reachable at localhost
     And role "READER" does not exist in EXA_ALL_ROLES
     When exasol_role runs with:
       | name   | state  |

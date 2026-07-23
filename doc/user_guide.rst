@@ -294,7 +294,8 @@ exasol_script
 Use ``exasol.exasol.exasol_script`` to execute a multi-statement SQL script
 directly from an Ansible playbook. Unlike ``exasol_query``, ``script`` is
 always a single string, and the module relies on pyexasol's
-``execute_sql_script`` capability to split it into statements. Semicolons
+`execute_sql_script <https://exasol.github.io/pyexasol/master/user_guide/exploring_features/executing_sql_scripts.html>`_
+capability to split it into statements. Semicolons
 inside string literals, quoted identifiers, comments, and Exasol script
 bodies do not terminate statements; a script body such as a ``CREATE ...
 SCRIPT`` definition is terminated by a standalone ``/`` line instead.
@@ -325,7 +326,7 @@ SCRIPT`` definition is terminated by a standalone ``/`` line instead.
 
 If a statement fails, pyexasol raises the original error and later statements
 do not run. ``exasol_script`` does not accept ``positional_args`` or
-``named_args``; pyexasol does not support bound parameters for scripts.
+``named_args``.
 
 Check mode classifies the whole script as read-only or not, the same way
 ``exasol_query`` classifies a multi-statement batch. A script made up only of

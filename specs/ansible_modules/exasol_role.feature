@@ -2,9 +2,11 @@ Feature: exasol-role Ansible module runtime specification
   Manage Exasol database roles directly through the exasol_role Python
   runtime helpers.
 
+  Background:
+    Given an Exasol database is reachable at localhost
+
   @exasol-role-create-missing-role
   Scenario: Create a missing role
-    Given an Exasol database is reachable at localhost
     And the role does not exist
     When the role runtime runs with state present
     Then changed is true
@@ -15,7 +17,6 @@ Feature: exasol-role Ansible module runtime specification
 
   @exasol-role-leave-existing-role-unchanged
   Scenario: Leave an existing role unchanged
-    Given an Exasol database is reachable at localhost
     And the role already exists
     When the role runtime runs with state present
     Then changed is false
@@ -26,7 +27,6 @@ Feature: exasol-role Ansible module runtime specification
 
   @exasol-role-drop-existing-role
   Scenario: Drop an existing role
-    Given an Exasol database is reachable at localhost
     And the role already exists
     When the role runtime runs with state absent and cascade
     Then changed is true
@@ -37,7 +37,6 @@ Feature: exasol-role Ansible module runtime specification
 
   @exasol-role-check-mode-predicts-create-without-writing
   Scenario: Check mode predicts create without writing
-    Given an Exasol database is reachable at localhost
     And the role does not exist
     When the role runtime runs in check mode with state present
     Then changed is true
@@ -47,7 +46,6 @@ Feature: exasol-role Ansible module runtime specification
 
   @exasol-role-check-mode-predicts-no-action-when-role-exists
   Scenario: Check mode predicts no action when role exists
-    Given an Exasol database is reachable at localhost
     And the role already exists
     When the role runtime runs in check mode with state present
     Then changed is false
@@ -57,7 +55,6 @@ Feature: exasol-role Ansible module runtime specification
 
   @exasol-role-check-mode-predicts-drop-without-writing
   Scenario: Check mode predicts drop without writing
-    Given an Exasol database is reachable at localhost
     And the role already exists
     When the role runtime runs in check mode with state absent and cascade
     Then changed is true

@@ -504,24 +504,22 @@ def _new_query_rewrite_parts() -> _QueryRewriteParts:
 
 def sqlglot_tokens(query: str) -> list[_SqlglotToken]:
     """Tokenize SQL text using the shared Exasol SQLGlot dialect."""
-    sqlglot = import_sqlglot_module("sqlglot")
-    return (
-        cast(_SqlglotModule, sqlglot).Tokenizer(dialect=SQLGLOT_DIALECT).tokenize(query)
-    )
+    try:
+        from sqlglot import Tokenizer
+    except ImportError as error:
+        raise missing_sqlglot_error() from error
+
+    return cast(_SqlglotTokenizer, Tokenizer(dialect=SQLGLOT_DIALECT)).tokenize(query)
 
 
 def sqlglot_token_type() -> _SqlglotTokenType:
     """Return SQLGlot token type constants."""
-    tokens = import_sqlglot_module("sqlglot.tokens")
-    return cast(_SqlglotTokenType, getattr(tokens, "TokenType"))
-
-
-def import_sqlglot_module(name: str) -> object:
-    """Import a SQLGlot module and normalize missing-dependency failures."""
     try:
-        return __import__(name, fromlist=[""])
+        from sqlglot.tokens import TokenType
     except ImportError as error:
         raise missing_sqlglot_error() from error
+
+    return cast(_SqlglotTokenType, TokenType)
 
 
 def missing_sqlglot_error() -> RuntimeError:
@@ -572,16 +570,19 @@ def _sqlglot_parser_runtime() -> tuple[
     _SqlglotExpressionTypes,
     tuple[type[Exception], ...],
 ]:
-    sqlglot = import_sqlglot_module("sqlglot")
-    exp = getattr(sqlglot, "exp")
-    errors = import_sqlglot_module("sqlglot.errors")
+    try:
+        import sqlglot
+        from sqlglot import exp
+        from sqlglot.errors import ParseError, TokenError
+    except ImportError as error:
+        raise missing_sqlglot_error() from error
 
     return (
         cast(_SqlglotModule, sqlglot),
         cast(_SqlglotExpressionTypes, exp),
         (
-            cast(type[Exception], getattr(errors, "ParseError")),
-            cast(type[Exception], getattr(errors, "TokenError")),
+            cast(type[Exception], ParseError),
+            cast(type[Exception], TokenError),
         ),
     )
 

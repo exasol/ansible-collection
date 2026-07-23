@@ -82,6 +82,8 @@ reimplementing them. Execution defers entirely to
       execution, read-only-without-check-mode, partial-failure side effects,
       write check-mode prediction, credential sanitization, and rejection of
       unsupported bound arguments)
+- [x] Add backend acceptance coverage for two `CREATE SCRIPT` bodies in one
+      script, each terminated by a standalone `/` line
 - [x] Document the module in the user guide
 
 ### Verification

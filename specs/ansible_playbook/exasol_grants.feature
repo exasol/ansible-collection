@@ -1,9 +1,11 @@
 Feature: exasol-grants specification
   Manage Exasol database grants from Ansible playbooks.
 
+  Background:
+    Given an Exasol database is reachable at localhost
+
   @exasol-grants-grant-missing-system-privilege
   Scenario: Grant missing system privilege
-    Given an Exasol database is reachable at localhost
     And user "ALICE" exists without CREATE SESSION
     When exasol_grants runs with:
       | user  | system_privileges | state   |
@@ -18,7 +20,6 @@ Feature: exasol-grants specification
 
   @exasol-grants-system-privilege-idempotent
   Scenario: Existing system privilege is unchanged
-    Given an Exasol database is reachable at localhost
     And user "ALICE" already has CREATE SESSION
     When exasol_grants runs with:
       | user  | system_privileges | state   |
@@ -28,7 +29,6 @@ Feature: exasol-grants specification
 
   @exasol-grants-grant-multiple-system-and-object-privileges
   Scenario: Grant multiple system and object privileges
-    Given an Exasol database is reachable at localhost
     And user "ALICE" exists without CREATE SESSION
     And schema "APP_SCHEMA" contains table "FACT_SALES"
     When exasol_grants runs with multiple system and object privileges
@@ -48,7 +48,6 @@ Feature: exasol-grants specification
 
   @exasol-grants-revoke-existing-schema-object-privilege
   Scenario: Revoke existing schema object privilege
-    Given an Exasol database is reachable at localhost
     And user "ALICE" has USAGE on schema "APP_SCHEMA"
     When exasol_grants runs with:
       | user  | schema     | object_privileges | state  |
@@ -61,7 +60,6 @@ Feature: exasol-grants specification
 
   @exasol-grants-absent-schema-object-privilege-idempotent
   Scenario: Missing schema object privilege is unchanged when absent
-    Given an Exasol database is reachable at localhost
     And user "ALICE" does not have USAGE on schema "APP_SCHEMA"
     When exasol_grants runs with:
       | user  | schema     | object_privileges | state  |
@@ -71,7 +69,6 @@ Feature: exasol-grants specification
 
   @exasol-grants-check-mode-predicts-system-grant
   Scenario: Check mode predicts system grant
-    Given an Exasol database is reachable at localhost
     And user "ALICE" exists without CREATE SESSION
     When exasol_grants runs in check mode with:
       | user  | system_privileges | state   |
@@ -84,7 +81,6 @@ Feature: exasol-grants specification
 
   @exasol-grants-reject-mutually-exclusive-principals
   Scenario: Reject mutually exclusive principals
-    Given an Exasol database is reachable at localhost
     When exasol_grants runs with both user and role
     Then the module fails with a validation error
     And no privilege-changing SQL is generated
