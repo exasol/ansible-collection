@@ -53,6 +53,7 @@ EXAMPLES = r"""
     login_host: db.example.com
     login_user: "{{ vault_exasol_user }}"
     login_password: "{{ vault_exasol_password }}"
+    login_schema: reporting
     script: |
       CREATE SCHEMA IF NOT EXISTS demo;
       CREATE OR REPLACE TABLE demo.t (id DECIMAL(18,0));

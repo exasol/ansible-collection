@@ -98,7 +98,7 @@ class _QueryRewriteParts(TypedDict):
 
 DEFAULT_LOGIN_HOST = "localhost"
 DEFAULT_LOGIN_PORT = 8563
-DEFAULT_LOGIN_DB = ""
+DEFAULT_LOGIN_SCHEMA = ""
 DEFAULT_AUTOCOMMIT = True
 DEFAULT_FETCH_SIZE = 5000
 DEFAULT_COMPRESSION = False
@@ -108,7 +108,7 @@ REDACTED = "********"
 CONNECTION_DEFAULTS: dict[str, object] = {
     "login_host": DEFAULT_LOGIN_HOST,
     "login_port": DEFAULT_LOGIN_PORT,
-    "login_db": DEFAULT_LOGIN_DB,
+    "login_schema": DEFAULT_LOGIN_SCHEMA,
     "autocommit": DEFAULT_AUTOCOMMIT,
     "fetch_size": DEFAULT_FETCH_SIZE,
     "compression": DEFAULT_COMPRESSION,
@@ -165,10 +165,10 @@ def exasol_connection_argument_spec() -> AnsibleArgumentSpec:
         "login_port": {"type": "int", "default": DEFAULT_LOGIN_PORT},
         "login_user": {"type": "str", "required": True},
         "login_password": {"type": "str", "no_log": True},
-        "login_db": {
+        "login_schema": {
             "type": "str",
-            "default": DEFAULT_LOGIN_DB,
-            "aliases": ["login_schema"],
+            "default": DEFAULT_LOGIN_SCHEMA,
+            "aliases": ["login_db"],
         },
         "autocommit": {"type": "bool", "default": DEFAULT_AUTOCOMMIT},
         "fetch_size": {"type": "int", "default": DEFAULT_FETCH_SIZE},
@@ -190,10 +190,10 @@ def connection_parameters_with_defaults(
         if name in params:
             resolved[name] = params[name]
 
-    # Keep the familiar Ansible database-module option name even though Exasol
-    # opens schemas rather than per-connection databases.
-    if "login_schema" in params and "login_db" not in params:
-        resolved["login_db"] = params["login_schema"]
+    # Ansible resolves an explicitly supplied alias after its canonical option.
+    # Keep direct runtime calls consistent with that deterministic precedence.
+    if "login_db" in params:
+        resolved["login_schema"] = params["login_db"]
 
     for name in OPTIONAL_CONNECTION_PARAMETERS:
         if name in params:
@@ -220,6 +220,7 @@ def build_exasol_dsn(params: Mapping[str, object]) -> str:
 # [impl -> dsn~encrypt-exasol-connections-by-default~2]
 # [impl -> dsn~encrypted-transport-by-default~2]
 # [impl -> dsn~centralize-connection-parameter-mapping-and-secret-sanitization~1]
+# [impl -> dsn~canonical-schema-connection-parameter~1]
 def build_exasol_connect_kwargs(params: Mapping[str, object]) -> dict[str, object]:
     """Map connection parameters to pyexasol.connect keyword arguments."""
     resolved = connection_parameters_with_defaults(params)
@@ -230,7 +231,7 @@ def build_exasol_connect_kwargs(params: Mapping[str, object]) -> dict[str, objec
         "dsn": build_exasol_dsn(resolved),
         "user": resolved.get("login_user"),
         "password": resolved.get("login_password"),
-        "schema": resolved.get("login_db") or "",
+        "schema": resolved.get("login_schema") or "",
         "autocommit": resolved["autocommit"],
         "fetch_size_bytes": resolved["fetch_size"],
         "compression": resolved["compression"],
