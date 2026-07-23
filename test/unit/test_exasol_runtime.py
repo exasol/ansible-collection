@@ -356,32 +356,43 @@ def test_prepare_query_rejects_extra_named_argument() -> None:
     assert "remove the extra named_args entries" in message
 
 
-def test_is_read_only_query_classifies_common_sql_statements() -> None:
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        pytest.param(
+            " \n -- comment\n /* block */ SELECT 1", True, id="select-with-comments"
+        ),
+        # pyexasol's real statement splitter treats a lone ";" or pure whitespace
+        # as zero statements (`split_sql_script("  ;") == []`), so there is
+        # nothing to change and both are read-only.
+        pytest.param("  ;", True, id="semicolon-only"),
+        pytest.param("  ", True, id="whitespace-only"),
+        pytest.param("VALUES 1", True, id="values"),
+        pytest.param("SHOW TABLES", True, id="show"),
+        pytest.param("EXPLAIN SELECT 1", True, id="explain"),
+        pytest.param("DESCRIBE TABLE T", True, id="describe"),
+        pytest.param("DESC TABLE T", False, id="unsupported-desc-alias"),
+        pytest.param(
+            "WITH q AS (SELECT 1) SELECT * FROM q", True, id="common-table-expression"
+        ),
+        pytest.param("SELECT 1 INTO T", False, id="select-into"),
+        pytest.param(
+            "WITH q AS (SELECT 1) INSERT INTO T SELECT * FROM q",
+            False,
+            id="common-table-expression-insert",
+        ),
+        pytest.param("GRANT SELECT ON T TO U", False, id="grant"),
+        pytest.param("INSERT INTO T VALUES 1", False, id="insert"),
+        pytest.param("TRUNCATE TABLE T", False, id="truncate"),
+        pytest.param("CALL F()", False, id="call"),
+    ],
+)
+def test_is_read_only_query_classifies_common_sql_statements(
+    query: str,
+    expected: bool,
+) -> None:
     """Verify read-only detection handles common Exasol SQL statement types."""
-    assert (
-        exasol_query.is_read_only_query(" \n -- comment\n /* block */ SELECT 1") is True
-    )
-    assert exasol_query.is_read_only_query("  ;") is False
-    assert exasol_query.is_read_only_query("  ") is False
-    assert exasol_query.is_read_only_query("VALUES 1") is True
-    assert exasol_query.is_read_only_query("SHOW TABLES") is True
-    assert exasol_query.is_read_only_query("EXPLAIN SELECT 1") is True
-    assert exasol_query.is_read_only_query("DESCRIBE TABLE T") is True
-    assert exasol_query.is_read_only_query("DESC TABLE T") is False
-    assert (
-        exasol_query.is_read_only_query("WITH q AS (SELECT 1) SELECT * FROM q") is True
-    )
-    assert exasol_query.is_read_only_query("SELECT 1 INTO T") is False
-    assert (
-        exasol_query.is_read_only_query(
-            "WITH q AS (SELECT 1) INSERT INTO T SELECT * FROM q"
-        )
-        is False
-    )
-    assert exasol_query.is_read_only_query("GRANT SELECT ON T TO U") is False
-    assert exasol_query.is_read_only_query("INSERT INTO T VALUES 1") is False
-    assert exasol_query.is_read_only_query("TRUNCATE TABLE T") is False
-    assert exasol_query.is_read_only_query("CALL F()") is False
+    assert exasol_query.is_read_only_query(query) is expected
 
 
 def test_is_read_only_query_parse_error_fallback_is_conservative_for_select(
@@ -397,7 +408,7 @@ def test_is_read_only_query_parse_error_fallback_is_conservative_for_select(
             raise ParserFailure()
 
     monkeypatch.setattr(
-        exasol_query,
+        common_query,
         "_sqlglot_parser_runtime",
         lambda: (Parser(), object(), (ParserFailure,)),
     )

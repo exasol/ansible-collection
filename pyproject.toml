@@ -19,7 +19,7 @@ classifiers = [
 ]
 # [impl -> dsn~limit-the-runtime-dependency-set~1]
 dependencies = [
-    "pyexasol",
+    "pyexasol>=2.3.0",
     "sqlglot>=30.11.0",
 ]
 

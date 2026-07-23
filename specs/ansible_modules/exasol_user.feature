@@ -2,9 +2,11 @@ Feature: exasol-user Ansible module runtime specification
   Manage Exasol database users directly through the exasol_user Python
   runtime helpers.
 
+  Background:
+    Given an Exasol database is reachable at localhost
+
   @exasol-user-create-missing-user
   Scenario: Create a missing user
-    Given an Exasol database is reachable at localhost
     And the user does not exist
     When the user runtime runs with state present and a password
     Then changed is true
@@ -15,7 +17,6 @@ Feature: exasol-user Ansible module runtime specification
 
   @exasol-user-leave-existing-user-unchanged
   Scenario: Leave an existing user unchanged
-    Given an Exasol database is reachable at localhost
     And the user already exists with a password
     When the user runtime runs again with the same password and update_password on_create
     Then changed is false
@@ -26,7 +27,6 @@ Feature: exasol-user Ansible module runtime specification
 
   @exasol-user-update-existing-user-password
   Scenario: Update an existing user's password
-    Given an Exasol database is reachable at localhost
     And the user already exists with a password and a session grant
     When the user runtime runs with a rotated password and update_password always
     Then changed is true
@@ -37,7 +37,6 @@ Feature: exasol-user Ansible module runtime specification
 
   @exasol-user-drop-existing-user
   Scenario: Drop an existing user
-    Given an Exasol database is reachable at localhost
     And the user already exists with a password
     When the user runtime runs with state absent and cascade
     Then changed is true
@@ -48,7 +47,6 @@ Feature: exasol-user Ansible module runtime specification
 
   @exasol-user-check-mode-predicts-create-without-writing
   Scenario: Check mode predicts create without writing
-    Given an Exasol database is reachable at localhost
     And the user does not exist
     When the user runtime runs in check mode with state present and a password
     Then changed is true
@@ -58,7 +56,6 @@ Feature: exasol-user Ansible module runtime specification
 
   @exasol-user-check-mode-predicts-no-change-when-user-exists
   Scenario: Check mode predicts no change when user exists
-    Given an Exasol database is reachable at localhost
     And the user already exists with a password and a session grant
     When the user runtime runs in check mode with state present and no password update
     Then changed is false
@@ -68,7 +65,6 @@ Feature: exasol-user Ansible module runtime specification
 
   @exasol-user-check-mode-predicts-password-update-without-writing
   Scenario: Check mode predicts password update without writing
-    Given an Exasol database is reachable at localhost
     And the user already exists with a password and a session grant
     When the user runtime runs in check mode with a rotated password and update_password always
     Then changed is true
@@ -78,7 +74,6 @@ Feature: exasol-user Ansible module runtime specification
 
   @exasol-user-check-mode-predicts-drop-without-writing
   Scenario: Check mode predicts drop without writing
-    Given an Exasol database is reachable at localhost
     And the user already exists with a password
     When the user runtime runs in check mode with state absent and cascade
     Then changed is true

@@ -35,6 +35,22 @@ Covers:
 
 Needs: impl, utest, itest
 
+### Exasol Script Execution Via Pyexasol
+`dsn~exasol-script-execution-via-pyexasol~1`
+
+**Given** an Ansible Operator supplies a multi-statement SQL script to `exasol_script`
+**When** the runtime executes it through `ExaConnection.execute_sql_script`
+**Then** pyexasol splits and executes the statements in order, including script bodies terminated by a standalone `/` line
+**And** the runtime derives `changed` and `executed_queries` from the returned statements without a second, in-collection SQL-script parser
+**And** check mode classifies the whole script as read-only or not, using the same heuristic as `exasol_query`, instead of executing it
+
+Status: draft
+
+Covers:
+- `scn~exasol-script-executes-multi-statement-scripts~1`
+
+Needs: impl, utest, itest
+
 ## Physical Schema Lifecycle Planning
 
 ### Intrinsic Schema Property Reconciliation

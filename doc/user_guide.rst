@@ -288,6 +288,64 @@ in query text. Use the bound arguments described above for a single statement.
          - CREATE SCHEMA demo_check_mode
      check_mode: true
 
+exasol_script
+-------------
+
+Use ``exasol.exasol.exasol_script`` to execute a multi-statement SQL script
+directly from an Ansible playbook. Unlike ``exasol_query``, ``script`` is
+always a single string, and the module relies on pyexasol's
+`execute_sql_script <https://exasol.github.io/pyexasol/master/user_guide/exploring_features/executing_sql_scripts.html>`_
+capability to split it into statements. Semicolons
+inside string literals, quoted identifiers, comments, and Exasol script
+bodies do not terminate statements; a script body such as a ``CREATE ...
+SCRIPT`` definition is terminated by a standalone ``/`` line instead.
+
+.. code-block:: yaml
+
+   - name: Run a batch of statements as one script
+     exasol.exasol.exasol_script:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_user }}"
+       login_password: "{{ vault_exasol_password }}"
+       script: |
+         CREATE SCHEMA IF NOT EXISTS demo;
+         CREATE OR REPLACE TABLE demo.t (id DECIMAL(18,0));
+         INSERT INTO demo.t VALUES (1);
+
+   - name: Create a script whose body contains semicolons
+     exasol.exasol.exasol_script:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_user }}"
+       login_password: "{{ vault_exasol_password }}"
+       script: |
+         CREATE SCRIPT demo.double_value(x) AS
+         function run(ctx)
+             local x = ctx.x; return x * 2
+         end
+         /
+
+If a statement fails, pyexasol raises the original error and later statements
+do not run. ``exasol_script`` does not accept ``positional_args`` or
+``named_args``.
+
+Check mode classifies the whole script as read-only or not, the same way
+``exasol_query`` classifies a multi-statement batch. A script made up only of
+read-only statements executes normally and reports ``changed=false``. Any
+other script is skipped, and the module reports ``changed=true`` with the
+whole supplied script as a single predicted entry in ``executed_queries``,
+rather than the real per-statement breakdown that execution produces.
+
+.. code-block:: yaml
+
+   - name: Preview a script that would create a schema
+     exasol.exasol.exasol_script:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_user }}"
+       login_password: "{{ vault_exasol_password }}"
+       script: |
+         CREATE SCHEMA demo_check_mode;
+     check_mode: true
+
 exasol_info
 -----------
 `uman~document-public-module-workflows~1`
