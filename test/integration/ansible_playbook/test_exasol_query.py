@@ -202,6 +202,39 @@ def test_exasol_query_prefers_login_db_when_both_schema_parameters_are_set(
     )
 
 
+# [itest -> dsn~canonical-schema-connection-parameter~1]
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-login-schema-same-value-warning")
+def test_exasol_query_warns_when_both_schema_parameters_have_the_same_value(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Verify Ansible warns even when the canonical option and alias agree."""
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    schema_name = f"{context.test_schema}_SHARED"
+    _create_schema(exasol_login_vars, schema_name)
+    playbook = _schema_selection_playbook(
+        'login_schema: "{{ selected_schema }}"\n'
+        '            login_db: "{{ selected_schema }}"'
+    )
+
+    result = when_module_scenario_runs(
+        context,
+        MODULE_NAME,
+        scenario_id,
+        scenario_playbook=playbook,
+        extra_vars={"selected_schema": schema_name},
+    )
+
+    _assert_selected_schema(
+        result["module_result"],
+        schema_name,
+        warnings=["Both option login_schema and its alias login_db are set."],
+    )
+
+
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-batch-statements")
