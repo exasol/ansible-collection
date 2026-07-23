@@ -21,6 +21,24 @@ Feature: exasol-query specification
       | sql            |
       | SELECT 11 AS A |
 
+  @exasol-query-login-schema-canonical
+  Scenario: Select a connection schema with login_schema
+    Given a schema exists for the connection
+    When exasol_query runs with login_schema set to that schema
+    Then the query runs with that schema selected
+
+  @exasol-query-login-db-deprecated-alias
+  Scenario: Select a connection schema with deprecated login_db
+    Given a schema exists for the connection
+    When exasol_query runs with login_db set to that schema
+    Then the query runs with that schema selected
+
+  @exasol-query-login-schema-legacy-precedence
+  Scenario: Prefer login_db when both schema parameters are supplied
+    Given two schemas exist for the connection
+    When exasol_query runs with login_schema and login_db set to different schemas
+    Then the query runs with the login_db schema selected
+
   @exasol-query-batch-statements
   Scenario: Execute statement batch on one connection
     And a schema does not exist

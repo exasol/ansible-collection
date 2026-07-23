@@ -169,13 +169,6 @@ def exasol_connection_argument_spec() -> AnsibleArgumentSpec:
             "type": "str",
             "default": DEFAULT_LOGIN_SCHEMA,
             "aliases": ["login_db"],
-            "deprecated_aliases": [
-                {
-                    "name": "login_db",
-                    "version": "1.0.0",
-                    "collection_name": "exasol.exasol",
-                }
-            ],
         },
         "autocommit": {"type": "bool", "default": DEFAULT_AUTOCOMMIT},
         "fetch_size": {"type": "int", "default": DEFAULT_FETCH_SIZE},

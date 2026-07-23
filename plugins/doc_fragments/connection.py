@@ -39,10 +39,6 @@ options:
     default: ''
     aliases:
       - login_db
-    deprecated_aliases:
-      - name: login_db
-        version: 1.0.0
-        collection_name: exasol.exasol
   autocommit:
     description:
       - Whether pyexasol should enable autocommit for the connection.

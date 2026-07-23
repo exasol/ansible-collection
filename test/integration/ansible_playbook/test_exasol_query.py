@@ -112,6 +112,92 @@ def test_exasol_query_single_select(
     )
 
 
+# [itest -> dsn~canonical-schema-connection-parameter~1]
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-login-schema-canonical")
+def test_exasol_query_selects_schema_with_login_schema(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Verify the canonical connection option selects the requested schema."""
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    schema_name = f"{context.test_schema}_CANONICAL"
+    _create_schema(exasol_login_vars, schema_name)
+    playbook = _schema_selection_playbook('login_schema: "{{ selected_schema }}"')
+
+    result = when_module_scenario_runs(
+        context,
+        MODULE_NAME,
+        scenario_id,
+        scenario_playbook=playbook,
+        extra_vars={"selected_schema": schema_name},
+    )
+
+    _assert_selected_schema(result["module_result"], schema_name)
+
+
+# [itest -> dsn~canonical-schema-connection-parameter~1]
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-login-db-deprecated-alias")
+def test_exasol_query_selects_schema_with_login_db_alias(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Verify the deprecated alias still selects the requested schema."""
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    schema_name = f"{context.test_schema}_LEGACY"
+    _create_schema(exasol_login_vars, schema_name)
+    playbook = _schema_selection_playbook('login_db: "{{ selected_schema }}"')
+
+    result = when_module_scenario_runs(
+        context,
+        MODULE_NAME,
+        scenario_id,
+        scenario_playbook=playbook,
+        extra_vars={"selected_schema": schema_name},
+    )
+
+    _assert_selected_schema(result["module_result"], schema_name)
+
+
+# [itest -> dsn~canonical-schema-connection-parameter~1]
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-query-login-schema-legacy-precedence")
+def test_exasol_query_prefers_login_db_when_both_schema_parameters_are_set(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Verify the documented legacy-alias precedence through an Ansible playbook."""
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    canonical_schema = f"{context.test_schema}_CANONICAL"
+    legacy_schema = f"{context.test_schema}_LEGACY"
+    _create_schema(exasol_login_vars, canonical_schema)
+    _create_schema(exasol_login_vars, legacy_schema)
+    playbook = _schema_selection_playbook(
+        'login_schema: "{{ canonical_schema }}"\n'
+        '            login_db: "{{ legacy_schema }}"'
+    )
+
+    result = when_module_scenario_runs(
+        context,
+        MODULE_NAME,
+        scenario_id,
+        scenario_playbook=playbook,
+        extra_vars={
+            "canonical_schema": canonical_schema,
+            "legacy_schema": legacy_schema,
+        },
+    )
+
+    _assert_selected_schema(result["module_result"], legacy_schema)
+
+
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-batch-statements")
@@ -579,6 +665,43 @@ def _without_dynamic_metadata(result: dict[str, Any]) -> dict[str, Any]:
         for key, value in result.items()
         if key not in {"rowcount", "execution_time_ms"}
     }
+
+
+def _schema_selection_playbook(connection_option: str) -> str:
+    return f"""
+    - name: Select a connection schema
+      block:
+        - name: When exasol_query runs with the connection schema option
+          exasol.exasol.exasol_query:
+            {connection_option}
+            query: SELECT CURRENT_SCHEMA AS SCHEMA_NAME
+          register: exasol_query_schema_selection
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{{{ acceptance_scenario_id }}}}"
+              module_result: "{{{{ exasol_query_schema_selection }}}}"
+            cacheable: true
+    """
+
+
+def _create_schema(login_vars: dict[str, object], schema_name: str) -> None:
+    connection = connect_to_exasol(login_vars)
+    try:
+        connection.execute(f"CREATE SCHEMA {quote_identifier(schema_name)}")
+    finally:
+        connection.close()
+
+
+def _assert_selected_schema(result: dict[str, Any], schema_name: str) -> None:
+    _assert_query_module_result(
+        result,
+        changed=False,
+        query_result=[{"SCHEMA_NAME": schema_name}],
+        query_all_results=[[{"SCHEMA_NAME": schema_name}]],
+        executed_queries=["SELECT CURRENT_SCHEMA AS SCHEMA_NAME"],
+    )
 
 
 def _assert_query_module_result(

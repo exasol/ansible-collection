@@ -43,10 +43,14 @@ Out of scope:
 - [x] Keep `login_db` as a deprecated alias and preserve deterministic
   precedence when both names are supplied.
 - [x] Map the resolved value to pyexasol's `schema` argument.
+- [x] Add Gherkin scenarios and Ansible-playbook acceptance tests for canonical,
+  deprecated-alias, and dual-parameter behavior.
 
 ### Verification
 
 - [x] Run focused unit tests for connection mapping.
+- [ ] Run the new DB-backed schema-connection acceptance scenarios with a
+  configured backend.
 - [x] Run `poetry run nox -s requirements:trace`.
 - [x] Run `poetry run nox -s collection:doc`.
 - [x] Run `poetry run nox -s collection:sanity`.

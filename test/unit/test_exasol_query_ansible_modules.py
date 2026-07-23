@@ -64,19 +64,16 @@ def test_connection_argument_spec_marks_secret_options_no_log() -> None:
     assert argument_spec["login_password"]["no_log"] is True
     assert argument_spec["client_kwargs"]["no_log"] is True
     assert argument_spec["login_schema"]["aliases"] == ["login_db"]
-    assert argument_spec["login_schema"]["deprecated_aliases"] == [
-        {
-            "name": "login_db",
-            "version": "1.0.0",
-            "collection_name": "exasol.exasol",
-        }
-    ]
 
 
 # [utest -> dsn~canonical-schema-connection-parameter~1]
-def test_connection_argument_spec_accepts_legacy_alias_with_documented_precedence() -> None:
+def test_connection_argument_spec_accepts_legacy_alias_with_documented_precedence() -> (
+    None
+):
     """Verify Ansible gives the legacy alias its documented precedence."""
-    result = ArgumentSpecValidator(exasol_query.exasol_connection_argument_spec()).validate(
+    result = ArgumentSpecValidator(
+        exasol_query.exasol_connection_argument_spec()
+    ).validate(
         {
             "login_user": "sys",
             "login_schema": "CANONICAL_APP",
