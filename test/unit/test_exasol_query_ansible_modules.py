@@ -9,6 +9,7 @@ from decimal import Decimal
 from typing import Any
 
 import pytest
+from ansible.module_utils.common.arg_spec import ArgumentSpecValidator
 
 from exasol.ansible_modules import exasol_query
 
@@ -62,7 +63,29 @@ def test_connection_argument_spec_marks_secret_options_no_log() -> None:
 
     assert argument_spec["login_password"]["no_log"] is True
     assert argument_spec["client_kwargs"]["no_log"] is True
-    assert argument_spec["login_db"]["aliases"] == ["login_schema"]
+    assert argument_spec["login_schema"]["aliases"] == ["login_db"]
+    assert argument_spec["login_schema"]["deprecated_aliases"] == [
+        {
+            "name": "login_db",
+            "version": "1.0.0",
+            "collection_name": "exasol.exasol",
+        }
+    ]
+
+
+# [utest -> dsn~canonical-schema-connection-parameter~1]
+def test_connection_argument_spec_accepts_legacy_alias_with_documented_precedence() -> None:
+    """Verify Ansible gives the legacy alias its documented precedence."""
+    result = ArgumentSpecValidator(exasol_query.exasol_connection_argument_spec()).validate(
+        {
+            "login_user": "sys",
+            "login_schema": "CANONICAL_APP",
+            "login_db": "LEGACY_APP",
+        }
+    )
+
+    assert result.error_messages == []
+    assert result.validated_parameters["login_schema"] == "LEGACY_APP"
 
 
 def test_module_argument_spec_includes_query_specific_options() -> None:
@@ -96,7 +119,7 @@ def test_build_connect_kwargs_maps_design_doc_parameters_to_pyexasol() -> None:
             "login_port": 8564,
             "login_user": "sys",
             "login_password": "secret",
-            "login_db": "APP",
+            "login_schema": "APP",
             "autocommit": False,
             "fetch_size": 8192,
             "compression": True,
@@ -127,6 +150,33 @@ def test_build_connect_kwargs_maps_design_doc_parameters_to_pyexasol() -> None:
         },
         "client_name": "ansible-test",
     }
+
+
+# [utest -> dsn~canonical-schema-connection-parameter~1]
+def test_build_connect_kwargs_accepts_deprecated_login_db_alias() -> None:
+    """Verify login_db remains a compatible alias for login_schema."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_db": "LEGACY_APP",
+        }
+    )
+
+    assert kwargs["schema"] == "LEGACY_APP"
+
+
+# [utest -> dsn~canonical-schema-connection-parameter~1]
+def test_build_connect_kwargs_prefers_login_db_when_both_schema_names_are_set() -> None:
+    """Verify the documented compatibility precedence for both schema options."""
+    kwargs = exasol_query.build_exasol_connect_kwargs(
+        {
+            "login_user": "sys",
+            "login_schema": "CANONICAL_APP",
+            "login_db": "LEGACY_APP",
+        }
+    )
+
+    assert kwargs["schema"] == "LEGACY_APP"
 
 
 def test_build_connect_kwargs_applies_design_doc_defaults() -> None:

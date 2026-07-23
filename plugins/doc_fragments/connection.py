@@ -28,16 +28,21 @@ options:
       - Password used to authenticate with Exasol.
       - This sensitive option is protected with C(no_log=True).
     type: str
-  login_db:
+  login_schema:
     description:
       - Schema to open after connecting to Exasol.
       - This value is mapped to the pyexasol C(schema) connection argument.
-      - This collection keeps the familiar Ansible database-module option name
-        even though Exasol has schemas rather than per-connection databases.
+      - This is the canonical schema connection parameter.
+      - When both this option and the deprecated O(login_db) alias are supplied,
+        O(login_db) takes precedence for backward compatibility.
     type: str
     default: ''
     aliases:
-      - login_schema
+      - login_db
+    deprecated_aliases:
+      - name: login_db
+        version: 1.0.0
+        collection_name: exasol.exasol
   autocommit:
     description:
       - Whether pyexasol should enable autocommit for the connection.

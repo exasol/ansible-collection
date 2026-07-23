@@ -4,6 +4,8 @@
 
 * Improved end-user and embedded module documentation for all public modules.
 * Implemented exasol_script module
+* Made `login_schema` the canonical Exasol connection schema parameter; the
+  deprecated `login_db` alias remains compatible.
 
 ## Documentation
 

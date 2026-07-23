@@ -36,7 +36,7 @@
         login_port: 8564
         login_user: sys
         login_password: secret
-        login_db: APP
+        login_schema: APP
         script: SELECT MOCK_CONNECTION_KWARGS
       environment: "{{ exasol_script_mock_environment }}"
       register: exasol_script_connection
