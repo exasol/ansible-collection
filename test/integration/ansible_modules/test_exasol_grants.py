@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 from ansible_modules.common_helpers import (
     execute_sql,
-    row_int,
     unique_name,
 )
 
@@ -1071,7 +1070,14 @@ def _metadata_count(login_vars: dict[str, object], query: str) -> int:
     ) as connection:
         rows = connection.execute(query).fetchall()
 
-    return row_int(rows[0], "PRIVILEGE_COUNT")
+    return _row_int(rows[0], "PRIVILEGE_COUNT")
+
+
+def _row_int(row: object, key: str) -> int:
+    if isinstance(row, dict):
+        return int(row[key])
+
+    return int(row[0])  # type: ignore[index]
 
 
 def _quote_sql_literal(value: str) -> str:
