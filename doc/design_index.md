@@ -24,7 +24,9 @@ design/security_considerations
 design/architecture_decisions
 design/quality_requirements
 design/risks_and_technical_debt
-design/glossary
+design/domain/entity_model_relationship
+design/domain/use_cases
+design/domain/glossary
 design/open_issues
 ```
 
@@ -76,9 +78,18 @@ See [Quality Requirements](design/quality_requirements.md).
 
 See [Risks and Technical Debt](design/risks_and_technical_debt.md).
 
+### Domain Model
+
+The entity model, aggregate boundaries, and per-use-case EventStorming
+diagrams derived from the Gherkin scenarios in `specs/ansible_modules` and
+`specs/ansible_playbook`. See [Entity Model
+Relationship](design/domain/entity_model_relationship.md) and the [Use Case
+EventStorming Diagrams](design/domain/use_cases.md).
+
 ### Glossary
 
-See [Glossary](design/glossary.md).
+See the [Glossary](design/domain/glossary.md) for terms used across this
+design document and the Gherkin acceptance scenarios.
 
 ### Open Issues
 

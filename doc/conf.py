@@ -11,8 +11,14 @@ author = "Exasol"
 
 extensions = [
     "myst_parser",
+    "sphinxcontrib.mermaid",
     "exasol.toolbox.sphinx.multiversion",
 ]
+
+# Route ```mermaid fenced code blocks to sphinxcontrib-mermaid's `mermaid`
+# directive instead of treating them as a literal code block that needs a
+# (nonexistent) "mermaid" Pygments lexer.
+myst_fence_as_directive = ["mermaid"]
 
 source_suffix = {
     ".rst": "restructuredtext",
