@@ -85,12 +85,13 @@ Needs: impl, utest
 ### Authorization State Reconciliation
 `dsn~authorization-state-reconciliation~1`
 
-The collection reads current Exasol metadata before planning user, role, or grant lifecycle SQL and emits statements only when the requested security-relevant state differs from the current state. Password changes are an explicit exception: when `update_password=always`, the collection must still plan `ALTER USER` for existing users because Exasol does not expose the current password for comparison.
+The collection reads current Exasol metadata before planning user, role, or grant lifecycle SQL and emits statements only when the requested security-relevant state differs from the current state. For role memberships, it compares `EXA_DBA_ROLE_PRIVS.GRANTEE`, `GRANTED_ROLE`, and `ADMIN_OPTION` before planning `GRANT <role> TO <principal>` or `REVOKE <role> FROM <principal>`. Password changes are an explicit exception: when `update_password=always`, the collection must still plan `ALTER USER` for existing users because Exasol does not expose the current password for comparison.
 
 Status: draft
 
 Covers:
 - `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
+- `scn~role-membership-grants-are-reconciled~1`
 
 Needs: impl, utest, itest
 

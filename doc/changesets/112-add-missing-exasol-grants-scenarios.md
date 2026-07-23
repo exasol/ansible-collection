@@ -23,6 +23,11 @@ grant-management design items:
 * `dsn~derive-changed-from-planned-sql~1`
 * `dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1`
 
+The system requirements add `scn~role-membership-grants-are-reconciled~1` for
+membership state and `WITH ADMIN OPTION`. The cross-cutting and authorization
+design chapters define the metadata comparison and resulting `GRANT`/`REVOKE`
+planning behavior.
+
 Role-membership idempotency is checked through `EXA_DBA_ROLE_PRIVS` using the
 documented `GRANTEE`, `GRANTED_ROLE`, and `ADMIN_OPTION` columns.
 System-privilege idempotency uses `EXA_DBA_SYS_PRIVS` including
@@ -32,6 +37,7 @@ for system privileges and role memberships, and can be overridden on individual
 
 ## Tasks
 
+- [x] Add the role-membership acceptance scenario and its design coverage.
 - [x] Add `roles` to the grants runtime and Ansible argument spec.
 - [x] Plan role membership grants and revokes from `EXA_DBA_ROLE_PRIVS`.
 - [x] Add unit coverage for role membership grant, idempotency, revoke, and

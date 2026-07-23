@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 from ansible_modules.common_helpers import (
     execute_sql,
-    row_int,
     unique_name,
 )
 
@@ -677,21 +676,6 @@ def test_grants_runtime_idempotent_with_different_case_spelling(
 
 @pytest.mark.integration
 @pytest.mark.slow
-@pytest.mark.scenario_id("exasol-grants-insufficient-privilege-sanitized-error")
-def test_grants_runtime_insufficient_privilege_error_is_sanitized() -> None:
-    """Verify authorization failures are normalized without leaking secrets."""
-    message = exasol_grants.normalized_exasol_error_message(
-        RuntimeError("pyexasol.ExaError: insufficient privileges near token Secret123"),
-        params={"login_password": "Secret123"},
-    )
-
-    assert message.startswith("Exasol grant management failed:")
-    assert "Secret123" not in message
-    assert "Traceback" not in message
-
-
-@pytest.mark.integration
-@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-system-privilege-with-admin-option")
 def test_grants_runtime_grants_system_privilege_with_admin_option(
     exasol_login_vars: dict[str, object],
@@ -1086,7 +1070,14 @@ def _metadata_count(login_vars: dict[str, object], query: str) -> int:
     ) as connection:
         rows = connection.execute(query).fetchall()
 
-    return row_int(rows[0], "PRIVILEGE_COUNT")
+    return _row_int(rows[0], "PRIVILEGE_COUNT")
+
+
+def _row_int(row: object, key: str) -> int:
+    if isinstance(row, dict):
+        return int(row[key])
+
+    return int(row[0])  # type: ignore[index]
 
 
 def _quote_sql_literal(value: str) -> str:

@@ -479,6 +479,236 @@ def test_exasol_grants_reject_mutually_exclusive_principals(
     assert "executed_queries" not in module_result
 
 
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-grants-grant-role-membership-to-user")
+def test_exasol_grants_grants_role_membership_to_user(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Scenario: Grant role membership to a user."""
+    context, result = _run_role_membership_scenario(
+        ansible_runner_workspace,
+        exasol_login_vars,
+        scenario_id,
+        state="present",
+    )
+
+    _assert_grants_module_result(
+        result["module_result"],
+        changed=True,
+        principal=context.test_user,
+        principal_type="user",
+        state="present",
+        executed_queries=[_grant_role_query(context.test_role, context.test_user)],
+    )
+    assert (
+        _role_membership_count(
+            context.login_vars,
+            grantee=context.test_user,
+            granted_role=context.test_role,
+        )
+        == 1
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-grants-role-membership-idempotent")
+def test_exasol_grants_existing_role_membership_is_unchanged(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Scenario: Existing role membership is unchanged."""
+    context, result = _run_role_membership_scenario(
+        ansible_runner_workspace,
+        exasol_login_vars,
+        scenario_id,
+        state="present",
+        existing=True,
+    )
+
+    _assert_grants_module_result(
+        result["module_result"],
+        changed=False,
+        principal=context.test_user,
+        principal_type="user",
+        state="present",
+        executed_queries=[],
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-grants-revoke-role-membership")
+def test_exasol_grants_revokes_role_membership(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Scenario: Revoke existing role membership."""
+    context, result = _run_role_membership_scenario(
+        ansible_runner_workspace,
+        exasol_login_vars,
+        scenario_id,
+        state="absent",
+        existing=True,
+    )
+
+    _assert_grants_module_result(
+        result["module_result"],
+        changed=True,
+        principal=context.test_user,
+        principal_type="user",
+        state="absent",
+        executed_queries=[_revoke_role_query(context.test_role, context.test_user)],
+    )
+    assert (
+        _role_membership_count(
+            context.login_vars,
+            grantee=context.test_user,
+            granted_role=context.test_role,
+        )
+        == 0
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-grants-check-mode-role-membership")
+def test_exasol_grants_check_mode_predicts_role_membership(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Scenario: Check mode predicts role membership grant."""
+    context, result = _run_role_membership_scenario(
+        ansible_runner_workspace,
+        exasol_login_vars,
+        scenario_id,
+        state="present",
+        check_mode=True,
+    )
+
+    _assert_grants_module_result(
+        result["module_result"],
+        changed=True,
+        principal=context.test_user,
+        principal_type="user",
+        state="present",
+        executed_queries=[_grant_role_query(context.test_role, context.test_user)],
+    )
+    assert (
+        _role_membership_count(
+            context.login_vars,
+            grantee=context.test_user,
+            granted_role=context.test_role,
+        )
+        == 0
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-grants-insufficient-privilege-sanitized-error")
+def test_exasol_grants_sanitizes_insufficient_privilege_error(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Scenario: Insufficient-privilege failure surfaces a sanitized error."""
+    playbook = """
+    - name: Surface an authorization failure safely
+      block:
+        - name: Given an Exasol user can connect and read grant metadata
+          exasol.exasol.exasol_user:
+            name: "{{ test_user }}"
+            password: "{{ test_user_password }}"
+
+        - name: Given the user can read system privilege metadata
+          exasol.exasol.exasol_query:
+            query: GRANT SELECT ANY DICTIONARY TO "{{ test_user }}"
+
+        - name: When the user tries to grant a privilege without grant authority
+          exasol.exasol.exasol_grants:
+            login_user: "{{ test_user }}"
+            login_password: "{{ test_user_password }}"
+            user: "{{ test_user }}"
+            system_privileges:
+              - CREATE SCHEMA
+          register: exasol_grants_unauthorized
+          ignore_errors: true
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ exasol_grants_unauthorized }}"
+            cacheable: true
+    """
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    result = _when_grants_scenario_runs(context, scenario_id, playbook)
+    module_result = result["module_result"]
+
+    assert module_result["failed"] is True
+    assert module_result["changed"] is False
+    assert module_result["msg"].startswith("Exasol grant management failed:")
+    assert context.test_user_password not in module_result["msg"]
+    assert "Traceback" not in module_result["msg"]
+
+
+def _run_role_membership_scenario(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+    *,
+    state: str,
+    existing: bool = False,
+    check_mode: bool = False,
+) -> tuple[Any, dict[str, Any]]:
+    existing_grant = (
+        """
+        - name: Given APP_ROLE was granted directly to ALICE
+          exasol.exasol.exasol_query:
+            query: GRANT "{{ test_role }}" TO "{{ test_user }}"
+"""
+        if existing
+        else ""
+    )
+    check_mode_option = "          check_mode: true\n" if check_mode else ""
+    playbook = f"""
+    - name: Manage role membership
+      block:
+        - name: Given an Exasol user exists
+          exasol.exasol.exasol_user:
+            name: "{{{{ test_user }}}}"
+            password: "{{{{ test_user_password }}}}"
+
+        - name: Given an Exasol role exists
+          exasol.exasol.exasol_role:
+            name: "{{{{ test_role }}}}"
+{existing_grant}
+        - name: When exasol_grants reconciles role membership
+          exasol.exasol.exasol_grants:
+            user: "{{{{ test_user }}}}"
+            roles:
+              - "{{{{ test_role }}}}"
+            state: {state}
+{check_mode_option}          register: exasol_grants_role_membership
+
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{{{ acceptance_scenario_id }}}}"
+              module_result: "{{{{ exasol_grants_role_membership }}}}"
+            cacheable: true
+    """
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    return context, _when_grants_scenario_runs(context, scenario_id, playbook)
+
+
 def _when_grants_scenario_runs(
     context: Any,
     scenario_id: str,
@@ -511,6 +741,20 @@ def _assert_grants_module_result(
 
 def _grant_system_query(privilege: str, principal: str) -> str:
     return f"GRANT {privilege} TO {quote_exact_identifier(principal)}"
+
+
+def _grant_role_query(granted_role: str, principal: str) -> str:
+    return (
+        f"GRANT {quote_exact_identifier(granted_role)} "
+        f"TO {quote_exact_identifier(principal)}"
+    )
+
+
+def _revoke_role_query(granted_role: str, principal: str) -> str:
+    return (
+        f"REVOKE {quote_exact_identifier(granted_role)} "
+        f"FROM {quote_exact_identifier(principal)}"
+    )
 
 
 def _grant_schema_query(privilege: str, schema_name: str, principal: str) -> str:
@@ -552,6 +796,23 @@ def _system_privilege_count(
         FROM EXA_DBA_SYS_PRIVS
         WHERE UPPER(GRANTEE) = UPPER({_quote_sql_literal(grantee)})
         AND PRIVILEGE = {_quote_sql_literal(privilege)}
+        """,
+    )
+
+
+def _role_membership_count(
+    login_vars: dict[str, object],
+    *,
+    grantee: str,
+    granted_role: str,
+) -> int:
+    return _metadata_count(
+        login_vars,
+        f"""
+        SELECT COUNT(*) AS PRIVILEGE_COUNT
+        FROM EXA_DBA_ROLE_PRIVS
+        WHERE UPPER(GRANTEE) = UPPER({_quote_sql_literal(grantee)})
+        AND UPPER(GRANTED_ROLE) = UPPER({_quote_sql_literal(granted_role)})
         """,
     )
 

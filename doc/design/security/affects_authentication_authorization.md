@@ -83,6 +83,7 @@ Status: draft
 
 Covers:
 - `scn~repeated-runs-do-not-add-unrequested-authorization-changes~1`
+- `scn~role-membership-grants-are-reconciled~1`
 - `thrt~incorrect-idempotency-or-grant-logic-changes-privileges~1`
 - `thrt~reconciliation-drift-revokes-or-changes-authorization-unexpectedly~1`
 - `thrt~partial-authorization-failures-leave-inconsistent-state~1`
