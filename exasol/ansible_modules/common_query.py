@@ -573,7 +573,10 @@ def _sqlglot_parser_runtime() -> tuple[
     try:
         import sqlglot
         from sqlglot import exp
-        from sqlglot.errors import ParseError, TokenError
+        from sqlglot.errors import (
+            ParseError,
+            TokenError,
+        )
     except ImportError as error:
         raise missing_sqlglot_error() from error
 
