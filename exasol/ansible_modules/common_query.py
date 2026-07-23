@@ -502,6 +502,10 @@ def _new_query_rewrite_parts() -> _QueryRewriteParts:
     }
 
 
+# Import SQLGlot locally in the helpers below. Ansible imports this runtime to
+# inspect module argument specifications for documentation and sanity checks;
+# those environments do not need SQL parsing dependencies. Query execution
+# still fails with a clear error if the runtime dependency is missing.
 def sqlglot_tokens(query: str) -> list[_SqlglotToken]:
     """Tokenize SQL text using the shared Exasol SQLGlot dialect."""
     try:

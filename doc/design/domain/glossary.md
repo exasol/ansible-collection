@@ -3,8 +3,8 @@
 This chapter defines domain-specific terms used in the documentation.
 
 Terms derived from the Given/When/Then vocabulary used across
-`specs/ansible_modules/*.feature` (module-runtime specifications) and
-`specs/ansible_playbook/*.feature` (playbook-level specifications)
+[`specs/ansible_modules`](../../../specs/ansible_modules) (module-runtime specifications) and
+[`specs/ansible_playbook`](../../../specs/ansible_playbook) (playbook-level specifications)
 
 General System Requirements are defined in [System Requirements](../../system_requirements.md).
 

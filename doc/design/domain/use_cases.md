@@ -14,64 +14,73 @@ command/event branch a use case's scenarios exercise.
 flowchart LR
     operator(["Ansible Operator"])
 
-    subgraph gather_server_info["gather-server-info"]
+    subgraph gather_server_info["gather-server-info (exasol_info)"]
         direction TB
-        CMD_GatherInfo["GatherServerInfo\n(Command)"]:::command
-        AGG_ServerInfo["SERVER_INFO\n(Read Model)"]:::aggregate
-        EVT_InfoReported["ServerInfoReported\n(Read Model, no state change)"]:::readmodel
+        CMD_GatherInfo["GatherServerInfo<br/>(Command)"]:::command
+        AGG_ServerInfo["SERVER_INFO<br/>(Read Model)"]:::aggregate
+        EVT_InfoReported["ServerInfoReported<br/>(Read Model, no state change)"]:::readmodel
         CMD_GatherInfo --> AGG_ServerInfo --> EVT_InfoReported
     end
 
-    subgraph execute_query_ov["execute-query"]
+    subgraph execute_query_batch_ov["execute-query-batch (exasol_query)"]
         direction TB
-        CMD_ExecuteQuery["ExecuteQuery\n(Command)"]:::command
-        AGG_QueryExecution["QUERY_EXECUTION\n(Aggregate)"]:::aggregate
-        EVT_QueryExecuted["QueryExecuted\n(Event)"]:::event
-        CMD_ExecuteQuery --> AGG_QueryExecution --> EVT_QueryExecuted
+        CMD_ExecuteQueryBatch["ExecuteQueryBatch<br/>(Command)"]:::command
+        AGG_QueryExecution["QUERY_EXECUTION<br/>(Aggregate)"]:::aggregate
+        EVT_QueryBatchExecuted["QueryBatchExecuted<br/>(Event)"]:::event
+        CMD_ExecuteQueryBatch --> AGG_QueryExecution --> EVT_QueryBatchExecuted
     end
 
-    subgraph execute_script_ov["execute-script"]
+    subgraph execute_bound_query_ov["execute-bound-query (exasol_query)"]
         direction TB
-        CMD_ExecuteScript["ExecuteScript\n(Command)"]:::command
-        AGG_ScriptExecution["SCRIPT_EXECUTION\n(Aggregate)"]:::aggregate
-        EVT_ScriptExecuted["ScriptExecuted /\nScriptExecutionFailed\n(Event)"]:::event
+        CMD_ExecuteBoundQuery["ExecuteBoundQuery<br/>(Command)"]:::command
+        AGG_BoundQueryExecution["QUERY_EXECUTION<br/>(Aggregate)"]:::aggregate
+        EVT_BoundQueryExecuted["BoundQueryExecuted<br/>(Event)"]:::event
+        CMD_ExecuteBoundQuery --> AGG_BoundQueryExecution --> EVT_BoundQueryExecuted
+    end
+
+    subgraph execute_script_ov["execute-script (exasol_script)"]
+        direction TB
+        CMD_ExecuteScript["ExecuteScript<br/>(Command)"]:::command
+        AGG_ScriptExecution["SCRIPT_EXECUTION<br/>(Aggregate)"]:::aggregate
+        EVT_ScriptExecuted["ScriptExecuted /<br/>ScriptExecutionFailed<br/>(Event)"]:::event
         CMD_ExecuteScript --> AGG_ScriptExecution --> EVT_ScriptExecuted
     end
 
-    subgraph reconcile_schema_ov["reconcile-schema"]
+    subgraph reconcile_schema_ov["reconcile-schema (exasol_schema)"]
         direction TB
-        CMD_CreateSchema["CreateSchema\n(Command)"]:::command
-        AGG_Schema["SCHEMA\n(Aggregate)"]:::aggregate
-        EVT_SchemaCreated["SchemaCreated\n(Event)"]:::event
+        CMD_CreateSchema["CreateSchema<br/>(Command)"]:::command
+        AGG_Schema["SCHEMA<br/>(Aggregate)"]:::aggregate
+        EVT_SchemaCreated["SchemaCreated<br/>(Event)"]:::event
         CMD_CreateSchema --> AGG_Schema --> EVT_SchemaCreated
     end
 
-    subgraph reconcile_user_ov["reconcile-user"]
+    subgraph reconcile_user_ov["reconcile-user (exasol_user)"]
         direction TB
-        CMD_CreateUser["CreateUser\n(Command)"]:::command
-        AGG_User["EXASOL_USER\n(Aggregate)"]:::aggregate
-        EVT_UserCreated["UserCreated\n(Event)"]:::event
+        CMD_CreateUser["CreateUser<br/>(Command)"]:::command
+        AGG_User["EXASOL_USER<br/>(Aggregate)"]:::aggregate
+        EVT_UserCreated["UserCreated<br/>(Event)"]:::event
         CMD_CreateUser --> AGG_User --> EVT_UserCreated
     end
 
-    subgraph reconcile_role_ov["reconcile-role"]
+    subgraph reconcile_role_ov["reconcile-role (exasol_role)"]
         direction TB
-        CMD_CreateRole["CreateRole\n(Command)"]:::command
-        AGG_Role["EXASOL_ROLE\n(Aggregate)"]:::aggregate
-        EVT_RoleCreated["RoleCreated\n(Event)"]:::event
+        CMD_CreateRole["CreateRole<br/>(Command)"]:::command
+        AGG_Role["EXASOL_ROLE<br/>(Aggregate)"]:::aggregate
+        EVT_RoleCreated["RoleCreated<br/>(Event)"]:::event
         CMD_CreateRole --> AGG_Role --> EVT_RoleCreated
     end
 
-    subgraph reconcile_grants_ov["reconcile-grants"]
+    subgraph reconcile_grants_ov["reconcile-grants (exasol_grants)"]
         direction TB
-        CMD_GrantPrivilege["GrantPrivilege\n(Command)"]:::command
-        AGG_Grant["GRANT\n(Aggregate)"]:::aggregate
-        EVT_PrivilegeGranted["PrivilegeGranted\n(Event)"]:::event
+        CMD_GrantPrivilege["GrantPrivilege<br/>(Command)"]:::command
+        AGG_Grant["GRANT<br/>(Aggregate)"]:::aggregate
+        EVT_PrivilegeGranted["PrivilegeGranted<br/>(Event)"]:::event
         CMD_GrantPrivilege --> AGG_Grant --> EVT_PrivilegeGranted
     end
 
     operator --> CMD_GatherInfo
-    operator --> CMD_ExecuteQuery
+    operator --> CMD_ExecuteQueryBatch
+    operator --> CMD_ExecuteBoundQuery
     operator --> CMD_ExecuteScript
     operator --> CMD_CreateSchema
     operator --> CMD_CreateUser
@@ -95,14 +104,14 @@ table as the granted object.
 | Light gray | Read model: a query result with no state change |
 | Tomato (per-use-case diagrams below) | Failure: a rejected or failed command |
 
-## gather-server-info
+## gather-server-info (`exasol_info`)
 
 ```mermaid
 flowchart LR
     operator(["Ansible Operator"])
-    AGG["SERVER_INFO\n(Aggregate, read-only)"]:::aggregate
-    CMD_Gather["GatherServerInfo\n(Command)"]:::command
-    RM_Reported["ServerInfoReported\n(Read Model)\nversion, database_name,\ncluster_size; always changed=false"]:::readmodel
+    AGG["SERVER_INFO<br/>(Aggregate, read-only)"]:::aggregate
+    CMD_Gather["GatherServerInfo<br/>(Command)"]:::command
+    RM_Reported["ServerInfoReported<br/>(Read Model)<br/>version, database_name,<br/>cluster_size; always changed=false"]:::readmodel
 
     operator --> CMD_Gather --> AGG --> RM_Reported
 
@@ -114,35 +123,30 @@ flowchart LR
 This use case never mutates Exasol state, so it has no domain event: only a read model is
 produced.
 
-Source scenario: `specs/ansible_modules/exasol_info.feature`.
+Source scenario: [exasol_info.feature](../../../specs/ansible_modules/exasol_info.feature).
 
-## execute-query
+## execute-query-batch (`exasol_query`)
 
 ```mermaid
 flowchart LR
     operator(["Ansible Operator"])
-    AGG["QUERY_EXECUTION\n(Aggregate)"]:::aggregate
+    AGG["QUERY_EXECUTION<br/>(Aggregate)"]:::aggregate
 
-    CMD_Execute["ExecuteQuery\n(Command)\none statement or an\nordered statement batch,\noptionally with bound args"]:::command
-    EVT_Executed["QueryExecuted\n(Event)\nchanged=true for any\nnon-read-only statement"]:::event
+    CMD_Execute["ExecuteQueryBatch<br/>(Command)<br/>one statement or an<br/>ordered statement batch;<br/>no bound args"]:::command
+    EVT_Executed["QueryBatchExecuted<br/>(Event)<br/>changed=true for any<br/>non-read-only statement"]:::event
 
-    CMD_Predict["PredictQueryExecution\n(Command, check mode)"]:::command
-    EVT_Predicted["QueryExecutionPredicted\n(Event)\nread-only statements still run;\nany write statement is skipped\nand the whole batch is predicted"]:::event
+    CMD_Predict["PredictQueryBatchExecution<br/>(Command, check mode)"]:::command
+    EVT_Predicted["QueryBatchExecutionPredicted<br/>(Event)<br/>read-only statements still run;<br/>any write statement is skipped<br/>and the whole batch is predicted"]:::event
 
-    CMD_Invalid["ExecuteQuery\n(Command, invalid bound args)"]:::command
-    EVT_Rejected["QueryExecutionRejected\n(Event, Failure)\nbound args combined with a\nstatement batch, or a\npositional/named argument\ncount mismatch"]:::failure
-
-    CMD_BadAuth["ExecuteQuery\n(Command, bad credentials)"]:::command
-    EVT_Failed["QueryExecutionFailed\n(Event, Failure)\nsanitized authentication error,\nno secret values exposed"]:::failure
+    CMD_BadAuth["ExecuteQuery<br/>(Command, bad credentials)"]:::command
+    EVT_Failed["QueryBatchExecutionFailed<br/>(Event, Failure)<br/>sanitized authentication error,<br/>no secret values exposed"]:::failure
 
     operator --> CMD_Execute
     operator --> CMD_Predict
-    operator --> CMD_Invalid
     operator --> CMD_BadAuth
 
     CMD_Execute --> AGG --> EVT_Executed
     CMD_Predict --> AGG --> EVT_Predicted
-    CMD_Invalid --> AGG --> EVT_Rejected
     CMD_BadAuth --> AGG --> EVT_Failed
 
     classDef command fill:#ADD8E6,stroke:#333,color:#000
@@ -151,24 +155,61 @@ flowchart LR
     classDef failure fill:#FF6347,stroke:#333,color:#000
 ```
 
-Source scenarios: `specs/ansible_modules/exasol_query.feature`,
-`specs/ansible_playbook/exasol_query.feature`.
+`ExecuteQueryBatch` accepts either one unbound statement or a list of statements. A list runs on
+one connection in supplied order. `positional_args` and `named_args` are not accepted for this use
+case because the module does not infer which statement should receive them.
 
-## execute-script
+Source scenarios: [exasol_query.feature](../../../specs/ansible_modules/exasol_query.feature),
+[exasol_query.feature](../../../specs/ansible_playbook/exasol_query.feature) (`Execute statement batch on one connection` and
+`Skip mixed read-write batch in check mode`).
+
+## execute-bound-query (`exasol_query`)
 
 ```mermaid
 flowchart LR
     operator(["Ansible Operator"])
-    AGG["SCRIPT_EXECUTION\n(Aggregate)"]:::aggregate
+    AGG["QUERY_EXECUTION<br/>(Aggregate)"]:::aggregate
 
-    CMD_Execute["ExecuteScript\n(Command)\na single multi-statement\nscript, including a script\nbody terminated by a\nstandalone '/' line"]:::command
-    EVT_Executed["ScriptExecuted\n(Event)\nchanged=true for any\nnon-read-only statement\npyexasol split from the script"]:::event
+    CMD_Execute["ExecuteBoundQuery<br/>(Command)<br/>exactly one statement with<br/>positional and/or named args"]:::command
+    EVT_Executed["BoundQueryExecuted<br/>(Event)<br/>changed=true for a<br/>non-read-only statement"]:::event
 
-    CMD_Predict["PredictScriptExecution\n(Command, check mode)"]:::command
-    EVT_Predicted["ScriptExecutionPredicted\n(Event)\nread-only scripts still run;\nany other script is predicted\nas one opaque unit, not the\nreal per-statement split"]:::event
+    CMD_Invalid["ExecuteBoundQuery<br/>(Command, invalid args)"]:::command
+    EVT_Rejected["BoundQueryRejected<br/>(Event, Failure)<br/>a statement batch is supplied,<br/>or placeholders and arguments<br/>do not match"]:::failure
 
-    CMD_Failing["ExecuteScript\n(Command, failing statement)"]:::command
-    EVT_Failed["ScriptExecutionFailed\n(Event, Failure)\nstops at the first failing\nstatement; earlier statements'\neffects are not undone;\nsanitized error message"]:::failure
+    operator --> CMD_Execute
+    operator --> CMD_Invalid
+
+    CMD_Execute --> AGG --> EVT_Executed
+    CMD_Invalid --> AGG --> EVT_Rejected
+
+    classDef command fill:#ADD8E6,stroke:#333,color:#000
+    classDef aggregate fill:#F0E68C,stroke:#333,color:#000
+    classDef event fill:#FFA500,stroke:#333,color:#000
+    classDef failure fill:#FF6347,stroke:#333,color:#000
+```
+
+`ExecuteBoundQuery` accepts one `query` statement only. It uses `positional_args` for `?`
+placeholders and `named_args` for `:name` placeholders. Supplying either argument collection with
+a statement batch is rejected before execution.
+
+Source scenarios: [exasol_query.feature](../../../specs/ansible_playbook/exasol_query.feature) (`Bind positional arguments`,
+`Bind named arguments`, and `Reject bound arguments for statement batch`).
+
+## execute-script (`exasol_script`)
+
+```mermaid
+flowchart LR
+    operator(["Ansible Operator"])
+    AGG["SCRIPT_EXECUTION<br/>(Aggregate)"]:::aggregate
+
+    CMD_Execute["ExecuteScript<br/>(Command)<br/>a semicolon-separated<br/>multi-statement script;<br/>CREATE ... SCRIPT bodies end<br/>with a standalone '/' line"]:::command
+    EVT_Executed["ScriptExecuted<br/>(Event)<br/>changed=true for any<br/>non-read-only statement<br/>pyexasol split from the script"]:::event
+
+    CMD_Predict["PredictScriptExecution<br/>(Command, check mode)"]:::command
+    EVT_Predicted["ScriptExecutionPredicted<br/>(Event)<br/>read-only scripts still run;<br/>any other script is predicted<br/>as one opaque unit, not the<br/>real per-statement split"]:::event
+
+    CMD_Failing["ExecuteScript<br/>(Command, failing statement)"]:::command
+    EVT_Failed["ScriptExecutionFailed<br/>(Event, Failure)<br/>stops at the first failing<br/>statement; earlier statements'<br/>effects are not undone;<br/>sanitized error message"]:::failure
 
     operator --> CMD_Execute
     operator --> CMD_Predict
@@ -188,42 +229,42 @@ flowchart LR
 validation rejects them before the command reaches this aggregate, since pyexasol does not support
 bound parameters for scripts.
 
-Source scenarios: `specs/ansible_modules/exasol_script.feature`,
-`specs/ansible_playbook/exasol_script.feature`.
+Source scenarios: [exasol_script.feature](../../../specs/ansible_modules/exasol_script.feature),
+[exasol_script.feature](../../../specs/ansible_playbook/exasol_script.feature).
 
-## reconcile-schema
+## reconcile-schema (`exasol_schema`)
 
 ```mermaid
 flowchart LR
     operator(["Ansible Operator"])
-    AGG["SCHEMA\n(Aggregate)"]:::aggregate
+    AGG["SCHEMA<br/>(Aggregate)"]:::aggregate
 
-    CMD_Create["CreateSchema\n(Command)"]:::command
-    EVT_Created["SchemaCreated\n(Event)"]:::event
+    CMD_Create["CreateSchema<br/>(Command)"]:::command
+    EVT_Created["SchemaCreated<br/>(Event)"]:::event
 
-    CMD_Drop["DropSchema\n(Command)"]:::command
-    EVT_Dropped["SchemaDropped\n(Event)"]:::event
+    CMD_Drop["DropSchema<br/>(Command)"]:::command
+    EVT_Dropped["SchemaDropped<br/>(Event)"]:::event
 
-    CMD_Owner["ChangeSchemaOwner\n(Command)"]:::command
-    EVT_Owner["SchemaOwnerChanged\n(Event)"]:::event
+    CMD_Owner["ChangeSchemaOwner<br/>(Command)"]:::command
+    EVT_Owner["SchemaOwnerChanged<br/>(Event)"]:::event
 
-    CMD_Comment["SetSchemaComment\n(Command)"]:::command
-    EVT_Comment["SchemaCommented\n(Event)"]:::event
+    CMD_Comment["SetSchemaComment<br/>(Command)"]:::command
+    EVT_Comment["SchemaCommented<br/>(Event)"]:::event
 
-    CMD_Rename["RenameSchema\n(Command)"]:::command
-    EVT_Renamed["SchemaRenamed\n(Event)"]:::event
+    CMD_Rename["RenameSchema<br/>(Command)"]:::command
+    EVT_Renamed["SchemaRenamed<br/>(Event)"]:::event
 
-    CMD_Quota["SetSchemaRawSizeLimit\n(Command)"]:::command
-    EVT_Quota["SchemaQuotaChanged\n(Event)"]:::event
+    CMD_Quota["SetSchemaRawSizeLimit<br/>(Command)"]:::command
+    EVT_Quota["SchemaQuotaChanged<br/>(Event)"]:::event
 
-    CMD_Predict["PredictSchemaChange\n(Command, check mode)\ncovers every branch above"]:::command
-    EVT_Predicted["SchemaChangePredicted\n(Event)\nsame plan, no statement executed"]:::event
+    CMD_Predict["PredictSchemaChange<br/>(Command, check mode)<br/>covers every branch above"]:::command
+    EVT_Predicted["SchemaChangePredicted<br/>(Event)<br/>same plan, no statement executed"]:::event
 
-    CMD_DropUnsafe["DropSchema\n(Command, non-empty, no cascade)"]:::command
-    EVT_DropRejected["SchemaDropRejected\n(Event, Failure)\nCASCADE required"]:::failure
+    CMD_DropUnsafe["DropSchema<br/>(Command, non-empty, no cascade)"]:::command
+    EVT_DropRejected["SchemaDropRejected<br/>(Event, Failure)<br/>CASCADE required"]:::failure
 
-    CMD_OwnerMissing["ChangeSchemaOwner\n(Command, owner missing)"]:::command
-    EVT_OwnerFailed["SchemaOwnerAssignmentFailed\n(Event, Failure)\nCREATE SCHEMA already\ncommitted before the failure"]:::failure
+    CMD_OwnerMissing["ChangeSchemaOwner<br/>(Command, owner missing)"]:::command
+    EVT_OwnerFailed["SchemaOwnerAssignmentFailed<br/>(Event, Failure)<br/>CREATE SCHEMA already<br/>committed before the failure"]:::failure
 
     operator --> CMD_Create
     operator --> CMD_Drop
@@ -255,30 +296,30 @@ When the observed schema state already matches the requested state (existence, o
 rename, quota), the runtime issues no command and reports `changed=false`: an implicit "leave
 unchanged" branch behind every command above.
 
-Source scenario: `specs/ansible_modules/exasol_schema.feature`.
+Source scenario: [exasol_schema.feature](../../../specs/ansible_modules/exasol_schema.feature).
 
-## reconcile-user
+## reconcile-user (`exasol_user`)
 
 ```mermaid
 flowchart LR
     operator(["Ansible Operator"])
-    AGG["EXASOL_USER\n(Aggregate)"]:::aggregate
+    AGG["EXASOL_USER<br/>(Aggregate)"]:::aggregate
 
-    CMD_Create["CreateUser\n(Command, authentication_method=password)\nCREATE USER ... IDENTIFIED BY, plus\nGRANT CREATE SESSION when create_session=true"]:::command
-    CMD_CreateLdap["CreateUser\n(Command, authentication_method=ldap)\nCREATE USER ... IDENTIFIED AT LDAP AS, plus\nGRANT CREATE SESSION when create_session=true"]:::command
-    EVT_Created["UserCreated\n(Event)"]:::event
+    CMD_Create["CreateUser<br/>(Command, authentication_method=password)<br/>CREATE USER ... IDENTIFIED BY, plus<br/>GRANT CREATE SESSION when create_session=true"]:::command
+    CMD_CreateLdap["CreateUser<br/>(Command, authentication_method=ldap)<br/>CREATE USER ... IDENTIFIED AT LDAP AS, plus<br/>GRANT CREATE SESSION when create_session=true"]:::command
+    EVT_Created["UserCreated<br/>(Event)"]:::event
 
-    CMD_UpdatePwd["UpdateUserPassword\n(Command, update_password=always)"]:::command
-    EVT_PwdUpdated["UserPasswordUpdated\n(Event)"]:::event
+    CMD_UpdatePwd["UpdateUserPassword<br/>(Command, update_password=always)"]:::command
+    EVT_PwdUpdated["UserPasswordUpdated<br/>(Event)"]:::event
 
-    CMD_UpdateLdap["UpdateUserLdapDn\n(Command, authentication_method=ldap,\nldap_dn differs from DISTINGUISHED_NAME)"]:::command
-    EVT_LdapUpdated["UserLdapDnUpdated\n(Event)"]:::event
+    CMD_UpdateLdap["UpdateUserLdapDn<br/>(Command, authentication_method=ldap,<br/>ldap_dn differs from DISTINGUISHED_NAME)"]:::command
+    EVT_LdapUpdated["UserLdapDnUpdated<br/>(Event)"]:::event
 
-    CMD_Drop["DropUser\n(Command, cascade)"]:::command
-    EVT_Dropped["UserDropped\n(Event)"]:::event
+    CMD_Drop["DropUser<br/>(Command, cascade)"]:::command
+    EVT_Dropped["UserDropped<br/>(Event)"]:::event
 
-    CMD_Predict["PredictUserChange\n(Command, check mode)\ncovers every branch above"]:::command
-    EVT_Predicted["UserChangePredicted\n(Event)\nsame plan, no statement executed"]:::event
+    CMD_Predict["PredictUserChange<br/>(Command, check mode)<br/>covers every branch above"]:::command
+    EVT_Predicted["UserChangePredicted<br/>(Event)<br/>same plan, no statement executed"]:::event
 
     operator --> CMD_Create
     operator --> CMD_CreateLdap
@@ -300,32 +341,33 @@ flowchart LR
     classDef event fill:#FFA500,stroke:#333,color:#000
 ```
 
-`update_password=on_create` only sets a password while creating the user; when the user already
-exists with a matching password and `update_password=on_create`, the runtime issues no command and
-reports `changed=false`. `update_password` does not apply to LDAP-authenticated users.
+`update_password=on_create` only sets a password while creating the user. For an existing
+password-authenticated user, the runtime issues no password-update command and reports
+`changed=false`; Exasol does not expose password equality for comparison. `update_password` does
+not apply to LDAP-authenticated users.
 
 `authentication_method` defaults to `ldap` when `ldap_dn` is supplied, otherwise `password`.
 `create_session` (default `true`) makes the `CREATE SESSION` grant on user creation optional rather
 than implicit.
 
-Source scenarios: `specs/ansible_modules/exasol_user.feature`,
-`specs/ansible_playbook/exasol_user.feature`.
+Source scenarios: [exasol_user.feature](../../../specs/ansible_modules/exasol_user.feature),
+[exasol_user.feature](../../../specs/ansible_playbook/exasol_user.feature).
 
-## reconcile-role
+## reconcile-role (`exasol_role`)
 
 ```mermaid
 flowchart LR
     operator(["Ansible Operator"])
-    AGG["EXASOL_ROLE\n(Aggregate)"]:::aggregate
+    AGG["EXASOL_ROLE<br/>(Aggregate)"]:::aggregate
 
-    CMD_Create["CreateRole\n(Command)"]:::command
-    EVT_Created["RoleCreated\n(Event)"]:::event
+    CMD_Create["CreateRole<br/>(Command)"]:::command
+    EVT_Created["RoleCreated<br/>(Event)"]:::event
 
-    CMD_Drop["DropRole\n(Command, cascade)"]:::command
-    EVT_Dropped["RoleDropped\n(Event)"]:::event
+    CMD_Drop["DropRole<br/>(Command, cascade)"]:::command
+    EVT_Dropped["RoleDropped<br/>(Event)"]:::event
 
-    CMD_Predict["PredictRoleChange\n(Command, check mode)\ncovers every branch above"]:::command
-    EVT_Predicted["RoleChangePredicted\n(Event)\nsame plan, no statement executed"]:::event
+    CMD_Predict["PredictRoleChange<br/>(Command, check mode)<br/>covers every branch above"]:::command
+    EVT_Predicted["RoleChangePredicted<br/>(Event)<br/>same plan, no statement executed"]:::event
 
     operator --> CMD_Create
     operator --> CMD_Drop
@@ -343,26 +385,26 @@ flowchart LR
 When the role already exists (for `CreateRole`) or is already absent (for `DropRole`), the runtime
 issues no command and reports `changed=false`.
 
-Source scenario: `specs/ansible_modules/exasol_role.feature`.
+Source scenario: [exasol_role.feature](../../../specs/ansible_modules/exasol_role.feature).
 
-## reconcile-grants
+## reconcile-grants (`exasol_grants`)
 
 ```mermaid
 flowchart LR
     operator(["Ansible Operator"])
-    AGG["GRANT\n(Aggregate)"]:::aggregate
+    AGG["GRANT<br/>(Aggregate)"]:::aggregate
 
-    CMD_Grant["GrantPrivilege\n(Command)\nsystem_privileges or\nobject_privileges, state=present"]:::command
-    EVT_Granted["PrivilegeGranted\n(Event)"]:::event
+    CMD_Grant["GrantPrivilege<br/>(Command)<br/>system_privileges or<br/>object_privileges, state=present"]:::command
+    EVT_Granted["PrivilegeGranted<br/>(Event)"]:::event
 
-    CMD_Revoke["RevokePrivilege\n(Command, state=absent)"]:::command
-    EVT_Revoked["PrivilegeRevoked\n(Event)"]:::event
+    CMD_Revoke["RevokePrivilege<br/>(Command, state=absent)"]:::command
+    EVT_Revoked["PrivilegeRevoked<br/>(Event)"]:::event
 
-    CMD_Predict["PredictGrantChange\n(Command, check mode)\ncovers both branches above"]:::command
-    EVT_Predicted["GrantChangePredicted\n(Event)\nsame plan, no statement executed"]:::event
+    CMD_Predict["PredictGrantChange<br/>(Command, check mode)<br/>covers both branches above"]:::command
+    EVT_Predicted["GrantChangePredicted<br/>(Event)<br/>same plan, no statement executed"]:::event
 
-    CMD_Ambiguous["GrantPrivilege\n(Command, user and role\nboth supplied)"]:::command
-    EVT_Rejected["GrantRequestRejected\n(Event, Failure)\nprincipal must be exactly\none of user or role"]:::failure
+    CMD_Ambiguous["GrantPrivilege<br/>(Command, user and role<br/>both supplied)"]:::command
+    EVT_Rejected["GrantRequestRejected<br/>(Event, Failure)<br/>principal must be exactly<br/>one of user or role"]:::failure
 
     operator --> CMD_Grant
     operator --> CMD_Revoke
@@ -389,4 +431,4 @@ per `system_privileges` entry, and one per privilege in each `object_privileges[
 `object_privileges[]` entry names its own schema, an optional object, and an optional object_type
 (`function`, `script`, `table`, `view`, or `virtual_schema`) that disambiguates same-named objects.
 
-Source scenarios: `specs/ansible_playbook/exasol_grants.feature`.
+Source scenarios: [exasol_grants.feature](../../../specs/ansible_playbook/exasol_grants.feature).
