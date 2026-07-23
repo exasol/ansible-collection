@@ -14,3 +14,4 @@
 ## Features
 
 * #79: Implement exasol_script module
+* #114: Make login_schema the canonical connection parameter

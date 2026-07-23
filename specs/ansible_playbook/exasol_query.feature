@@ -38,6 +38,7 @@ Feature: exasol-query specification
     Given two schemas exist for the connection
     When exasol_query runs with login_schema and login_db set to different schemas
     Then the query runs with the login_db schema selected
+    And Ansible warns that both the option and its alias are set
 
   @exasol-query-batch-statements
   Scenario: Execute statement batch on one connection

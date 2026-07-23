@@ -195,7 +195,11 @@ def test_exasol_query_prefers_login_db_when_both_schema_parameters_are_set(
         },
     )
 
-    _assert_selected_schema(result["module_result"], legacy_schema)
+    _assert_selected_schema(
+        result["module_result"],
+        legacy_schema,
+        warnings=["Both option login_schema and its alias login_db are set."],
+    )
 
 
 @pytest.mark.integration
@@ -694,7 +698,15 @@ def _create_schema(login_vars: dict[str, object], schema_name: str) -> None:
         connection.close()
 
 
-def _assert_selected_schema(result: dict[str, Any], schema_name: str) -> None:
+def _assert_selected_schema(
+    result: dict[str, Any],
+    schema_name: str,
+    warnings: list[str] | None = None,
+) -> None:
+    if warnings is not None:
+        assert result.get("warnings") == warnings
+        result = {key: value for key, value in result.items() if key != "warnings"}
+
     _assert_query_module_result(
         result,
         changed=False,
