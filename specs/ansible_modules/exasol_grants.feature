@@ -185,14 +185,6 @@ Feature: exasol-grants Ansible module runtime specification
     Then changed is false
     And executed_queries equals []
 
-  @exasol-grants-insufficient-privilege-sanitized-error
-  Scenario: Insufficient-privilege failure surfaces a sanitized error
-    Given an Exasol database is reachable at localhost
-    And the connecting user lacks GRANT ANY PRIVILEGE
-    When the grants runtime error is normalized
-    Then the message is sanitized
-    And no raw driver exception is exposed
-
   @exasol-grants-grant-system-privilege-with-admin-option
   Scenario: Grant system privilege with admin option
     Given an Exasol database is reachable at localhost

@@ -895,6 +895,18 @@ def test_module_argument_spec_exposes_grant_specific_options() -> None:
     }
 
 
+def test_normalized_grants_error_redacts_sensitive_values() -> None:
+    """Verify grant error normalization does not expose connection secrets."""
+    message = exasol_grants.normalized_exasol_error_message(
+        RuntimeError("pyexasol.ExaError: insufficient privileges near token Secret123"),
+        params={"login_password": "Secret123"},
+    )
+
+    assert message.startswith("Exasol grant management failed:")
+    assert "Secret123" not in message
+    assert "Traceback" not in message
+
+
 def test_grants_error_helpers_delegate_to_common_query(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

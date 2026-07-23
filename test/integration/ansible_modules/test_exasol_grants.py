@@ -677,21 +677,6 @@ def test_grants_runtime_idempotent_with_different_case_spelling(
 
 @pytest.mark.integration
 @pytest.mark.slow
-@pytest.mark.scenario_id("exasol-grants-insufficient-privilege-sanitized-error")
-def test_grants_runtime_insufficient_privilege_error_is_sanitized() -> None:
-    """Verify authorization failures are normalized without leaking secrets."""
-    message = exasol_grants.normalized_exasol_error_message(
-        RuntimeError("pyexasol.ExaError: insufficient privileges near token Secret123"),
-        params={"login_password": "Secret123"},
-    )
-
-    assert message.startswith("Exasol grant management failed:")
-    assert "Secret123" not in message
-    assert "Traceback" not in message
-
-
-@pytest.mark.integration
-@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-system-privilege-with-admin-option")
 def test_grants_runtime_grants_system_privilege_with_admin_option(
     exasol_login_vars: dict[str, object],

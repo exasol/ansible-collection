@@ -430,6 +430,21 @@ Covers:
 
 Needs: dsn
 
+### Role Membership Grants Are Reconciled
+`scn~role-membership-grants-are-reconciled~1`
+
+**Given** an Ansible Operator requests a role membership for an Exasol user or role
+**When** the requested membership is absent, present, or differs in `WITH ADMIN OPTION`
+**Then** `exasol_grants` plans only the `GRANT` or `REVOKE` statements needed to reach that state
+**And** the result reports `changed=false` when the observed membership already matches
+
+Status: draft
+
+Covers:
+- `req~keep-authorization-changes-predictable~1`
+
+Needs: dsn
+
 ### Exasol Info Returns Version And Cluster Size
 `scn~exasol-info-returns-version-and-cluster-size~1`
 
