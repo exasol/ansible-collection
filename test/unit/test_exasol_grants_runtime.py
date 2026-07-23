@@ -35,11 +35,13 @@ class FakeConnection:
 
     def __init__(
         self,
-        system_grants: set[tuple[str, str]] | None = None,
+        system_grants: set[tuple[str, str, bool]] | None = None,
         object_grants: set[tuple[str, str, str, str | None]] | None = None,
+        role_grants: set[tuple[str, str, bool]] | None = None,
     ) -> None:
         self.system_grants = system_grants or set()
         self.object_grants = object_grants or set()
+        self.role_grants = role_grants or set()
         self.executed: list[tuple[str, dict[str, Any] | None]] = []
 
     def execute(
@@ -51,11 +53,18 @@ class FakeConnection:
         self.executed.append((normalized_query, query_params))
         params = query_params or {}
 
-        if normalized_query.startswith("SELECT PRIVILEGE FROM EXA_DBA_SYS_PRIVS"):
+        if normalized_query.startswith(
+            "SELECT PRIVILEGE, ADMIN_OPTION FROM EXA_DBA_SYS_PRIVS"
+        ):
             return self._system_privilege_statement(params)
 
         if normalized_query.startswith("SELECT PRIVILEGE FROM EXA_DBA_OBJ_PRIVS"):
             return self._object_privilege_statement(params)
+
+        if normalized_query.startswith(
+            "SELECT GRANTED_ROLE, ADMIN_OPTION FROM EXA_DBA_ROLE_PRIVS"
+        ):
+            return self._role_grant_statement(params)
 
         if normalized_query.startswith("GRANT "):
             self._grant(normalized_query)
@@ -70,11 +79,10 @@ class FakeConnection:
     def _system_privilege_statement(self, params: dict[str, Any]) -> FakeStatement:
         principal = str(params["principal"])
         privilege = str(params["privilege"])
-        rows = (
-            [{"PRIVILEGE": privilege}]
-            if _system_key(principal, privilege) in self.system_grants
-            else []
-        )
+        admin_option = _system_admin_option(self.system_grants, principal, privilege)
+        rows = []
+        if admin_option is not None:
+            rows = [{"PRIVILEGE": privilege, "ADMIN_OPTION": admin_option}]
         return FakeStatement(rows=rows, rowcount=len(rows))
 
     def _object_privilege_statement(self, params: dict[str, Any]) -> FakeStatement:
@@ -91,10 +99,40 @@ class FakeConnection:
         rows = [{"PRIVILEGE": privilege}] if key in self.object_grants else []
         return FakeStatement(rows=rows, rowcount=len(rows))
 
+    def _role_grant_statement(self, params: dict[str, Any]) -> FakeStatement:
+        principal = str(params["principal"])
+        granted_role = str(params["granted_role"])
+        admin_option = _role_admin_option(self.role_grants, principal, granted_role)
+        rows = []
+        if admin_option is not None:
+            rows = [{"GRANTED_ROLE": granted_role, "ADMIN_OPTION": admin_option}]
+        return FakeStatement(rows=rows, rowcount=len(rows))
+
     def _grant(self, query: str) -> None:
+        if query.startswith("GRANT ") and " ON " not in query and " TO " in query:
+            left_identifier_count = len(_quoted_identifiers(query.split(" TO ", 1)[0]))
+            if left_identifier_count == 1:
+                granted_role, principal = _role_statement_parts(
+                    query,
+                    "GRANT ",
+                    " TO ",
+                )
+                self._discard_role_grant(principal, granted_role)
+                self.role_grants.add(
+                    _role_key(
+                        principal,
+                        granted_role,
+                        _statement_admin_option(query),
+                    )
+                )
+                return
+
         if " ON " not in query:
             privilege, principal = _system_statement_parts(query, "GRANT ", " TO ")
-            self.system_grants.add(_system_key(principal, privilege))
+            self._discard_system_grant(principal, privilege)
+            self.system_grants.add(
+                _system_key(principal, privilege, _statement_admin_option(query))
+            )
             return
 
         privilege, schema_name, object_name, principal = _object_statement_parts(
@@ -107,9 +145,22 @@ class FakeConnection:
         )
 
     def _revoke(self, query: str) -> None:
+        if query.startswith("REVOKE ") and " ON " not in query and " FROM " in query:
+            left_identifier_count = len(
+                _quoted_identifiers(query.split(" FROM ", 1)[0])
+            )
+            if left_identifier_count == 1:
+                granted_role, principal = _role_statement_parts(
+                    query,
+                    "REVOKE ",
+                    " FROM ",
+                )
+                self._discard_role_grant(principal, granted_role)
+                return
+
         if " ON " not in query:
             privilege, principal = _system_statement_parts(query, "REVOKE ", " FROM ")
-            self.system_grants.discard(_system_key(principal, privilege))
+            self._discard_system_grant(principal, privilege)
             return
 
         privilege, schema_name, object_name, principal = _object_statement_parts(
@@ -120,6 +171,20 @@ class FakeConnection:
         self.object_grants.discard(
             _object_key(principal, privilege, schema_name, object_name)
         )
+
+    def _discard_system_grant(self, principal: str, privilege: str) -> None:
+        self.system_grants = {
+            grant
+            for grant in self.system_grants
+            if grant[:2] != _system_key(principal, privilege)[:2]
+        }
+
+    def _discard_role_grant(self, principal: str, granted_role: str) -> None:
+        self.role_grants = {
+            grant
+            for grant in self.role_grants
+            if grant[:2] != _role_key(principal, granted_role)[:2]
+        }
 
 
 def test_ensure_grants_grants_missing_system_privilege_to_user() -> None:
@@ -194,6 +259,288 @@ def test_ensure_grants_revokes_existing_schema_object_privilege() -> None:
         "executed_queries": ['REVOKE USAGE ON "APP_SCHEMA" FROM "app_role"'],
     }
     assert not connection.object_grants
+
+
+def test_ensure_grants_grants_role_membership_to_user() -> None:
+    """Verify a missing role membership produces one GRANT role statement."""
+    connection = FakeConnection()
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "roles": ["app_role"],
+        },
+    )
+
+    assert result == {
+        "changed": True,
+        "principal": "app_user",
+        "principal_type": "user",
+        "state": "present",
+        "executed_queries": ['GRANT "app_role" TO "app_user"'],
+    }
+    assert _role_key("app_user", "app_role") in connection.role_grants
+
+
+def test_ensure_grants_grants_system_privilege_with_admin_option() -> None:
+    """Verify admin_option grants system privileges with delegation rights."""
+    connection = FakeConnection()
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "system_privileges": ["SELECT ANY TABLE"],
+            "admin_option": True,
+        },
+    )
+
+    assert result["executed_queries"] == [
+        'GRANT SELECT ANY TABLE TO "app_user" WITH ADMIN OPTION'
+    ]
+    assert _system_key("app_user", "SELECT ANY TABLE", True) in (
+        connection.system_grants
+    )
+
+
+def test_ensure_grants_grants_mixed_system_privilege_admin_options() -> None:
+    """Verify each system privilege entry can choose admin_option."""
+    connection = FakeConnection()
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "system_privileges": [
+                {"privilege": "SELECT ANY TABLE", "admin_option": True},
+                {"privilege": "CREATE SESSION", "admin_option": False},
+            ],
+        },
+    )
+
+    assert result["executed_queries"] == [
+        'GRANT SELECT ANY TABLE TO "app_user" WITH ADMIN OPTION',
+        'GRANT CREATE SESSION TO "app_user"',
+    ]
+    assert _system_key("app_user", "SELECT ANY TABLE", True) in (
+        connection.system_grants
+    )
+    assert _system_key("app_user", "CREATE SESSION") in connection.system_grants
+
+
+def test_ensure_grants_system_entry_admin_option_overrides_task_default() -> None:
+    """Verify per-privilege admin_option overrides task-level admin_option."""
+    connection = FakeConnection()
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "system_privileges": [
+                {"privilege": "SELECT ANY TABLE", "admin_option": False},
+                "CREATE SESSION",
+            ],
+            "admin_option": True,
+        },
+    )
+
+    assert result["executed_queries"] == [
+        'GRANT SELECT ANY TABLE TO "app_user"',
+        'GRANT CREATE SESSION TO "app_user" WITH ADMIN OPTION',
+    ]
+    assert _system_key("app_user", "SELECT ANY TABLE") in connection.system_grants
+    assert _system_key("app_user", "CREATE SESSION", True) in (connection.system_grants)
+
+
+def test_ensure_grants_grants_role_membership_with_admin_option() -> None:
+    """Verify admin_option grants role memberships with delegation rights."""
+    connection = FakeConnection()
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "roles": ["app_role"],
+            "admin_option": True,
+        },
+    )
+
+    assert result["executed_queries"] == [
+        'GRANT "app_role" TO "app_user" WITH ADMIN OPTION'
+    ]
+    assert _role_key("app_user", "app_role", True) in connection.role_grants
+
+
+def test_ensure_grants_grants_mixed_role_membership_admin_options() -> None:
+    """Verify each role entry can choose its own admin_option value."""
+    connection = FakeConnection()
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "roles": [
+                {"role": "app_reader", "admin_option": True},
+                {"role": "app_writer", "admin_option": False},
+            ],
+        },
+    )
+
+    assert result["executed_queries"] == [
+        'GRANT "app_reader" TO "app_user" WITH ADMIN OPTION',
+        'GRANT "app_writer" TO "app_user"',
+    ]
+    assert _role_key("app_user", "app_reader", True) in connection.role_grants
+    assert _role_key("app_user", "app_writer") in connection.role_grants
+
+
+def test_ensure_grants_role_entry_admin_option_overrides_task_default() -> None:
+    """Verify per-role admin_option overrides task-level admin_option."""
+    connection = FakeConnection()
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "roles": [
+                {"role": "app_reader", "admin_option": False},
+                "app_writer",
+            ],
+            "admin_option": True,
+        },
+    )
+
+    assert result["executed_queries"] == [
+        'GRANT "app_reader" TO "app_user"',
+        'GRANT "app_writer" TO "app_user" WITH ADMIN OPTION',
+    ]
+    assert _role_key("app_user", "app_reader") in connection.role_grants
+    assert _role_key("app_user", "app_writer", True) in connection.role_grants
+
+
+def test_ensure_grants_upgrades_existing_system_privilege_to_admin_option() -> None:
+    """Verify existing normal grants can be upgraded to admin option."""
+    connection = FakeConnection(
+        system_grants={_system_key("app_user", "SELECT ANY TABLE")}
+    )
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "system_privileges": ["SELECT ANY TABLE"],
+            "admin_option": True,
+        },
+    )
+
+    assert result["changed"] is True
+    assert result["executed_queries"] == [
+        'GRANT SELECT ANY TABLE TO "app_user" WITH ADMIN OPTION'
+    ]
+    assert _system_key("app_user", "SELECT ANY TABLE", True) in (
+        connection.system_grants
+    )
+
+
+def test_ensure_grants_downgrades_system_privilege_admin_option() -> None:
+    """Verify admin_option=false reconciles an existing admin grant."""
+    connection = FakeConnection(
+        system_grants={_system_key("app_user", "SELECT ANY TABLE", True)}
+    )
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "system_privileges": ["SELECT ANY TABLE"],
+        },
+    )
+
+    assert result["changed"] is True
+    assert result["executed_queries"] == [
+        'REVOKE SELECT ANY TABLE FROM "app_user"',
+        'GRANT SELECT ANY TABLE TO "app_user"',
+    ]
+    assert _system_key("app_user", "SELECT ANY TABLE") in connection.system_grants
+    assert _system_key("app_user", "SELECT ANY TABLE", True) not in (
+        connection.system_grants
+    )
+
+
+def test_ensure_grants_downgrades_role_membership_admin_option() -> None:
+    """Verify admin_option=false reconciles an existing role admin grant."""
+    connection = FakeConnection(role_grants={_role_key("app_user", "app_role", True)})
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "roles": ["app_role"],
+        },
+    )
+
+    assert result["changed"] is True
+    assert result["executed_queries"] == [
+        'REVOKE "app_role" FROM "app_user"',
+        'GRANT "app_role" TO "app_user"',
+    ]
+    assert _role_key("app_user", "app_role") in connection.role_grants
+    assert _role_key("app_user", "app_role", True) not in connection.role_grants
+
+
+def test_ensure_grants_existing_role_membership_is_unchanged() -> None:
+    """Verify repeated role membership grants are idempotent."""
+    connection = FakeConnection(role_grants={_role_key("APP_USER", "APP_ROLE")})
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "roles": ["app_role"],
+        },
+    )
+
+    assert result["changed"] is False
+    assert result["executed_queries"] == []
+    assert len(connection.executed) == 1
+
+
+def test_ensure_grants_revokes_existing_role_membership() -> None:
+    """Verify absent state revokes an existing role membership."""
+    connection = FakeConnection(role_grants={_role_key("app_role", "nested_role")})
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "role": "app_role",
+            "roles": ["nested_role"],
+            "state": "absent",
+        },
+    )
+
+    assert result["changed"] is True
+    assert result["executed_queries"] == ['REVOKE "nested_role" FROM "app_role"']
+    assert not connection.role_grants
+
+
+def test_ensure_grants_check_mode_predicts_role_membership_without_writing() -> None:
+    """Verify check mode reports planned role grants without execution."""
+    connection = FakeConnection()
+
+    result = exasol_grants.ensure_grants(
+        connection,
+        {
+            "user": "app_user",
+            "roles": ["app_role"],
+        },
+        check_mode=True,
+    )
+
+    assert result["changed"] is True
+    assert result["executed_queries"] == ['GRANT "app_role" TO "app_user"']
+    assert connection.role_grants == set()
+    assert len(connection.executed) == 1
 
 
 def test_ensure_grants_missing_schema_object_privilege_absent_is_unchanged() -> None:
@@ -395,12 +742,44 @@ def test_ensure_grants_rejects_invalid_principal_selection(
             "unsupported Exasol system privilege",
         ),
         (
+            {"user": "app_user", "system_privileges": [{"name": "CREATE SESSION"}]},
+            "system privilege must be a non-empty string",
+        ),
+        (
+            {
+                "user": "app_user",
+                "system_privileges": [
+                    {"privilege": "CREATE SESSION", "admin_option": "true"}
+                ],
+            },
+            r"system_privileges\[0\]\.admin_option must be a boolean",
+        ),
+        (
             {
                 "user": "app_user",
                 "system_privileges": ["CREATE SESSION"],
                 "object_privileges": [],
             },
             "object_privileges must not be empty",
+        ),
+        (
+            {"user": "app_user", "roles": []},
+            "roles must not be empty",
+        ),
+        (
+            {"user": "app_user", "roles": ['"app_role']},
+            "malformed delimited identifier",
+        ),
+        (
+            {"user": "app_user", "roles": [{"name": "app_role"}]},
+            "role must be a non-empty string",
+        ),
+        (
+            {
+                "user": "app_user",
+                "roles": [{"role": "app_role", "admin_option": "true"}],
+            },
+            r"roles\[0\]\.admin_option must be a boolean",
         ),
         (
             {
@@ -430,6 +809,24 @@ def test_ensure_grants_rejects_invalid_principal_selection(
                 ],
             },
             "object_type must be one of",
+        ),
+        (
+            {
+                "user": "app_user",
+                "object_privileges": [
+                    {"schema": "app_schema", "privileges": ["USAGE"]}
+                ],
+                "admin_option": True,
+            },
+            "admin_option applies only",
+        ),
+        (
+            {
+                "user": "app_user",
+                "system_privileges": ["CREATE SESSION"],
+                "admin_option": "true",
+            },
+            "admin_option must be a boolean",
         ),
     ],
 )
@@ -483,7 +880,9 @@ def test_module_argument_spec_exposes_grant_specific_options() -> None:
     assert argument_spec["user"] == {"type": "str"}
     assert argument_spec["role"] == {"type": "str"}
     assert argument_spec["state"]["choices"] == ["absent", "present"]
-    assert argument_spec["system_privileges"]["elements"] == "str"
+    assert argument_spec["system_privileges"]["elements"] == "raw"
+    assert argument_spec["roles"] == {"type": "list", "elements": "raw"}
+    assert argument_spec["admin_option"] == {"type": "bool", "default": False}
     assert argument_spec["object_privileges"]["elements"] == "dict"
     assert (
         "schema"
@@ -611,6 +1010,19 @@ def _object_statement_parts(
     return privilege, target_identifiers[0], target_identifiers[1], principal
 
 
+def _role_statement_parts(
+    query: str,
+    prefix: str,
+    principal_separator: str,
+) -> tuple[str, str]:
+    body = query.removeprefix(prefix)
+    granted_role_part, principal_part = body.split(principal_separator, 1)
+    return (
+        _quoted_identifiers(granted_role_part)[0],
+        _quoted_identifiers(principal_part)[0],
+    )
+
+
 def _quoted_identifiers(query: str) -> list[str]:
     identifiers: list[str] = []
     index = 0
@@ -641,8 +1053,54 @@ def _quoted_identifiers(query: str) -> list[str]:
     return identifiers
 
 
-def _system_key(principal: str, privilege: str) -> tuple[str, str]:
-    return principal.casefold(), privilege.upper()
+def _system_key(
+    principal: str,
+    privilege: str,
+    admin_option: bool = False,
+) -> tuple[str, str, bool]:
+    return principal.casefold(), privilege.upper(), admin_option
+
+
+def _role_key(
+    principal: str,
+    granted_role: str,
+    admin_option: bool = False,
+) -> tuple[str, str, bool]:
+    return principal.casefold(), granted_role.casefold(), admin_option
+
+
+def _system_admin_option(
+    grants: set[tuple[str, str, bool]],
+    principal: str,
+    privilege: str,
+) -> bool | None:
+    key = _system_key(principal, privilege)
+    matches = [
+        admin_option for *grant, admin_option in grants if tuple(grant) == key[:2]
+    ]
+    if not matches:
+        return None
+
+    return matches[0]
+
+
+def _role_admin_option(
+    grants: set[tuple[str, str, bool]],
+    principal: str,
+    granted_role: str,
+) -> bool | None:
+    key = _role_key(principal, granted_role)
+    matches = [
+        admin_option for *grant, admin_option in grants if tuple(grant) == key[:2]
+    ]
+    if not matches:
+        return None
+
+    return matches[0]
+
+
+def _statement_admin_option(query: str) -> bool:
+    return query.endswith(" WITH ADMIN OPTION")
 
 
 def _object_key(

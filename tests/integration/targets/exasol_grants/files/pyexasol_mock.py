@@ -44,11 +44,18 @@ class GrantsMockConnection:
         normalized_query = normalize_query(query)
         params = query_params or {}
 
-        if normalized_query.startswith("SELECT PRIVILEGE FROM EXA_DBA_SYS_PRIVS"):
+        if normalized_query.startswith(
+            "SELECT PRIVILEGE, ADMIN_OPTION FROM EXA_DBA_SYS_PRIVS"
+        ):
             return system_privilege_statement(params)
 
         if normalized_query.startswith("SELECT PRIVILEGE FROM EXA_DBA_OBJ_PRIVS"):
             return object_privilege_statement(params)
+
+        if normalized_query.startswith(
+            "SELECT GRANTED_ROLE, ADMIN_OPTION FROM EXA_DBA_ROLE_PRIVS"
+        ):
+            return role_grant_statement(params)
 
         if normalized_query.startswith("GRANT "):
             grant_statement(normalized_query)
@@ -68,7 +75,11 @@ class GrantsMockConnection:
 def system_privilege_statement(params: dict[str, Any]) -> MockStatement:
     state = load_state()
     key = system_key(str(params["principal"]), str(params["privilege"]))
-    rows = [{"PRIVILEGE": key[1]}] if key in state["system_grants"] else []
+    rows = [
+        {"PRIVILEGE": privilege, "ADMIN_OPTION": admin_option}
+        for principal, privilege, admin_option in state["system_grants"]
+        if (principal, privilege) == key
+    ]
 
     return result_statement(rows=rows, rowcount=len(rows))
 
@@ -87,12 +98,37 @@ def object_privilege_statement(params: dict[str, Any]) -> MockStatement:
     return result_statement(rows=rows, rowcount=len(rows))
 
 
+def role_grant_statement(params: dict[str, Any]) -> MockStatement:
+    state = load_state()
+    key = role_key(str(params["principal"]), str(params["granted_role"]))
+    rows = [
+        {"GRANTED_ROLE": granted_role, "ADMIN_OPTION": admin_option}
+        for principal, granted_role, admin_option in state["role_grants"]
+        if (principal, granted_role) == key
+    ]
+
+    return result_statement(rows=rows, rowcount=len(rows))
+
+
 def grant_statement(query: str) -> None:
     state = load_state()
 
     if " ON " not in query:
-        privilege, principal = system_statement_parts(query, "GRANT ", " TO ")
-        state["system_grants"].add(system_key(principal, privilege))
+        grant_name, principal, admin_option = grant_statement_parts(
+            query,
+            "GRANT ",
+            " TO ",
+        )
+        if is_role_grant_statement(query):
+            state["role_grants"].discard((*role_key(principal, grant_name), False))
+            state["role_grants"].discard((*role_key(principal, grant_name), True))
+            state["role_grants"].add((*role_key(principal, grant_name), admin_option))
+        else:
+            state["system_grants"].discard((*system_key(principal, grant_name), False))
+            state["system_grants"].discard((*system_key(principal, grant_name), True))
+            state["system_grants"].add(
+                (*system_key(principal, grant_name), admin_option)
+            )
     else:
         privilege, schema_name, object_name, principal = object_statement_parts(
             query,
@@ -110,8 +146,17 @@ def revoke_statement(query: str) -> None:
     state = load_state()
 
     if " ON " not in query:
-        privilege, principal = system_statement_parts(query, "REVOKE ", " FROM ")
-        state["system_grants"].discard(system_key(principal, privilege))
+        grant_name, principal, _admin_option = grant_statement_parts(
+            query,
+            "REVOKE ",
+            " FROM ",
+        )
+        if is_role_grant_statement(query):
+            state["role_grants"].discard((*role_key(principal, grant_name), False))
+            state["role_grants"].discard((*role_key(principal, grant_name), True))
+        else:
+            state["system_grants"].discard((*system_key(principal, grant_name), False))
+            state["system_grants"].discard((*system_key(principal, grant_name), True))
     else:
         privilege, schema_name, object_name, principal = object_statement_parts(
             query,
@@ -125,14 +170,25 @@ def revoke_statement(query: str) -> None:
     save_state(state)
 
 
-def system_statement_parts(
+def grant_statement_parts(
     query: str,
     prefix: str,
     principal_separator: str,
-) -> tuple[str, str]:
+) -> tuple[str, str, bool]:
     body = query.removeprefix(prefix)
-    privilege, principal_part = body.split(principal_separator, 1)
-    return privilege, quoted_identifiers(principal_part)[0]
+    admin_option = body.endswith(" WITH ADMIN OPTION")
+    if admin_option:
+        body = body.removesuffix(" WITH ADMIN OPTION")
+
+    grant_name, principal_part = body.split(principal_separator, 1)
+    if grant_name.startswith('"'):
+        grant_name = quoted_identifiers(grant_name)[0]
+
+    return grant_name, quoted_identifiers(principal_part)[0], admin_option
+
+
+def is_role_grant_statement(query: str) -> bool:
+    return query.removeprefix("GRANT ").removeprefix("REVOKE ").startswith('"')
 
 
 def object_statement_parts(
@@ -187,6 +243,10 @@ def system_key(principal: str, privilege: str) -> tuple[str, str]:
     return principal.casefold(), privilege.upper()
 
 
+def role_key(principal: str, role_name: str) -> tuple[str, str]:
+    return principal.casefold(), role_name.casefold()
+
+
 def object_key(
     principal: str,
     privilege: str,
@@ -204,11 +264,12 @@ def object_key(
 def load_state() -> dict[str, Any]:
     path = state_path()
     if not path.exists():
-        return {"system_grants": set(), "object_grants": set()}
+        return {"system_grants": set(), "role_grants": set(), "object_grants": set()}
 
     raw_state = json.loads(path.read_text(encoding="utf-8"))
     return {
         "system_grants": {tuple(item) for item in raw_state.get("system_grants", [])},
+        "role_grants": {tuple(item) for item in raw_state.get("role_grants", [])},
         "object_grants": {tuple(item) for item in raw_state.get("object_grants", [])},
     }
 
@@ -218,6 +279,7 @@ def save_state(state: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     serialized = {
         "system_grants": sorted(list(state["system_grants"])),
+        "role_grants": sorted(list(state["role_grants"])),
         "object_grants": sorted(list(state["object_grants"])),
     }
     path.write_text(json.dumps(serialized), encoding="utf-8")
