@@ -13,14 +13,16 @@ description:
   - Supported principals are users and roles, selected with exactly one of
     O(user) or O(role).
   - Supported grant targets are direct system privileges, schema-level object
-    privileges, and schema-qualified object privileges.
+    privileges, schema-qualified object privileges, and role memberships.
+  - O(admin_option) can grant system privileges and role memberships with
+    C(WITH ADMIN OPTION).
   - User and role names are treated as exact Exasol identifier values.
   - Schema and object names use the collection's conservative regular
     identifier validation.
-  - This module does not manage role grants, connection object grants,
-    C(WITH ADMIN OPTION), C(WITH GRANT OPTION), exclusive reconciliation, or
-    broad C(ALL PRIVILEGES) requests.
-  - At least one of O(system_privileges) or O(object_privileges) is required.
+  - This module does not manage connection object grants, exclusive
+    reconciliation, or broad C(ALL PRIVILEGES) requests.
+  - At least one of O(system_privileges), O(roles), or O(object_privileges) is
+    required.
 attributes:
   check_mode:
     description: Can predict grant changes without modifying Exasol.
@@ -56,8 +58,11 @@ options:
     description:
       - Direct system privileges to grant or revoke, for example
         C(CREATE SESSION) or C(USE ANY SCHEMA).
-      - At least one of O(system_privileges) or O(object_privileges) is
-        required.
+      - Each item may be a privilege name string, or a dictionary with
+        C(privilege) and optional C(admin_option).
+      - String items use the task-level O(admin_option) value.
+      - Dictionary C(admin_option) values override the task-level
+        O(admin_option) value for that system privilege.
       - Must not be empty when supplied.
       - Supported values are C(ACCESS ANY CONNECTION),
         C(ALTER ANY CONNECTION), C(ALTER ANY SCHEMA), C(ALTER ANY TABLE),
@@ -80,12 +85,36 @@ options:
         C(SET ANY CONSUMER GROUP), C(UPDATE ANY TABLE), C(USE ANY CONNECTION),
         and C(USE ANY SCHEMA).
     type: list
-    elements: str
+    elements: raw
+  roles:
+    description:
+      - Roles to grant to or revoke from the selected O(user) or O(role).
+      - Each item may be a role name string, or a dictionary with C(role) and
+        optional C(admin_option).
+      - String items use the task-level O(admin_option) value.
+      - Dictionary C(admin_option) values override the task-level
+        O(admin_option) value for that role membership.
+      - Role memberships are reconciled through C(EXA_DBA_ROLE_PRIVS).
+      - Must not be empty when supplied.
+    type: list
+    elements: raw
+  admin_option:
+    description:
+      - Whether system privileges and role memberships should be granted with
+        C(WITH ADMIN OPTION).
+      - If omitted or V(false), C(WITH ADMIN OPTION) is not used.
+      - Applies only to O(system_privileges) and O(roles), not object
+        privileges.
+      - Individual O(system_privileges) and O(roles) dictionary entries can
+        override this value.
+      - When V(false), an existing system privilege or role membership with
+        admin option is reconciled by revoking and re-granting it without admin
+        option.
+    type: bool
+    default: false
   object_privileges:
     description:
       - Schema-scoped object privileges to grant or revoke.
-      - At least one of O(system_privileges) or O(object_privileges) is
-        required.
       - Must not be empty when supplied.
     type: list
     elements: dict
@@ -147,6 +176,49 @@ EXAMPLES = r"""
       - schema: app_schema
         privileges:
           - USAGE
+
+- name: Grant mixed system privileges with per-privilege admin option
+  exasol.exasol.exasol_grants:
+    login_host: db.example.com
+    login_user: "{{ vault_exasol_admin_user }}"
+    login_password: "{{ vault_exasol_admin_password }}"
+    role: security_admin
+    system_privileges:
+      - privilege: SELECT ANY TABLE
+        admin_option: true
+      - privilege: CREATE SESSION
+        admin_option: false
+
+- name: Grant a role membership to a user
+  exasol.exasol.exasol_grants:
+    login_host: db.example.com
+    login_user: "{{ vault_exasol_admin_user }}"
+    login_password: "{{ vault_exasol_admin_password }}"
+    user: app_user
+    roles:
+      - app_reader
+
+- name: Grant a role membership with admin option
+  exasol.exasol.exasol_grants:
+    login_host: db.example.com
+    login_user: "{{ vault_exasol_admin_user }}"
+    login_password: "{{ vault_exasol_admin_password }}"
+    user: app_user
+    roles:
+      - app_reader
+    admin_option: true
+
+- name: Grant mixed role memberships with per-role admin option
+  exasol.exasol.exasol_grants:
+    login_host: db.example.com
+    login_user: "{{ vault_exasol_admin_user }}"
+    login_password: "{{ vault_exasol_admin_password }}"
+    user: app_user
+    roles:
+      - role: app_reader
+        admin_option: true
+      - role: app_writer
+        admin_option: false
 
 - name: Revoke select on one table from a user
   exasol.exasol.exasol_grants:

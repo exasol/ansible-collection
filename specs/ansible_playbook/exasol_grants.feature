@@ -84,3 +84,43 @@ Feature: exasol-grants specification
     When exasol_grants runs with both user and role
     Then the module fails with a validation error
     And no privilege-changing SQL is generated
+
+  @exasol-grants-grant-role-membership-to-user
+  Scenario: Grant role membership to a user
+    Given an Exasol database is reachable at localhost
+    And user "ALICE" is not a member of role "APP_ROLE"
+    When exasol_grants grants APP_ROLE to ALICE
+    Then changed is true
+    And EXA_DBA_ROLE_PRIVS contains "APP_ROLE" for "ALICE"
+
+  @exasol-grants-role-membership-idempotent
+  Scenario: Existing role membership is unchanged
+    Given an Exasol database is reachable at localhost
+    And user "ALICE" is already a member of role "APP_ROLE"
+    When exasol_grants grants APP_ROLE to ALICE again
+    Then changed is false
+    And executed_queries equals []
+
+  @exasol-grants-revoke-role-membership
+  Scenario: Revoke existing role membership
+    Given an Exasol database is reachable at localhost
+    And user "ALICE" is a member of role "APP_ROLE"
+    When exasol_grants revokes APP_ROLE from ALICE
+    Then changed is true
+    And EXA_DBA_ROLE_PRIVS no longer contains "APP_ROLE" for "ALICE"
+
+  @exasol-grants-check-mode-role-membership
+  Scenario: Check mode predicts role membership grant
+    Given an Exasol database is reachable at localhost
+    And user "ALICE" is not a member of role "APP_ROLE"
+    When exasol_grants predicts granting APP_ROLE to ALICE in check mode
+    Then changed is true
+    And EXA_DBA_ROLE_PRIVS still does not contain "APP_ROLE" for "ALICE"
+
+  @exasol-grants-insufficient-privilege-sanitized-error
+  Scenario: Insufficient-privilege failure surfaces a sanitized error
+    Given an Exasol database is reachable at localhost
+    And the connecting user lacks GRANT ANY PRIVILEGE
+    When exasol_grants attempts a system privilege grant
+    Then the module fails with a sanitized authorization error
+    And no raw driver exception or password is exposed

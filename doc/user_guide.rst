@@ -412,6 +412,7 @@ Supported principals and grants:
 
 * exactly one principal, either ``user`` or ``role``
 * direct system privileges through ``system_privileges``
+* role memberships through ``roles``
 * schema-level object privileges through ``object_privileges`` with ``schema``
   and no ``object``
 * schema-qualified object privileges through ``object_privileges`` with both
@@ -419,6 +420,12 @@ Supported principals and grants:
 
 Supply at least one requested privilege. When an optional privilege list is not
 needed, omit the option instead of passing an empty list.
+
+Set ``admin_option: true`` to grant system privileges or role memberships with
+``WITH ADMIN OPTION``. When ``admin_option`` is omitted or ``false``, the module
+does not use ``WITH ADMIN OPTION``. The option does not apply to object
+privileges. System privileges and role memberships can also set
+``admin_option`` per item by using dictionary entries.
 
 Supported system privileges:
 
@@ -449,11 +456,38 @@ Supported object types are ``function``, ``script``, ``table``, ``view``, and
 ``virtual_schema``. The ``object_type`` option is optional; omit it for
 schema-level grants and ordinary table grants.
 
-This version does not manage role grants, connection object grants,
-``WITH ADMIN OPTION``, ``WITH GRANT OPTION``, exclusive reconciliation, or broad
-``ALL PRIVILEGES`` requests. User and role names are exact Exasol identifier
-values. Schema and object names use the collection's conservative
-regular-identifier validation.
+Mixing grant requests
+^^^^^^^^^^^^^^^^^^^^^
+
+One ``exasol_grants`` task targets exactly one principal, but that task may
+contain more than one grant family. You can combine ``system_privileges``,
+``roles``, and ``object_privileges`` in a single task when all requested grants
+belong to the same user or role and share the same ``state``.
+
+For example, one task can grant login rights, role membership, schema usage, and
+table access to ``app_user``. The module checks each requested grant
+independently and only executes statements for missing grants.
+
+Use separate tasks when:
+
+* different grants belong to different principals
+* some grants should be present and others should be absent
+* role membership should be managed separately from direct privileges for
+  review or approval reasons
+
+``state=absent`` follows the same rule: it revokes only the requested grants
+from the selected principal. It does not drop users, drop roles, drop schemas,
+or remove unrelated grants from that principal.
+
+When ``admin_option: false`` is requested for a system privilege or role
+membership that already has admin option, the module revokes and re-grants that
+specific grant without admin option. This keeps ``admin_option`` part of the
+desired state instead of silently accepting the existing stronger grant.
+
+This version does not manage connection object grants, exclusive
+reconciliation, or broad ``ALL PRIVILEGES`` requests. User and role names are
+exact Exasol identifier values. Schema and object names use the collection's
+conservative regular-identifier validation.
 
 Grant a system privilege to a user:
 
@@ -482,6 +516,101 @@ Grant multiple system privileges to a user:
          - CREATE SESSION
          - CREATE SCHEMA
          - USE ANY SCHEMA
+
+Grant a system privilege with admin option:
+
+.. code-block:: yaml
+
+   - name: Let a security role delegate SELECT ANY TABLE
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       role: security_admin
+       system_privileges:
+         - SELECT ANY TABLE
+       admin_option: true
+
+Grant mixed system privileges with per-privilege admin option:
+
+.. code-block:: yaml
+
+   - name: Grant system privileges with different delegation rights
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       role: security_admin
+       system_privileges:
+         - privilege: SELECT ANY TABLE
+           admin_option: true
+         - privilege: CREATE SESSION
+           admin_option: false
+
+The string form is a shorthand for a system privilege without admin option,
+unless task-level ``admin_option: true`` is set. A system privilege
+dictionary's ``admin_option`` value overrides the task-level setting for that
+one privilege.
+
+Grant role membership to a user:
+
+.. code-block:: yaml
+
+   - name: Grant the reader role to an application user
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_user
+       roles:
+         - app_reader
+
+Grant role membership with admin option:
+
+.. code-block:: yaml
+
+   - name: Let an operator delegate a role membership
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_operator
+       roles:
+         - app_reader
+       admin_option: true
+
+Grant mixed role memberships with per-role admin option:
+
+.. code-block:: yaml
+
+   - name: Grant role memberships with different delegation rights
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_operator
+       roles:
+         - role: app_reader
+           admin_option: true
+         - role: app_writer
+           admin_option: false
+
+The string form is a shorthand for a role membership without admin option,
+unless task-level ``admin_option: true`` is set. A role dictionary's
+``admin_option`` value overrides the task-level setting for that one role.
+
+Grant one role to another role:
+
+.. code-block:: yaml
+
+   - name: Grant reporting privileges through a role hierarchy
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       role: app_reporting
+       roles:
+         - app_reader
 
 Grant a schema-scoped object privilege to a role:
 
@@ -546,6 +675,35 @@ Grant system and object privileges in one task:
              - SELECT
              - INSERT
 
+Grant system privileges, role memberships, and object privileges in one task:
+
+.. code-block:: yaml
+
+   - name: Grant the full requested access bundle to a service user
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_service
+       system_privileges:
+         - CREATE SESSION
+       roles:
+         - app_reader
+       object_privileges:
+         - schema: app_schema
+           privileges:
+             - USAGE
+         - schema: app_schema
+           object: fact_sales
+           object_type: table
+           privileges:
+             - SELECT
+         - schema: app_schema
+           object: sales_view
+           object_type: view
+           privileges:
+             - SELECT
+
 Revoke a requested object privilege without touching other grants:
 
 .. code-block:: yaml
@@ -583,9 +741,95 @@ Revoke multiple requested privileges from a role:
              - INSERT
              - UPDATE
 
+Revoke role membership and a direct privilege in one task:
+
+.. code-block:: yaml
+
+   - name: Remove temporary elevated access from a user
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_user
+       state: absent
+       system_privileges:
+         - CREATE SCHEMA
+       roles:
+         - app_deployer
+
 In check mode, ``exasol_grants`` still reads metadata but does not execute
 planned ``GRANT`` or ``REVOKE`` statements. The result's ``executed_queries``
 contains the statements that would run.
+
+Preview a mixed grant task in check mode:
+
+.. code-block:: yaml
+
+   - name: Preview requested access changes
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_service
+       system_privileges:
+         - CREATE SESSION
+       roles:
+         - app_reader
+       object_privileges:
+         - schema: app_schema
+           privileges:
+             - USAGE
+     check_mode: true
+
+Keep different principals in separate tasks:
+
+.. code-block:: yaml
+
+   - name: Grant login to the application user
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_user
+       system_privileges:
+         - CREATE SESSION
+
+   - name: Grant schema access to the reader role
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       role: app_reader
+       object_privileges:
+         - schema: app_schema
+           privileges:
+             - USAGE
+
+Keep grants and revokes in separate tasks:
+
+.. code-block:: yaml
+
+   - name: Grant read access
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_user
+       object_privileges:
+         - schema: app_schema
+           object: fact_sales
+           privileges:
+             - SELECT
+
+   - name: Revoke temporary schema creation privilege
+     exasol.exasol.exasol_grants:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       user: app_user
+       state: absent
+       system_privileges:
+         - CREATE SCHEMA
 
 exasol_user
 -----------

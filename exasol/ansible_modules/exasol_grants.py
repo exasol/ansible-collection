@@ -20,6 +20,7 @@ from exasol.ansible_modules.common_identifier_validation import (
 from exasol.ansible_modules.common_param_validation import validate_choice_param
 
 DEFAULT_STATE = "present"
+DEFAULT_ADMIN_OPTION = False
 STATES = frozenset({"present", "absent"})
 
 SYSTEM_PRIVILEGES = frozenset(
@@ -100,7 +101,7 @@ OBJECT_TYPE_SQL = {
 }
 
 SYSTEM_PRIVILEGE_EXISTS_QUERY = """
-SELECT PRIVILEGE
+SELECT PRIVILEGE, ADMIN_OPTION
 FROM EXA_DBA_SYS_PRIVS
 WHERE UPPER(GRANTEE) = UPPER(:principal)
 AND PRIVILEGE = :privilege
@@ -126,6 +127,13 @@ AND (
 AND (:object_type IS NULL OR UPPER(OBJECT_TYPE) = UPPER(:object_type))
 """
 
+ROLE_GRANT_EXISTS_QUERY = """
+SELECT GRANTED_ROLE, ADMIN_OPTION
+FROM EXA_DBA_ROLE_PRIVS
+WHERE UPPER(GRANTEE) = UPPER(:principal)
+AND UPPER(GRANTED_ROLE) = UPPER(:granted_role)
+"""
+
 
 @dataclass(frozen=True)
 class Principal:
@@ -148,6 +156,7 @@ class SystemGrant:
     """Requested system privilege state."""
 
     privilege: str
+    admin_option: bool = DEFAULT_ADMIN_OPTION
 
 
 @dataclass(frozen=True)
@@ -160,7 +169,15 @@ class ObjectGrant:
     object_type: str | None = None
 
 
-GrantRequest = SystemGrant | ObjectGrant
+@dataclass(frozen=True)
+class RoleGrant:
+    """Requested role membership state."""
+
+    role_name: str
+    admin_option: bool = DEFAULT_ADMIN_OPTION
+
+
+GrantRequest = SystemGrant | ObjectGrant | RoleGrant
 
 
 @dataclass(frozen=True)
@@ -168,6 +185,14 @@ class GrantStatement:
     """Generated grant-management SQL statement."""
 
     query: str
+
+
+@dataclass(frozen=True)
+class GrantMetadata:
+    """Observed grant state relevant for reconciliation."""
+
+    exists: bool
+    admin_option: bool = DEFAULT_ADMIN_OPTION
 
 
 # [impl -> dsn~authorization-state-reconciliation~1]
@@ -218,7 +243,15 @@ def module_argument_spec() -> dict[str, object]:
         },
         "system_privileges": {
             "type": "list",
-            "elements": "str",
+            "elements": "raw",
+        },
+        "roles": {
+            "type": "list",
+            "elements": "raw",
+        },
+        "admin_option": {
+            "type": "bool",
+            "default": DEFAULT_ADMIN_OPTION,
         },
         "object_privileges": {
             "type": "list",
@@ -279,31 +312,58 @@ def _planned_grant_statements(
     statements: list[GrantStatement] = []
 
     for request in requests:
-        grant_exists = _grant_exists(connection, principal, request)
-        if state == "present" and not grant_exists:
-            statements.append(GrantStatement(_grant_query(principal, request)))
-        elif state == "absent" and grant_exists:
+        metadata = _grant_metadata(connection, principal, request)
+        if state == "present":
+            statements.extend(_present_grant_statements(principal, request, metadata))
+        elif state == "absent" and metadata.exists:
             statements.append(GrantStatement(_revoke_query(principal, request)))
 
     return statements
 
 
-def _grant_exists(
+def _present_grant_statements(
+    principal: Principal,
+    request: GrantRequest,
+    metadata: GrantMetadata,
+) -> list[GrantStatement]:
+    if not metadata.exists:
+        return [GrantStatement(_grant_query(principal, request))]
+
+    if not _has_admin_option(request):
+        return []
+
+    requested_admin_option = _requested_admin_option(request)
+    if metadata.admin_option == requested_admin_option:
+        return []
+
+    if requested_admin_option:
+        return [GrantStatement(_grant_query(principal, request))]
+
+    return [
+        GrantStatement(_revoke_query(principal, request)),
+        GrantStatement(_grant_query(principal, request)),
+    ]
+
+
+def _grant_metadata(
     connection: object,
     principal: Principal,
     request: GrantRequest,
-) -> bool:
+) -> GrantMetadata:
     if isinstance(request, SystemGrant):
-        return _system_grant_exists(connection, principal, request)
+        return _system_grant_metadata(connection, principal, request)
 
-    return _object_grant_exists(connection, principal, request)
+    if isinstance(request, RoleGrant):
+        return _role_grant_metadata(connection, principal, request)
+
+    return _object_grant_metadata(connection, principal, request)
 
 
-def _system_grant_exists(
+def _system_grant_metadata(
     connection: object,
     principal: Principal,
     request: SystemGrant,
-) -> bool:
+) -> GrantMetadata:
     result = common_query.execute_queries(
         connection,
         SYSTEM_PRIVILEGE_EXISTS_QUERY,
@@ -312,14 +372,14 @@ def _system_grant_exists(
             "privilege": request.privilege,
         },
     )
-    return bool(result["query_result"])
+    return _grant_metadata_from_result(result)
 
 
-def _object_grant_exists(
+def _object_grant_metadata(
     connection: object,
     principal: Principal,
     request: ObjectGrant,
-) -> bool:
+) -> GrantMetadata:
     result = common_query.execute_queries(
         connection,
         OBJECT_PRIVILEGE_EXISTS_QUERY,
@@ -331,12 +391,56 @@ def _object_grant_exists(
             "object_type": _metadata_object_type(request),
         },
     )
-    return bool(result["query_result"])
+    return GrantMetadata(exists=bool(result["query_result"]))
+
+
+def _role_grant_metadata(
+    connection: object,
+    principal: Principal,
+    request: RoleGrant,
+) -> GrantMetadata:
+    result = common_query.execute_queries(
+        connection,
+        ROLE_GRANT_EXISTS_QUERY,
+        named_args={
+            "principal": principal.name,
+            "granted_role": request.role_name,
+        },
+    )
+    return _grant_metadata_from_result(result)
+
+
+def _grant_metadata_from_result(result: Mapping[str, object]) -> GrantMetadata:
+    rows = result["query_result"]
+    if not isinstance(rows, Sequence):
+        raise ValueError("unexpected result shape for Exasol grant metadata.")
+
+    if not rows:
+        return GrantMetadata(exists=False)
+
+    row = rows[0]
+    if not isinstance(row, Mapping):
+        raise ValueError("unexpected row shape for Exasol grant metadata.")
+
+    return GrantMetadata(
+        exists=True,
+        admin_option=_metadata_bool(row.get("ADMIN_OPTION")),
+    )
 
 
 def _grant_query(principal: Principal, request: GrantRequest) -> str:
     if isinstance(request, SystemGrant):
-        return f"GRANT {request.privilege} TO {principal.quoted}"
+        return _with_admin_option(
+            f"GRANT {request.privilege} TO {principal.quoted}",
+            request.admin_option,
+        )
+
+    if isinstance(request, RoleGrant):
+        return _with_admin_option(
+            f"GRANT {quote_exact_identifier_value(request.role_name)} "
+            f"TO {principal.quoted}",
+            request.admin_option,
+        )
 
     return (
         f"GRANT {request.privilege} ON {_object_target(request)} "
@@ -347,6 +451,12 @@ def _grant_query(principal: Principal, request: GrantRequest) -> str:
 def _revoke_query(principal: Principal, request: GrantRequest) -> str:
     if isinstance(request, SystemGrant):
         return f"REVOKE {request.privilege} FROM {principal.quoted}"
+
+    if isinstance(request, RoleGrant):
+        return (
+            f"REVOKE {quote_exact_identifier_value(request.role_name)} "
+            f"FROM {principal.quoted}"
+        )
 
     return (
         f"REVOKE {request.privilege} ON {_object_target(request)} "
@@ -373,6 +483,13 @@ def _metadata_object_type(request: ObjectGrant) -> str | None:
     return _object_type_sql(request.object_type)
 
 
+def _with_admin_option(query: str, admin_option: bool) -> str:
+    if not admin_option:
+        return query
+
+    return f"{query} WITH ADMIN OPTION"
+
+
 def _principal(params: Mapping[str, object]) -> Principal:
     user = params.get("user")
     role = params.get("role")
@@ -395,26 +512,124 @@ def _principal(params: Mapping[str, object]) -> Principal:
 
 
 def _grant_requests(params: Mapping[str, object]) -> list[GrantRequest]:
-    requests: list[GrantRequest] = [
-        SystemGrant(privilege)
-        for privilege in _privilege_list(
+    admin_option = _admin_option(params)
+    requests: list[GrantRequest] = []
+    requests.extend(
+        _system_grant_requests(
             params.get("system_privileges"),
-            option_name="system_privileges",
-            allowed=SYSTEM_PRIVILEGES,
-            privilege_type="system",
+            admin_option,
         )
-    ]
+    )
+    requests.extend(_role_grant_requests(params.get("roles"), admin_option))
 
     for index, item in enumerate(_object_privilege_items(params)):
         requests.extend(_object_grant_requests(item, index))
 
     if not requests:
         raise ValueError(
-            "at least one of system_privileges or object_privileges must contain "
-            "a privilege."
+            "at least one of system_privileges, roles, or object_privileges must "
+            "contain a grant request."
         )
 
+    if admin_option and not any(_has_admin_option(request) for request in requests):
+        raise ValueError("admin_option applies only to system_privileges and roles.")
+
     return _deduplicate_requests(requests)
+
+
+def _system_grant_requests(
+    value: object,
+    default_admin_option: bool,
+) -> list[SystemGrant]:
+    if value is None:
+        return []
+
+    if not isinstance(value, list):
+        raise ValueError("system_privileges must be a list of strings or dictionaries.")
+
+    if not value:
+        raise ValueError("system_privileges must not be empty when supplied.")
+
+    return [
+        _system_grant_request(item, index, default_admin_option)
+        for index, item in enumerate(value)
+    ]
+
+
+def _system_grant_request(
+    value: object,
+    index: int,
+    default_admin_option: bool,
+) -> SystemGrant:
+    if isinstance(value, str):
+        return SystemGrant(
+            privilege=_normalize_privilege(
+                value,
+                allowed=SYSTEM_PRIVILEGES,
+                privilege_type="system",
+            ),
+            admin_option=default_admin_option,
+        )
+
+    if not isinstance(value, Mapping):
+        raise ValueError(f"system_privileges[{index}] must be a string or dictionary.")
+
+    return SystemGrant(
+        privilege=_normalize_privilege(
+            value.get("privilege"),
+            allowed=SYSTEM_PRIVILEGES,
+            privilege_type="system",
+        ),
+        admin_option=_optional_admin_option(
+            value,
+            option_name=f"system_privileges[{index}].admin_option",
+            default=default_admin_option,
+        ),
+    )
+
+
+def _role_grant_requests(
+    value: object,
+    default_admin_option: bool,
+) -> list[RoleGrant]:
+    if value is None:
+        return []
+
+    if not isinstance(value, list):
+        raise ValueError("roles must be a list of strings or dictionaries.")
+
+    if not value:
+        raise ValueError("roles must not be empty when supplied.")
+
+    return [
+        _role_grant_request(item, index, default_admin_option)
+        for index, item in enumerate(value)
+    ]
+
+
+def _role_grant_request(
+    value: object,
+    index: int,
+    default_admin_option: bool,
+) -> RoleGrant:
+    if isinstance(value, str):
+        return RoleGrant(
+            role_name=validate_role_name(_non_empty_string(value, "role")),
+            admin_option=default_admin_option,
+        )
+
+    if not isinstance(value, Mapping):
+        raise ValueError(f"roles[{index}] must be a string or dictionary.")
+
+    role_name = validate_role_name(_non_empty_string(value.get("role"), "role"))
+    return RoleGrant(
+        role_name=role_name,
+        admin_option=_optional_admin_option(
+            value,
+            option_name=f"roles[{index}].admin_option",
+            default=default_admin_option,
+        ),
+    )
 
 
 def _object_grant_requests(
@@ -536,6 +751,52 @@ def _object_type_sql(value: str | None) -> str | None:
 
 def _state(params: Mapping[str, object]) -> str:
     return validate_choice_param(params, "state", DEFAULT_STATE, STATES)
+
+
+def _admin_option(params: Mapping[str, object]) -> bool:
+    return _optional_admin_option(
+        params,
+        option_name="admin_option",
+        default=DEFAULT_ADMIN_OPTION,
+    )
+
+
+def _optional_admin_option(
+    params: Mapping[str, object],
+    *,
+    option_name: str,
+    default: bool,
+) -> bool:
+    value = params.get("admin_option", default)
+
+    if not isinstance(value, bool):
+        raise ValueError(f"{option_name} must be a boolean.")
+
+    return value
+
+
+def _has_admin_option(request: GrantRequest) -> bool:
+    return isinstance(request, (SystemGrant, RoleGrant))
+
+
+def _requested_admin_option(request: GrantRequest) -> bool:
+    if isinstance(request, (SystemGrant, RoleGrant)):
+        return request.admin_option
+
+    return DEFAULT_ADMIN_OPTION
+
+
+def _metadata_bool(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, str):
+        return value.strip().casefold() in {"true", "t", "yes", "y", "1"}
+
+    if isinstance(value, int):
+        return bool(value)
+
+    return False
 
 
 def _non_empty_string(value: object, name: str) -> str:
