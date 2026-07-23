@@ -2,9 +2,11 @@ Feature: exasol-schema Ansible module runtime specification
   Manage Exasol database schemas directly through the exasol_schema Python
   runtime helpers.
 
+  Background:
+    Given an Exasol database is reachable at localhost
+
   @exasol-schema-create-missing-schema
   Scenario: Create a missing schema
-    Given an Exasol database is reachable at localhost
     And the schema does not exist
     When the schema runtime runs with state present
     Then changed is true
@@ -15,7 +17,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-leave-existing-schema-unchanged
   Scenario: Leave an existing schema unchanged
-    Given an Exasol database is reachable at localhost
     And the schema already exists
     When the schema runtime runs with state present
     Then changed is false
@@ -26,7 +27,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-drop-existing-schema
   Scenario: Drop an existing schema
-    Given an Exasol database is reachable at localhost
     And the schema already exists
     When the schema runtime runs with state absent
     Then changed is true
@@ -37,7 +37,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-check-mode-predicts-create-without-writing
   Scenario: Check mode predicts create without writing
-    Given an Exasol database is reachable at localhost
     And the schema does not exist
     When the schema runtime runs in check mode with state present
     Then changed is true
@@ -47,7 +46,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-check-mode-predicts-no-action-when-schema-exists
   Scenario: Check mode predicts no action when schema exists
-    Given an Exasol database is reachable at localhost
     And the schema already exists
     When the schema runtime runs in check mode with state present
     Then changed is false
@@ -57,7 +55,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-check-mode-predicts-drop-without-writing
   Scenario: Check mode predicts drop without writing
-    Given an Exasol database is reachable at localhost
     And the schema already exists
     When the schema runtime runs in check mode with state absent and cascade
     Then changed is true
@@ -67,7 +64,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-create-with-owner
   Scenario: Create a schema with an owner
-    Given an Exasol database is reachable at localhost
     And the schema does not exist
     And the requested owner exists
     When the schema runtime runs with state present and owner
@@ -77,7 +73,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-owner-does-not-exist
   Scenario: Refuse to assign a non-existent owner
-    Given an Exasol database is reachable at localhost
     And the schema does not exist
     And the requested owner does not exist
     When the schema runtime runs with state present and owner
@@ -87,7 +82,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-change-owner
   Scenario: Change the owner of an existing schema
-    Given an Exasol database is reachable at localhost
     And the schema exists with a different owner
     And the requested owner exists
     When the schema runtime runs with state present and owner
@@ -97,7 +91,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-owner-idempotent
   Scenario: Leave an identical schema owner unchanged
-    Given an Exasol database is reachable at localhost
     And the schema exists with the requested owner
     When the schema runtime runs with state present and owner
     Then changed is false
@@ -106,7 +99,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-owner-check-mode
   Scenario: Check mode predicts an owner change without writing
-    Given an Exasol database is reachable at localhost
     And the schema exists with a different owner
     And the requested owner exists
     When the schema runtime runs in check mode with state present and owner
@@ -116,7 +108,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-owner-check-mode-idempotent
   Scenario: Check mode predicts no owner change when already matching
-    Given an Exasol database is reachable at localhost
     And the schema exists with the requested owner
     When the schema runtime runs in check mode with state present and owner
     Then changed is false
@@ -125,7 +116,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-set-comment
   Scenario: Set a schema comment
-    Given an Exasol database is reachable at localhost
     And the schema exists without a comment
     When the schema runtime runs with state present and comment
     Then changed is true
@@ -134,7 +124,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-clear-comment
   Scenario: Clear a schema comment
-    Given an Exasol database is reachable at localhost
     And the schema exists with a comment
     When the schema runtime runs with state present and an empty comment
     Then changed is true
@@ -143,7 +132,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-comment-idempotent
   Scenario: Leave an identical schema comment unchanged
-    Given an Exasol database is reachable at localhost
     And the schema exists with the requested comment
     When the schema runtime runs with state present and comment
     Then changed is false
@@ -152,7 +140,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-comment-check-mode
   Scenario: Check mode predicts a comment change without writing
-    Given an Exasol database is reachable at localhost
     And the schema exists with a different comment
     When the schema runtime runs in check mode with state present and comment
     Then changed is true
@@ -161,7 +148,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-comment-check-mode-idempotent
   Scenario: Check mode predicts no comment change when already matching
-    Given an Exasol database is reachable at localhost
     And the schema exists with the requested comment
     When the schema runtime runs in check mode with state present and comment
     Then changed is false
@@ -170,7 +156,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-rename
   Scenario: Rename an existing schema
-    Given an Exasol database is reachable at localhost
     And the source schema exists
     And the target schema does not exist
     When the schema runtime runs with state present and new_name
@@ -180,7 +165,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-rename-idempotent
   Scenario: Leave an already renamed schema unchanged
-    Given an Exasol database is reachable at localhost
     And the source schema does not exist
     And the target schema exists
     When the schema runtime runs with state present and new_name
@@ -190,7 +174,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-rename-check-mode
   Scenario: Check mode predicts a rename without writing
-    Given an Exasol database is reachable at localhost
     And the source schema exists
     And the target schema does not exist
     When the schema runtime runs in check mode with state present and new_name
@@ -200,7 +183,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-rename-check-mode-idempotent
   Scenario: Check mode predicts no rename when already renamed
-    Given an Exasol database is reachable at localhost
     And the source schema does not exist
     And the target schema exists
     When the schema runtime runs in check mode with state present and new_name
@@ -210,7 +192,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-set-raw-size-limit
   Scenario: Set a schema raw size limit
-    Given an Exasol database is reachable at localhost
     And the schema exists without a raw size limit
     When the schema runtime runs with state present and raw_size_limit
     Then changed is true
@@ -219,7 +200,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-change-raw-size-limit
   Scenario: Change a schema raw size limit
-    Given an Exasol database is reachable at localhost
     And the schema exists with a different raw size limit
     When the schema runtime runs with state present and raw_size_limit
     Then changed is true
@@ -228,7 +208,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-raw-size-limit-idempotent
   Scenario: Leave an identical schema raw size limit unchanged
-    Given an Exasol database is reachable at localhost
     And the schema exists with the requested raw size limit
     When the schema runtime runs with state present and raw_size_limit
     Then changed is false
@@ -237,7 +216,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-raw-size-limit-check-mode
   Scenario: Check mode predicts a raw size limit change without writing
-    Given an Exasol database is reachable at localhost
     And the schema exists with a different raw size limit
     When the schema runtime runs in check mode with state present and raw_size_limit
     Then changed is true
@@ -246,7 +224,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-raw-size-limit-check-mode-idempotent
   Scenario: Check mode predicts no raw size limit change when already matching
-    Given an Exasol database is reachable at localhost
     And the schema exists with the requested raw size limit
     When the schema runtime runs in check mode with state present and raw_size_limit
     Then changed is false
@@ -255,7 +232,6 @@ Feature: exasol-schema Ansible module runtime specification
 
   @exasol-schema-drop-non-empty-without-cascade
   Scenario: Refuse to drop a non-empty schema without cascade
-    Given an Exasol database is reachable at localhost
     And the schema contains a table
     And the runtime does not check whether the schema contains objects before issuing the drop
     When the schema runtime runs with state absent without cascade

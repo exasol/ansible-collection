@@ -3,4 +3,5 @@ plugins/modules/exasol_info.py validate-modules:missing-gplv3-license  # It's OK
 plugins/modules/exasol_query.py validate-modules:missing-gplv3-license
 plugins/modules/exasol_role.py validate-modules:missing-gplv3-license
 plugins/modules/exasol_schema.py validate-modules:missing-gplv3-license
+plugins/modules/exasol_script.py validate-modules:missing-gplv3-license
 plugins/modules/exasol_user.py validate-modules:missing-gplv3-license

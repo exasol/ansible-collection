@@ -35,6 +35,7 @@
 - When expecting an exception in a test, structure the assertion so exactly one invocation can throw; do not combine multiple possibly-throwing calls inside the same exception expectation.
 - Keep assertions specific:
   verify both the returned module/runtime result and the observable database side effect where applicable.
+- Use `pytest.mark.parametrize` when independent input cases share the same setup and assertion; give cases descriptive IDs so failures identify the affected case directly.
 - For query integration coverage, separate read-only and mutating scenarios into different tests, and cover check-mode prediction behavior explicitly when the runtime supports it.
 
 ## Formatting Python

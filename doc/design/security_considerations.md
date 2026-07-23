@@ -34,6 +34,6 @@ security/tier_segregation_and_trusted_operator_boundary
 
 ## Residual Risk
 
-`exasol_query` intentionally enables operator-supplied SQL execution today, and any future `exasol_script` module would do the same for a broader trusted-operator surface. The security boundary is therefore operator authorization, secret-safe handling, and transport protection, not restriction of SQL semantics inside the module.
+`exasol_query` and `exasol_script` intentionally enable operator-supplied SQL execution, the latter for multi-statement scripts. The security boundary is therefore operator authorization, secret-safe handling, and transport protection, not restriction of SQL semantics inside either module.
 
 Trusted operators can still intentionally or accidentally execute destructive SQL. This risk is accepted as part of the module's purpose and must be managed operationally through least privilege, review of playbooks, and controlled execution environments.

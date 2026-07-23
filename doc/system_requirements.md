@@ -4,7 +4,7 @@
 
 The Exasol Ansible Collection lets operators automate Exasol administration tasks with Ansible modules while relying on Exasol as the authoritative system for authentication and authorization.
 
-This specification covers the current and planned database-administration surface for Exasol automation, including `exasol_user`, `exasol_role`, `exasol_query`, planned grant-management and schema-management workflows, and future trusted-operator modules such as `exasol_grants`, `exasol_schema`, and `exasol_script`.
+This specification covers the current and planned database-administration surface for Exasol automation, including `exasol_user`, `exasol_role`, `exasol_query`, `exasol_script`, `exasol_grants`, and `exasol_schema`, as well as future trusted-operator modules.
 
 ## Goals
 
@@ -21,7 +21,7 @@ This draft was reverse-engineered from:
 * `doc/user_guide.rst`
 * the legacy Exasol user security design note migrated into this document
 * the current `exasol_user`, `exasol_role`, and `exasol_query` module behavior
-* the planned grant-management, schema-management, and trusted-operator administration surface described in the design chapters
+* the current grant-management, schema-management, and trusted-operator administration surface described in the design chapters
 
 ## Notation
 
@@ -235,6 +235,19 @@ Covers:
 
 Needs: scn
 
+### Execute Multi-Statement Exasol Scripts
+`req~execute-multi-statement-exasol-scripts~1`
+
+The `exasol_script` module must execute an ordered SQL script as one connection-scoped operation using upstream pyexasol script-execution support, stop at the first failing statement, and report `changed` based on whether any executed statement was not read-only.
+
+Rationale:
+
+Operators need to run controller-side SQL scripts, including Exasol script bodies with embedded semicolons, without the collection maintaining its own SQL-script parser.
+
+Status: draft
+
+Needs: scn
+
 ### Gather Basic Exasol Server Metadata
 `req~gather-basic-exasol-server-information~1`
 
@@ -431,6 +444,22 @@ Status: draft
 
 Covers:
 - `req~gather-basic-exasol-server-information~1`
+
+Needs: dsn
+
+### Exasol Script Executes Multi-Statement Scripts
+`scn~exasol-script-executes-multi-statement-scripts~1`
+
+**Given** an Exasol cluster reachable from the Ansible controller
+**When** an Ansible Operator runs `exasol_script` with an ordered multi-statement script, including a script body terminated by a standalone `/` line
+**Then** the runtime executes the statements pyexasol split from the script, in order, on one connection
+**And** the result reports `changed=true` when any executed statement was not read-only
+**And** a failing statement stops execution of later statements and surfaces a sanitized error
+
+Status: draft
+
+Covers:
+- `req~execute-multi-statement-exasol-scripts~1`
 
 Needs: dsn
 

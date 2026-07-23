@@ -1,9 +1,11 @@
 Feature: exasol-schema specification
   Manage Exasol database schemas from Ansible playbooks.
 
+  Background:
+    Given an Exasol database is reachable at localhost
+
   @exasol-schema-create-missing-schema
   Scenario: Create missing schema
-    Given an Exasol database is reachable at localhost
     And schema "SALES" does not exist in EXA_SCHEMAS
     When exasol_schema runs with:
       | name  | state   |
@@ -18,7 +20,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-preserves-exact-identifier
   Scenario: Create schema with exact identifier semantics
-    Given an Exasol database is reachable at localhost
     And exact-identifier schema "Sales+/=Schema" does not exist in EXA_SCHEMAS
     When exasol_schema runs with:
       | name             | state   |
@@ -33,7 +34,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-apply-unchanged
   Scenario: Applying identical schema state results in no changes
-    Given an Exasol database is reachable at localhost
     And schema "SALES" already exists in EXA_SCHEMAS
     When exasol_schema runs again with:
       | name  | state   |
@@ -45,7 +45,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-apply-unchanged-with-different-case-spelling
   Scenario: Applying same schema with different case spelling stays idempotent
-    Given an Exasol database is reachable at localhost
     And exact-identifier schema "Sales+/=Schema" already exists in EXA_SCHEMAS
     When exasol_schema runs again with:
       | name             | state   |
@@ -58,7 +57,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-check-mode-create
   Scenario: Check mode predicts create
-    Given an Exasol database is reachable at localhost
     And schema "SALES" does not exist in EXA_SCHEMAS
     When exasol_schema runs in check mode with:
       | name  | state   |
@@ -72,7 +70,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-check-mode-drop
   Scenario: Check mode predicts drop
-    Given an Exasol database is reachable at localhost
     And schema "SALES" exists in EXA_SCHEMAS
     When exasol_schema runs in check mode with:
       | name  | state  |
@@ -86,7 +83,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-check-mode-drop-cascade
   Scenario: Check mode predicts cascade drop
-    Given an Exasol database is reachable at localhost
     And schema "SALES" exists in EXA_SCHEMAS
     And schema "SALES" contains database objects
     When exasol_schema runs in check mode with:
@@ -101,7 +97,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-drop-existing-schema
   Scenario: Drop existing empty schema
-    Given an Exasol database is reachable at localhost
     And schema "SALES" exists in EXA_SCHEMAS
     And schema "SALES" is empty
     When exasol_schema runs with:
@@ -116,7 +111,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-drop-existing-schema-cascade
   Scenario: Drop existing non-empty schema using cascade
-    Given an Exasol database is reachable at localhost
     And schema "SALES" exists in EXA_SCHEMAS
     And schema "SALES" contains table "SALES_TAB"
     When exasol_schema runs with:
@@ -131,7 +125,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-drop-non-empty-without-cascade
   Scenario: Refuse to drop a non-empty schema without cascade
-    Given an Exasol database is reachable at localhost
     And schema "SALES" exists in EXA_SCHEMAS
     And schema "SALES" contains table "SALES_TAB"
     And exasol_schema does not check whether the schema contains objects before issuing the drop
@@ -143,7 +136,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-drop-missing-schema
   Scenario: Drop missing schema
-    Given an Exasol database is reachable at localhost
     And schema "SALES" does not exist in EXA_SCHEMAS
     When exasol_schema runs with:
       | name  | state  |
@@ -154,7 +146,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-create-with-owner
   Scenario: Create a schema and assign its owner
-    Given an Exasol database is reachable at localhost
     And the schema does not exist
     And the requested owner exists
     When a playbook runs exasol_schema with state present and owner
@@ -164,7 +155,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-change-owner
   Scenario: Change the owner of an existing schema through a playbook
-    Given an Exasol database is reachable at localhost
     And the schema exists with a different owner
     And the requested owner exists
     When a playbook runs exasol_schema with state present and owner
@@ -174,7 +164,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-owner-idempotent
   Scenario: Keep an identical schema owner unchanged
-    Given an Exasol database is reachable at localhost
     And the schema exists with the requested owner
     When a playbook runs exasol_schema with state present and owner
     Then changed is false
@@ -183,7 +172,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-set-comment
   Scenario: Set a schema comment through a playbook
-    Given an Exasol database is reachable at localhost
     And the schema exists without a comment
     When a playbook runs exasol_schema with a comment
     Then changed is true
@@ -192,7 +180,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-rename
   Scenario: Rename a schema through a playbook
-    Given an Exasol database is reachable at localhost
     And the source schema exists
     And the target schema does not exist
     When a playbook runs exasol_schema with new_name
@@ -202,7 +189,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-rename-idempotent
   Scenario: Leave an already renamed schema unchanged through a playbook
-    Given an Exasol database is reachable at localhost
     And the source schema does not exist
     And the target schema already exists
     When a playbook runs exasol_schema with new_name again
@@ -212,7 +198,6 @@ Feature: exasol-schema specification
 
   @exasol-schema-raw-size-limit-check-mode
   Scenario: Predict a raw size limit change through a playbook
-    Given an Exasol database is reachable at localhost
     And the schema exists with a raw size limit
     When a playbook runs exasol_schema in check mode with a different raw_size_limit
     Then changed is true

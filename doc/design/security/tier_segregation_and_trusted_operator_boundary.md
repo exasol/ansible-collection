@@ -1,6 +1,6 @@
 # Tier Segregation and Trusted-Operator Boundary
 
-These modules are designed for trusted operators running in controlled automation environments. In particular, `exasol_query` already executes operator-supplied SQL directly against Exasol, and any future `exasol_script` surface would extend the same trust model. The collection does not sandbox SQL semantics or downgrade the authority of the authenticated Exasol account.
+These modules are designed for trusted operators running in controlled automation environments. In particular, `exasol_query` and `exasol_script` already execute operator-supplied SQL directly against Exasol, the latter as multi-statement scripts, extending the same trust model. The collection does not sandbox SQL semantics or downgrade the authority of the authenticated Exasol account.
 
 ## Main Threats
 
@@ -25,7 +25,7 @@ Needs: dsn
 ### Direct SQL Surfaces Are Mistaken For Sandboxed Interfaces
 `thrt~direct-sql-surfaces-are-mistaken-for-sandboxed-interfaces~1`
 
-Operators could incorrectly assume that direct SQL interfaces such as `exasol_query` or future script modules constrain SQL semantics or reduce account authority.
+Operators could incorrectly assume that direct SQL interfaces such as `exasol_query` or `exasol_script` constrain SQL semantics or reduce account authority.
 
 Status: draft
 
@@ -44,7 +44,7 @@ Needs: dsn
 
 * run the collection only from tiers that are allowed to reach Exasol administration endpoints
 * use separate low-privilege connection accounts for distinct automation roles where possible
-* treat `exasol_query` and any future `exasol_grants`, `exasol_schema`, or `exasol_script` surface as subject to the same least-privilege, redaction, and transport-protection rules
+* treat `exasol_query`, `exasol_script`, `exasol_grants`, and `exasol_schema` as subject to the same least-privilege, redaction, and transport-protection rules
 * require repeatable state-reconciliation planning only for modules that reconcile declarative authorization or schema state from observed metadata
 
 ## Mitigations
@@ -84,7 +84,7 @@ Needs: uman
 ### Apply The Security Model To Future Administrative Modules
 `dsn~apply-the-security-model-to-future-administrative-modules~1`
 
-Current `exasol_query` and any future administrative module such as `exasol_grants`, `exasol_schema`, or `exasol_script` must follow the same rules established here where they apply: no local privilege bypass, encrypted transport only, and least-privilege operation. Modules with structured outputs must keep those outputs secret-safe. Direct SQL surfaces such as `exasol_query` remain trusted-operator interfaces: they are explicitly exempt from both automatic redaction of arbitrary operator-supplied SQL text and the state-reconciliation rule. Modules that reconcile declarative authorization or schema state from observed metadata, such as `exasol_grants` or `exasol_schema`, must use repeatable planning based on observed database state.
+Current `exasol_query`, `exasol_script`, `exasol_grants`, and `exasol_schema` modules, and any future administrative modules, must follow the same rules established here where they apply: no local privilege bypass, encrypted transport only, and least-privilege operation. Modules with structured outputs must keep those outputs secret-safe. Direct SQL surfaces such as `exasol_query` and `exasol_script` remain trusted-operator interfaces: they are explicitly exempt from both automatic redaction of arbitrary operator-supplied SQL text and the state-reconciliation rule. Modules that reconcile declarative authorization or schema state from observed metadata, such as `exasol_grants` or `exasol_schema`, must use repeatable planning based on observed database state.
 
 Status: draft
 
