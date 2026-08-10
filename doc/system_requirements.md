@@ -248,6 +248,25 @@ Status: draft
 
 Needs: scn
 
+### Use The Canonical Schema Connection Parameter
+`req~use-canonical-schema-connection-parameter~1`
+
+The collection must document `login_schema` as the primary parameter for the
+schema opened by an Exasol connection, continue accepting `login_db` as a
+deprecated alias, and define deterministic behavior when both are supplied.
+
+Rationale:
+
+Exasol connections select schemas, not databases. A canonical schema-specific
+name makes playbooks clearer without breaking existing automation.
+
+Status: draft
+
+Covers:
+- `feat~documented-exasol-collection-usage~1`
+
+Needs: scn
+
 ### Gather Basic Exasol Server Metadata
 `req~gather-basic-exasol-server-information~1`
 
@@ -505,6 +524,23 @@ Status: draft
 
 Covers:
 - `req~protect-exasol-transport~2`
+
+Needs: dsn
+
+### Canonical Schema Connection Parameter Is Used
+`scn~canonical-schema-connection-parameter-is-used~1`
+
+**Given** an Ansible Operator supplies `login_schema` when connecting to Exasol
+**When** the collection validates and maps shared connection parameters
+**Then** it passes that value to pyexasol as `schema`
+**And** it accepts the deprecated `login_db` alias
+**And** when both names are supplied, `login_db` takes precedence for backward
+compatibility
+
+Status: draft
+
+Covers:
+- `req~use-canonical-schema-connection-parameter~1`
 
 Needs: dsn
 

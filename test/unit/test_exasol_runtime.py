@@ -58,6 +58,7 @@ def test_runtime_argument_spec_import_does_not_require_sqlglot(
 
 
 # [utest -> dsn~centralize-connection-parameter-mapping-and-secret-sanitization~1]
+# [utest -> dsn~canonical-schema-connection-parameter~1]
 def test_build_exasol_connect_kwargs_maps_ansible_arguments_to_pyexasol() -> None:
     """Verify Ansible connection parameters map to pyexasol keyword arguments."""
     kwargs = exasol_query.build_exasol_connect_kwargs(

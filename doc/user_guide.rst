@@ -189,10 +189,16 @@ parameters:
            login_host: db.example.com
            login_user: "{{ vault_exasol_user }}"
            login_password: "{{ vault_exasol_password }}"
+           login_schema: reporting
            query: >-
              SELECT PARAM_VALUE
              FROM EXA_METADATA
-             WHERE PARAM_NAME = 'databaseProductVersion'
+           WHERE PARAM_NAME = 'databaseProductVersion'
+
+Use ``login_schema`` to select the schema opened by the connection. The former
+``login_db`` name remains a deprecated alias for existing playbooks. If both
+are set, ``login_db`` takes precedence for backward compatibility; use only
+``login_schema`` in new playbooks.
 
 exasol_query
 ------------

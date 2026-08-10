@@ -113,4 +113,21 @@ Covers:
 
 Needs: impl, utest
 
+### Canonical Schema Connection Parameter Mapping
+`dsn~canonical-schema-connection-parameter~1`
+
+The shared connection argument specification exposes `login_schema` as the
+canonical schema-selection parameter and maps its resolved value to
+pyexasol's `schema` keyword. `login_db` remains a deprecated alias. To match
+Ansible alias resolution and retain compatibility for callers of the runtime
+package, an explicitly supplied `login_db` value takes precedence if both
+names are present.
+
+Status: draft
+
+Covers:
+- `scn~canonical-schema-connection-parameter-is-used~1`
+
+Needs: impl, utest
+
 ## Open Issues

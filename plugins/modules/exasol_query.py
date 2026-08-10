@@ -53,6 +53,7 @@ EXAMPLES = r"""
     login_host: db.example.com
     login_user: "{{ vault_exasol_user }}"
     login_password: "{{ vault_exasol_password }}"
+    login_schema: reporting
     query: >-
       SELECT PARAM_VALUE
       FROM EXA_METADATA

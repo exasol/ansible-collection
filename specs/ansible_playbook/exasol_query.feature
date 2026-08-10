@@ -21,6 +21,32 @@ Feature: exasol-query specification
       | sql            |
       | SELECT 11 AS A |
 
+  @exasol-query-login-schema-canonical
+  Scenario: Select a connection schema with login_schema
+    Given a schema exists for the connection
+    When exasol_query runs with login_schema set to that schema and login_db unset
+    Then the query runs with that schema selected
+
+  @exasol-query-login-db-deprecated-alias
+  Scenario: Select a connection schema with deprecated login_db
+    Given a schema exists for the connection
+    When exasol_query runs with login_schema unset and login_db set to that schema
+    Then the query runs with that schema selected
+
+  @exasol-query-login-schema-legacy-precedence
+  Scenario: Prefer login_db when both schema parameters are supplied
+    Given two schemas exist for the connection
+    When exasol_query runs with login_schema and login_db set to different schemas
+    Then the query runs with the login_db schema selected
+    And Ansible warns that both the option and its alias are set
+
+  @exasol-query-login-schema-same-value-warning
+  Scenario: Warn when both schema parameters have the same value
+    Given a schema exists for the connection
+    When exasol_query runs with login_schema and login_db set to that same schema
+    Then the query runs with that schema selected
+    And Ansible warns that both the option and its alias are set
+
   @exasol-query-batch-statements
   Scenario: Execute statement batch on one connection
     And a schema does not exist

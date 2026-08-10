@@ -14,7 +14,7 @@ General System Requirements are defined in [System Requirements](../../system_re
 | Exasol database / Exasol cluster | The target Exasol instance, reachable at `login_host`, that a scenario's `Given` step establishes as available before any `When` step runs. |
 | Ansible module | The thin `plugins/modules/exasol_*.py` entry point that Ansible invokes; parses `AnsibleModule` parameters and calls the matching runtime. |
 | Runtime | The reusable `exasol.ansible_modules.exasol_*` Python package that a module wraps; module-runtime specs exercise it directly, playbook specs exercise it through the Ansible module. |
-| Connection parameters | The shared `login_host`, `login_port`, `login_user`, `login_password`, `login_db`/`login_schema`, `autocommit`, `fetch_size`, `compression`, `validate_certs`, `ca_cert`, `certificate_fingerprint`, and `client_kwargs` options every module accepts. |
+| Connection parameters | The shared `login_host`, `login_port`, `login_user`, `login_password`, `login_schema`, `autocommit`, `fetch_size`, `compression`, `validate_certs`, `ca_cert`, `certificate_fingerprint`, and `client_kwargs` options every module accepts. `login_db` is a deprecated alias for `login_schema`. |
 | State | The declarative `present` or `absent` value an operator requests for a schema, user, role, or grant; the runtime reconciles observed Exasol state toward it. |
 | Changed | The boolean result field reporting whether a scenario's run altered Exasol state (or, in check mode, would alter it). |
 | Check mode | A dry-run invocation that predicts the same statements and `changed` value a real run would produce, without executing any write statement. |
