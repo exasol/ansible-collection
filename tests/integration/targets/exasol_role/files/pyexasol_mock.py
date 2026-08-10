@@ -45,7 +45,7 @@ class RoleMockConnection:
         upper_query = normalized_query.upper()
         params = query_params or {}
 
-        if upper_query.startswith("SELECT ROLE_NAME FROM EXA_ALL_ROLES"):
+        if upper_query.startswith("SELECT ROLE_NAME FROM SYS.EXA_ALL_ROLES"):
             return role_exists_statement(params)
 
         if upper_query.startswith("CREATE ROLE"):

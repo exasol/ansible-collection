@@ -122,7 +122,7 @@ def test_exasol_script_execute_script_body_with_slash_terminator(
 
     script_count = catalog_count(
         context.login_vars,
-        table="EXA_ALL_SCRIPTS",
+        table="SYS.EXA_ALL_SCRIPTS",
         column="SCRIPT_NAME",
         object_name="DOUBLE_VALUE",
         result_key="SCRIPT_COUNT",
@@ -222,14 +222,14 @@ def test_exasol_script_failing_statement_blocks_later_statements(
 
     schema_count = catalog_count(
         context.login_vars,
-        table="EXA_ALL_SCHEMAS",
+        table="SYS.EXA_ALL_SCHEMAS",
         column="SCHEMA_NAME",
         object_name=context.test_schema,
         result_key="SCHEMA_COUNT",
     )
     table_count = catalog_count(
         context.login_vars,
-        table="EXA_ALL_TABLES",
+        table="SYS.EXA_ALL_TABLES",
         column="TABLE_NAME",
         object_name="NEVER_CREATED",
         result_key="TABLE_COUNT",
@@ -328,7 +328,7 @@ def test_exasol_script_check_mode_write_script(
 
     schema_count = catalog_count(
         context.login_vars,
-        table="EXA_ALL_SCHEMAS",
+        table="SYS.EXA_ALL_SCHEMAS",
         column="SCHEMA_NAME",
         object_name=context.check_mode_schema,
         result_key="SCHEMA_COUNT",

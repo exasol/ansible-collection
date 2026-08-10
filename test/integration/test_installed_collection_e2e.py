@@ -44,7 +44,7 @@ def test_installed_exasol_query_smoke_succeeds(
               exasol.exasol.exasol_query:
                 query: >-
                   SELECT PARAM_VALUE
-                  FROM EXA_METADATA
+                  FROM SYS.EXA_METADATA
                   WHERE PARAM_NAME = 'databaseProductVersion'
               register: exasol_query_metadata_version
 
@@ -62,7 +62,7 @@ def test_installed_exasol_query_smoke_succeeds(
     assert module_result["query_result"]
     assert module_result["query_result"][0]["PARAM_VALUE"]
     assert module_result["executed_queries"] == [
-        "SELECT PARAM_VALUE FROM EXA_METADATA "
+        "SELECT PARAM_VALUE FROM SYS.EXA_METADATA "
         "WHERE PARAM_NAME = 'databaseProductVersion'"
     ]
 
@@ -117,7 +117,7 @@ def test_installed_exasol_user_smoke_succeeds(
     assert len(module_result["executed_queries"]) == 2
     _assert_exasol_object_count(
         exasol_login_vars,
-        f"SELECT COUNT(*) AS USER_COUNT FROM EXA_ALL_USERS WHERE USER_NAME = '{context.test_user}'",
+        f"SELECT COUNT(*) AS USER_COUNT FROM SYS.EXA_ALL_USERS WHERE USER_NAME = '{context.test_user}'",
         "USER_COUNT",
         1,
     )
@@ -176,7 +176,7 @@ def test_installed_exasol_role_smoke_succeeds(
     ]
     _assert_exasol_object_count(
         exasol_login_vars,
-        f"SELECT COUNT(*) AS ROLE_COUNT FROM EXA_ALL_ROLES WHERE ROLE_NAME = '{context.test_role}'",
+        f"SELECT COUNT(*) AS ROLE_COUNT FROM SYS.EXA_ALL_ROLES WHERE ROLE_NAME = '{context.test_role}'",
         "ROLE_COUNT",
         1,
     )
@@ -274,7 +274,7 @@ def test_installed_exasol_grants_smoke_succeeds(
     _assert_exasol_object_count(
         exasol_login_vars,
         (
-            "SELECT COUNT(*) AS PRIVILEGE_COUNT FROM EXA_DBA_SYS_PRIVS "
+            "SELECT COUNT(*) AS PRIVILEGE_COUNT FROM SYS.EXA_DBA_SYS_PRIVS "
             f"WHERE GRANTEE = '{context.test_user}' "
             "AND PRIVILEGE = 'CREATE SESSION'"
         ),

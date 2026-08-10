@@ -32,7 +32,7 @@ def test_exasol_query_read_metadata_version(
           exasol.exasol.exasol_query:
             query: >-
               SELECT PARAM_VALUE
-              FROM EXA_METADATA
+              FROM SYS.EXA_METADATA
               WHERE PARAM_NAME = 'databaseProductVersion'
           register: exasol_query_metadata_version
 
@@ -54,7 +54,7 @@ def test_exasol_query_read_metadata_version(
 
     module_result = result["module_result"]
     expected_query = (
-        "SELECT PARAM_VALUE FROM EXA_METADATA "
+        "SELECT PARAM_VALUE FROM SYS.EXA_METADATA "
         "WHERE PARAM_NAME = 'databaseProductVersion'"
     )
 
@@ -476,7 +476,7 @@ def test_exasol_query_check_mode_write(
           exasol.exasol.exasol_query:
             query: >-
               SELECT COUNT(*) AS SCHEMA_COUNT
-              FROM EXA_SCHEMAS
+              FROM SYS.EXA_SCHEMAS
               WHERE SCHEMA_NAME = '{{ test_schema }}_CHECK_MODE'
           register: exasol_query_check_mode_schema
 
@@ -516,7 +516,7 @@ def test_exasol_query_check_mode_write(
         query_all_results=[[{"SCHEMA_COUNT": 0}]],
         executed_queries=[
             (
-                "SELECT COUNT(*) AS SCHEMA_COUNT FROM EXA_SCHEMAS "
+                "SELECT COUNT(*) AS SCHEMA_COUNT FROM SYS.EXA_SCHEMAS "
                 f"WHERE SCHEMA_NAME = '{context.test_schema}_CHECK_MODE'"
             )
         ],
@@ -686,7 +686,7 @@ def test_exasol_query_check_mode_mixed_batch(
     try:
         rows = connection.execute(f"""
             SELECT COUNT(*) AS SCHEMA_COUNT
-            FROM EXA_SCHEMAS
+            FROM SYS.EXA_SCHEMAS
             WHERE SCHEMA_NAME = '{context.test_schema}_CHECK_MODE'
             """).fetchall()
     finally:

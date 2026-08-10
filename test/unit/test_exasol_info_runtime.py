@@ -35,8 +35,9 @@ class FakeStatement:
 class FakeConnection:
     """Small pyexasol connection stand-in with deterministic metadata responses."""
 
-    def __init__(self) -> None:
+    def __init__(self, version: str = "8.39.1") -> None:
         self.executed: list[str] = []
+        self.version = version
 
     def execute(
         self,
@@ -47,7 +48,7 @@ class FakeConnection:
         self.executed.append(normalized_query)
 
         if normalized_query == _normalize_query(exasol_info.VERSION_QUERY):
-            return FakeStatement(rows=[{"VERSION": "8.39.1"}])
+            return FakeStatement(rows=[{"VERSION": self.version}])
 
         if normalized_query == _normalize_query(exasol_info.DATABASE_NAME_QUERY):
             return FakeStatement(rows=[{"DATABASE_NAME": "EXA_DB"}])
@@ -68,7 +69,7 @@ def test_module_argument_spec_matches_shared_connection_options() -> None:
     assert "name" not in argument_spec
 
 
-# [utest -> dsn~exasol-info-read-only-metadata-retrieval~1]
+# [utest -> dsn~exasol-info-read-only-metadata-retrieval~2]
 def test_ensure_info_returns_basic_server_metadata() -> None:
     """Verify the info runtime returns version, database, and cluster size."""
     connection = FakeConnection()

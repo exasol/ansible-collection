@@ -41,7 +41,7 @@ Feature: exasol-script Ansible module runtime specification
 
   @exasol-script-check-mode-ignores-read-only-script
   Scenario: Keep read-only scripts on the execution path in check mode
-    When the script runtime executes SELECT PARAM_VALUE FROM EXA_METADATA WHERE PARAM_NAME = 'databaseProductVersion' in check mode
+    When the script runtime executes SELECT PARAM_VALUE FROM SYS.EXA_METADATA WHERE PARAM_NAME = 'databaseProductVersion' in check mode
     Then changed is false
     And query_result is not empty
 

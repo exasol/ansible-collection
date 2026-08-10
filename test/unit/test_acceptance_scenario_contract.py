@@ -275,17 +275,17 @@ def test_cleanup_database_object_filters_skip_system_principals() -> None:
     playbook_common = _ansible_playbook_common_module()
     connection = FakeCatalogConnection(
         {
-            "SELECT SCHEMA_NAME FROM EXA_ALL_SCHEMAS": [
+            "SELECT SCHEMA_NAME FROM SYS.EXA_ALL_SCHEMAS": [
                 {"SCHEMA_NAME": "SYS"},
                 {"SCHEMA_NAME": "EXA_STATISTICS"},
                 {"SCHEMA_NAME": "APP_SCHEMA"},
             ],
-            "SELECT USER_NAME FROM EXA_ALL_USERS": [
+            "SELECT USER_NAME FROM SYS.EXA_ALL_USERS": [
                 {"USER_NAME": "SYS"},
                 {"USER_NAME": "service_admin"},
                 {"USER_NAME": "APP_USER"},
             ],
-            "SELECT ROLE_NAME FROM EXA_ALL_ROLES": [
+            "SELECT ROLE_NAME FROM SYS.EXA_ALL_ROLES": [
                 {"ROLE_NAME": "PUBLIC"},
                 {"ROLE_NAME": "DBA"},
                 {"ROLE_NAME": "APP_ROLE"},

@@ -46,7 +46,7 @@ class FakeConnection:
         normalized_query = " ".join(query.split())
         self.executed.append((normalized_query, query_params))
 
-        if normalized_query.startswith("SELECT ROLE_NAME FROM EXA_ALL_ROLES"):
+        if normalized_query.startswith("SELECT ROLE_NAME FROM SYS.EXA_ALL_ROLES"):
             role_name = str((query_params or {})["role_name"])
             matched_name = _matching_identifier(self.roles, role_name)
             rows = [{"ROLE_NAME": matched_name}] if matched_name is not None else []
@@ -111,6 +111,31 @@ def test_ensure_role_existing_role_is_unchanged() -> None:
     assert result["exists"] is True
     assert result["executed_queries"] == []
     assert len(connection.executed) == 1
+
+
+# [utest -> dsn~use-least-privileged-catalog-metadata~1]
+@pytest.mark.parametrize(
+    ("roles", "params", "expected_query"),
+    [
+        (set(), {"name": "app_role"}, 'CREATE ROLE "app_role"'),
+        ({"APP_ROLE"}, {"name": "app_role", "state": "absent"}, 'DROP ROLE "app_role"'),
+    ],
+    ids=["create-role", "drop-role"],
+)
+def test_role_operations_use_all_roles_metadata(
+    roles: set[str],
+    params: dict[str, object],
+    expected_query: str,
+) -> None:
+    """Verify role lifecycle operations only need SYS.EXA_ALL_ROLES."""
+    connection = FakeConnection(roles=roles)
+
+    result = exasol_role.ensure_role(connection, params)
+
+    assert result["executed_queries"] == [expected_query]
+    assert connection.executed[0][0].startswith(
+        "SELECT ROLE_NAME FROM SYS.EXA_ALL_ROLES"
+    )
 
 
 def test_ensure_role_absent_drops_existing_role_with_cascade() -> None:

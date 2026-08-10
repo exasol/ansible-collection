@@ -45,15 +45,15 @@ class GrantsMockConnection:
         params = query_params or {}
 
         if normalized_query.startswith(
-            "SELECT PRIVILEGE, ADMIN_OPTION FROM EXA_DBA_SYS_PRIVS"
+            "SELECT PRIVILEGE, ADMIN_OPTION FROM SYS.EXA_DBA_SYS_PRIVS"
         ):
             return system_privilege_statement(params)
 
-        if normalized_query.startswith("SELECT PRIVILEGE FROM EXA_DBA_OBJ_PRIVS"):
+        if normalized_query.startswith("SELECT PRIVILEGE FROM SYS.EXA_DBA_OBJ_PRIVS"):
             return object_privilege_statement(params)
 
         if normalized_query.startswith(
-            "SELECT GRANTED_ROLE, ADMIN_OPTION FROM EXA_DBA_ROLE_PRIVS"
+            "SELECT GRANTED_ROLE, ADMIN_OPTION FROM SYS.EXA_DBA_ROLE_PRIVS"
         ):
             return role_grant_statement(params)
 

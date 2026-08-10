@@ -638,7 +638,7 @@ def test_schema_runtime_does_not_drop_non_empty_schema_without_cascade(
 def _schema_count(login_vars: dict[str, object], schema_name: str) -> int:
     return catalog_count(
         login_vars,
-        table="EXA_SCHEMAS",
+        table="SYS.EXA_SCHEMAS",
         column="SCHEMA_NAME",
         object_name=schema_name,
         result_key="SCHEMA_COUNT",
@@ -653,7 +653,7 @@ def _schema_metadata_value(
         login_vars, module_name="schema integration verification"
     ) as connection:
         rows = connection.execute(
-            f"SELECT {column} FROM EXA_SCHEMAS WHERE SCHEMA_NAME = {schema_literal}"
+            f"SELECT {column} FROM SYS.EXA_SCHEMAS WHERE SCHEMA_NAME = {schema_literal}"
         ).fetchall()
     row = rows[0]
     return row[column] if isinstance(row, dict) else row[0]
@@ -672,7 +672,7 @@ def _object_size_value(
         login_vars, module_name="schema integration verification"
     ) as connection:
         rows = connection.execute(
-            f"SELECT {column} FROM EXA_ALL_OBJECT_SIZES "
+            f"SELECT {column} FROM SYS.EXA_ALL_OBJECT_SIZES "
             f"WHERE OBJECT_TYPE = 'SCHEMA' AND OBJECT_NAME = {schema_literal}"
         ).fetchall()
     row = rows[0]
@@ -688,7 +688,7 @@ def _table_count(
         login_vars, module_name="schema integration verification"
     ) as connection:
         rows = connection.execute(
-            "SELECT COUNT(*) AS TABLE_COUNT FROM EXA_ALL_TABLES "
+            "SELECT COUNT(*) AS TABLE_COUNT FROM SYS.EXA_ALL_TABLES "
             f"WHERE TABLE_SCHEMA = {schema_literal} AND TABLE_NAME = {table_literal}"
         ).fetchall()
     row = rows[0]

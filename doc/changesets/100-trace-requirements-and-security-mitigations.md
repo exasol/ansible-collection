@@ -91,7 +91,7 @@ only evidence-based coverage tags after their existing tests are reviewed:
   `dsn~explicit-schema-drop-cascade~1`).
 * Explicit user-password behavior and read-only info retrieval
   (`dsn~password-update-semantics~1`,
-  `dsn~exasol-info-read-only-metadata-retrieval~1`).
+  `dsn~exasol-info-read-only-metadata-retrieval~3`).
 * Transient connection-secret handling: `connect_to_exasol()` supplies the
   credentials only to `pyexasol.connect()` and closes the connection when the
   task exits; `test_connect_to_exasol_closes_connection_after_with_block`

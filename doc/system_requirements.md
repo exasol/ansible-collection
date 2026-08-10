@@ -148,6 +148,26 @@ Covers:
 
 Needs: scn
 
+### Minimize Exasol Metadata Privileges
+`req~minimize-exasol-metadata-privileges~1`
+
+User and role lifecycle operations must use the least-privileged Exasol catalog
+views that provide the metadata required for the requested operation, so
+password-based user operations, user removal, and role operations do not
+require `SELECT ANY DICTIONARY`.
+
+Rationale:
+
+Automation accounts should not need access to privileged catalog metadata when
+existence checks through `SYS.EXA_ALL_USERS` or `SYS.EXA_ALL_ROLES` suffice.
+
+Status: draft
+
+Covers:
+- `feat~secure-exasol-user-administration~1`
+
+Needs: scn
+
 ### Preserve Exact Exasol Principal Identifiers
 `req~preserve-exact-exasol-principal-identifiers~1`
 
@@ -431,6 +451,26 @@ Status: draft
 
 Covers:
 - `req~explain-password-update-limits~1`
+
+Needs: dsn
+
+### Metadata Access Matches The Requested Lifecycle Operation
+`scn~metadata-access-matches-requested-lifecycle-operation~1`
+
+**Given** an authenticated Exasol account has the DDL privilege needed for a
+user or role lifecycle operation but does not have `SELECT ANY DICTIONARY`
+**When** an Ansible Operator creates, updates the password of, or removes a
+password-authenticated user, or manages a role
+**Then** the collection uses `SYS.EXA_ALL_USERS` or `SYS.EXA_ALL_ROLES` for
+existence checks
+**And** it does not query `SYS.EXA_DBA_USERS`
+**And** an existing LDAP user is queried through `SYS.EXA_DBA_USERS` only when
+its distinguished name must be compared
+
+Status: draft
+
+Covers:
+- `req~minimize-exasol-metadata-privileges~1`
 
 Needs: dsn
 

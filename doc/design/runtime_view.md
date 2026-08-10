@@ -21,12 +21,15 @@ Covers:
 Needs: impl, utest, itest
 
 ### Exasol Info Read-Only Metadata Retrieval
-`dsn~exasol-info-read-only-metadata-retrieval~1`
+`dsn~exasol-info-read-only-metadata-retrieval~3`
 
 **Given** an Ansible Operator requests information from `exasol_info`
 **When** the module reads the required server metadata
 **Then** it returns version, database name, and cluster size
 **And** the result always reports `changed=false`
+**And** it queries cluster events through
+`EXA_STATISTICS.EXA_SYSTEM_EVENTS`, the schema that owns Exasol statistical
+system tables
 
 Status: draft
 

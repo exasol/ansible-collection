@@ -25,7 +25,7 @@ def test_query_runtime_executes_write_query_against_backend(
     )
     schema_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_SCHEMAS",
+        table="SYS.EXA_ALL_SCHEMAS",
         column="SCHEMA_NAME",
         object_name=schema_name,
         result_key="SCHEMA_COUNT",
@@ -65,7 +65,7 @@ def test_query_runtime_check_mode_ignores_read_only_query(
 ) -> None:
     """Verify query check mode keeps read-only statements on the execution path."""
     query = (
-        "SELECT PARAM_VALUE FROM EXA_METADATA "
+        "SELECT PARAM_VALUE FROM SYS.EXA_METADATA "
         "WHERE PARAM_NAME = 'databaseProductVersion'"
     )
     queries = exasol_query.normalize_query_list(query)
@@ -97,7 +97,7 @@ def test_query_runtime_check_mode_predicts_write_without_execution(
     predicted_result = exasol_query.check_mode_result(queries)
     schema_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_SCHEMAS",
+        table="SYS.EXA_ALL_SCHEMAS",
         column="SCHEMA_NAME",
         object_name=schema_name,
         result_key="SCHEMA_COUNT",
