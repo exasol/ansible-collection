@@ -7,6 +7,7 @@ Feature: exasol-info Ansible module runtime specification
 
   @exasol-info-returns-version-and-cluster-size
   Scenario: Return basic server metadata
+    Given the connected database account has read access to SYS.EXA_METADATA and EXA_STATISTICS.EXA_SYSTEM_EVENTS
     When the info runtime runs with valid login parameters
     Then changed is false
     And version exists and is non-empty
@@ -15,6 +16,6 @@ Feature: exasol-info Ansible module runtime specification
 
   @exasol-info-uses-qualified-statistical-cluster-metadata-view
   Scenario: Use the qualified statistical cluster metadata view
-    Given an Exasol server reports its metadata through SYS.EXA_METADATA
+    Given the connected database account has read access to SYS.EXA_METADATA and EXA_STATISTICS.EXA_SYSTEM_EVENTS
     When the info runtime reads the cluster size
     Then it queries EXA_STATISTICS.EXA_SYSTEM_EVENTS

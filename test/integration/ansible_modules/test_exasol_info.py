@@ -90,6 +90,6 @@ def test_info_runtime_uses_qualified_statistical_cluster_metadata_view(
         result = exasol_info.run_info(exasol_login_vars)
 
     assert result["version"]
-    assert recording_connection.queries[-1] == " ".join(
-        exasol_info.CLUSTER_SIZE_QUERY.split()
+    assert recording_connection.queries[-1] == (
+        "SELECT NODES AS CLUSTER_SIZE FROM EXA_STATISTICS.EXA_SYSTEM_EVENTS"
     )

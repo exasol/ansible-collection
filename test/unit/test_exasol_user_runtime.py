@@ -99,16 +99,32 @@ class FakeConnection:
 
 
 class RestrictedMetadataConnection(FakeConnection):
-    """Reject privileged user metadata queries like a least-privilege account."""
+    """Reject privileged user metadata queries, qualified or unqualified."""
 
     def execute(
         self,
         query: str,
         query_params: dict[str, Any] | None = None,
     ) -> FakeStatement:
-        if "SYS.EXA_DBA_USERS" in query:
+        if "EXA_DBA_USERS" in query:
             raise PermissionError("SELECT ANY DICTIONARY is not granted")
         return super().execute(query, query_params)
+
+
+# [utest -> dsn~use-least-privileged-catalog-metadata~1]
+@pytest.mark.parametrize(
+    "view_name",
+    ["SYS.EXA_DBA_USERS", "EXA_DBA_USERS"],
+    ids=["schema-qualified", "unqualified"],
+)
+def test_restricted_metadata_connection_rejects_privileged_user_metadata(
+    view_name: str,
+) -> None:
+    """Verify privileged user metadata is rejected in either query form."""
+    connection = RestrictedMetadataConnection()
+
+    with pytest.raises(PermissionError, match="SELECT ANY DICTIONARY"):
+        connection.execute(f"SELECT DISTINGUISHED_NAME FROM {view_name}")
 
 
 def test_quote_password_identifier_preserves_case_and_escapes_quotes() -> None:
@@ -249,7 +265,7 @@ def test_password_user_operations_do_not_require_privileged_user_metadata(
     assert connection.executed[0][0].startswith(
         "SELECT USER_NAME FROM SYS.EXA_ALL_USERS"
     )
-    assert all("SYS.EXA_DBA_USERS" not in query for query, _ in connection.executed)
+    assert all("EXA_DBA_USERS" not in query for query, _ in connection.executed)
 
 
 # [utest -> dsn~use-least-privileged-catalog-metadata~1]
