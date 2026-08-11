@@ -45,8 +45,11 @@ class UserMockConnection:
         upper_query = normalized_query.upper()
         params = query_params or {}
 
-        if upper_query.startswith("SELECT USER_NAME, DISTINGUISHED_NAME"):
-            return user_metadata_statement(params)
+        if upper_query.startswith("SELECT USER_NAME FROM SYS.EXA_ALL_USERS"):
+            return user_exists_statement(params)
+
+        if upper_query.startswith("SELECT DISTINGUISHED_NAME FROM SYS.EXA_DBA_USERS"):
+            return user_ldap_dn_statement(params)
 
         if upper_query.startswith("CREATE USER"):
             return create_user_statement(upper_query)
@@ -67,20 +70,22 @@ class UserMockConnection:
         self.closed = True
 
 
-def user_metadata_statement(params: dict[str, Any]) -> MockStatement:
+def user_exists_statement(params: dict[str, Any]) -> MockStatement:
+    state = load_state()
+    user_name = str(params["user_name"]).upper()
+    rows = [{"USER_NAME": user_name}] if user_name in state["users"] else []
+
+    return result_statement(rows=rows, rowcount=len(rows))
+
+
+def user_ldap_dn_statement(params: dict[str, Any]) -> MockStatement:
     state = load_state()
     user_name = str(params["user_name"]).upper()
     rows = (
-        [
-            {
-                "USER_NAME": user_name,
-                "DISTINGUISHED_NAME": state["users"][user_name].get("ldap_dn"),
-            }
-        ]
+        [{"DISTINGUISHED_NAME": state["users"][user_name].get("ldap_dn")}]
         if user_name in state["users"]
         else []
     )
-
     return result_statement(rows=rows, rowcount=len(rows))
 
 

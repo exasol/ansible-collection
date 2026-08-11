@@ -20,9 +20,14 @@ DEFAULT_UPDATE_MODE = "on_create"
 DEFAULT_CASCADE = False
 DEFAULT_CREATE_SESSION = True
 REDACTED = "********"
-USER_METADATA_QUERY = """
-SELECT USER_NAME, DISTINGUISHED_NAME
-FROM EXA_DBA_USERS
+USER_EXISTS_QUERY = """
+SELECT USER_NAME
+FROM SYS.EXA_ALL_USERS
+WHERE UPPER(USER_NAME) = UPPER(:user_name)
+"""
+USER_LDAP_DN_QUERY = """
+SELECT DISTINGUISHED_NAME
+FROM SYS.EXA_DBA_USERS
 WHERE UPPER(USER_NAME) = UPPER(:user_name)
 """
 STATES = frozenset({"present", "absent"})
@@ -52,6 +57,7 @@ class UserMetadata:
 # [impl -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
 # [impl -> dsn~password-update-semantics~1]
 # [impl -> dsn~exact-principal-identifier-lifecycle~1]
+# [impl -> dsn~use-least-privileged-catalog-metadata~1]
 def ensure_user(
     connection: object,
     params: Mapping[str, object],
@@ -60,7 +66,7 @@ def ensure_user(
     """Ensure an Exasol user is present or absent."""
     user_name = _exact_user_name(validate_required_param(params, "name"))
     state = _state(params)
-    metadata = _user_metadata(connection, user_name)
+    metadata = _user_metadata(connection, user_name, params)
     statements = _planned_user_statements(
         user_name=user_name,
         metadata=metadata,
@@ -154,10 +160,14 @@ def _exact_user_name(name: str) -> str:
     return validate_user_name(name)
 
 
-def _user_metadata(connection: object, name: str) -> UserMetadata | None:
+def _user_metadata(
+    connection: object,
+    name: str,
+    params: Mapping[str, object] | None = None,
+) -> UserMetadata | None:
     result = common_query.execute_queries(
         connection,
-        USER_METADATA_QUERY,
+        USER_EXISTS_QUERY,
         named_args={"user_name": name},
     )
     rows = result["query_result"]
@@ -168,10 +178,33 @@ def _user_metadata(connection: object, name: str) -> UserMetadata | None:
     if not isinstance(row, Mapping):
         raise ValueError("unexpected row shape for Exasol user metadata.")
 
-    return UserMetadata(
-        name=str(row["USER_NAME"]),
-        ldap_dn=_optional_string(row.get("DISTINGUISHED_NAME")),
+    user_metadata = UserMetadata(name=str(row["USER_NAME"]))
+    if (
+        params is not None
+        and _state(params) == "present"
+        and _authentication_method(params) == "ldap"
+    ):
+        return UserMetadata(
+            name=user_metadata.name,
+            ldap_dn=_user_ldap_dn(connection, name),
+        )
+    return user_metadata
+
+
+def _user_ldap_dn(connection: object, name: str) -> str | None:
+    result = common_query.execute_queries(
+        connection,
+        USER_LDAP_DN_QUERY,
+        named_args={"user_name": name},
     )
+    rows = result["query_result"]
+    if not rows:
+        return None
+
+    row = rows[0]
+    if not isinstance(row, Mapping):
+        raise ValueError("unexpected row shape for Exasol LDAP metadata.")
+    return _optional_string(row.get("DISTINGUISHED_NAME"))
 
 
 def _planned_user_statements(

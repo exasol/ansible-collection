@@ -190,7 +190,7 @@ def test_exasol_user_apply_unchanged_with_different_case_spelling(
           exasol.exasol.exasol_query:
             query: >-
               SELECT USER_NAME
-              FROM EXA_DBA_USERS
+              FROM SYS.EXA_DBA_USERS
               WHERE UPPER(USER_NAME) = UPPER(:user_name)
             named_args:
               user_name: "{{ exact_test_user }}"

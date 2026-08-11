@@ -20,7 +20,9 @@ DATABASE_NAME_QUERY = """
                       FROM SYS.EXA_METADATA
                       WHERE PARAM_NAME = 'databaseName'
                       """
-CLUSTER_SIZE_QUERY = "SELECT NODES AS CLUSTER_SIZE FROM EXA_SYSTEM_EVENTS"
+CLUSTER_SIZE_QUERY = (
+    "SELECT NODES AS CLUSTER_SIZE FROM EXA_STATISTICS.EXA_SYSTEM_EVENTS"
+)
 
 exasol_connection_argument_spec = common_query.exasol_connection_argument_spec
 connect_to_exasol = common_query.connect_to_exasol
@@ -44,7 +46,7 @@ def run_info(params: Mapping[str, Any]) -> dict[str, object]:
         return ensure_info(connection)
 
 
-# [impl -> dsn~exasol-info-read-only-metadata-retrieval~1]
+# [impl -> dsn~exasol-info-read-only-metadata-retrieval~3]
 def ensure_info(
     connection: object,
 ) -> dict[str, object]:

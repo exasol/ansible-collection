@@ -31,7 +31,7 @@ def test_script_runtime_executes_multi_statement_script_against_backend(
 
     schema_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_SCHEMAS",
+        table="SYS.EXA_ALL_SCHEMAS",
         column="SCHEMA_NAME",
         object_name=schema_name,
         result_key="SCHEMA_COUNT",
@@ -64,7 +64,7 @@ def test_script_runtime_executes_script_body_terminated_by_slash(
 
     script_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_SCRIPTS",
+        table="SYS.EXA_ALL_SCRIPTS",
         column="SCRIPT_NAME",
         object_name=script_name,
         result_key="SCRIPT_COUNT",
@@ -103,14 +103,14 @@ def test_script_runtime_executes_multiple_script_bodies_terminated_by_slash(
 
     first_script_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_SCRIPTS",
+        table="SYS.EXA_ALL_SCRIPTS",
         column="SCRIPT_NAME",
         object_name=first_script_name,
         result_key="FIRST_SCRIPT_COUNT",
     )
     second_script_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_SCRIPTS",
+        table="SYS.EXA_ALL_SCRIPTS",
         column="SCRIPT_NAME",
         object_name=second_script_name,
         result_key="SECOND_SCRIPT_COUNT",
@@ -162,14 +162,14 @@ def test_script_runtime_stops_after_failing_statement(
 
     schema_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_SCHEMAS",
+        table="SYS.EXA_ALL_SCHEMAS",
         column="SCHEMA_NAME",
         object_name=schema_name,
         result_key="SCHEMA_COUNT",
     )
     table_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_TABLES",
+        table="SYS.EXA_ALL_TABLES",
         column="TABLE_NAME",
         object_name=table_name,
         result_key="TABLE_COUNT",
@@ -187,7 +187,7 @@ def test_script_runtime_check_mode_ignores_read_only_script(
 ) -> None:
     """Verify script check mode keeps read-only scripts on the execution path."""
     script = (
-        "SELECT PARAM_VALUE FROM EXA_METADATA "
+        "SELECT PARAM_VALUE FROM SYS.EXA_METADATA "
         "WHERE PARAM_NAME = 'databaseProductVersion';"
     )
 
@@ -212,7 +212,7 @@ def test_script_runtime_check_mode_predicts_write_without_execution(
     predicted_result = exasol_script.check_mode_result(script)
     schema_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_SCHEMAS",
+        table="SYS.EXA_ALL_SCHEMAS",
         column="SCHEMA_NAME",
         object_name=schema_name,
         result_key="SCHEMA_COUNT",
@@ -241,7 +241,7 @@ def test_script_runtime_check_mode_predicts_mixed_write_and_read_script(
     predicted_result = exasol_script.check_mode_result(script)
     schema_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_SCHEMAS",
+        table="SYS.EXA_ALL_SCHEMAS",
         column="SCHEMA_NAME",
         object_name=schema_name,
         result_key="SCHEMA_COUNT",
@@ -320,7 +320,7 @@ def test_script_runtime_execute_script_invocation_side_effect(
 
     table_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_TABLES",
+        table="SYS.EXA_ALL_TABLES",
         column="TABLE_NAME",
         object_name=table_name,
         result_key="TABLE_COUNT",

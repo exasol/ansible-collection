@@ -56,7 +56,7 @@ EXAMPLES = r"""
     login_schema: reporting
     query: >-
       SELECT PARAM_VALUE
-      FROM EXA_METADATA
+      FROM SYS.EXA_METADATA
       WHERE PARAM_NAME = 'databaseProductVersion'
 
 - name: Run a batch on one Exasol connection

@@ -20,7 +20,7 @@ DEFAULT_CASCADE = False
 
 ROLE_EXISTS_QUERY = """
                     SELECT ROLE_NAME
-                    FROM EXA_ALL_ROLES
+                    FROM SYS.EXA_ALL_ROLES
                     WHERE UPPER(ROLE_NAME) = UPPER(:role_name) \
                     """
 
@@ -44,6 +44,7 @@ class RoleStatement:
 # [impl -> dsn~derive-changed-from-planned-sql~1]
 # [impl -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
 # [impl -> dsn~exact-principal-identifier-lifecycle~1]
+# [impl -> dsn~use-least-privileged-catalog-metadata~1]
 def ensure_role(
     connection: object,
     params: Mapping[str, object],

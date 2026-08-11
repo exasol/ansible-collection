@@ -5,6 +5,21 @@ Feature: exasol-user Ansible module runtime specification
   Background:
     Given an Exasol database is reachable at localhost
 
+  @exasol-user-password-lifecycle-avoids-privileged-metadata
+  Scenario: Password user lifecycle avoids privileged metadata
+    Given the connected account can manage password-authenticated users
+    And the connected account does not have SELECT ANY DICTIONARY
+    When the user runtime creates, updates, or removes a password-authenticated user
+    Then it checks existence through SYS.EXA_ALL_USERS
+    And it does not query SYS.EXA_DBA_USERS
+
+  @exasol-user-ldap-metadata-lookup-is-privileged-and-separate
+  Scenario: LDAP distinguished-name lookup is privileged and separate
+    Given an existing LDAP user and an account with SELECT ANY DICTIONARY
+    When the user runtime reconciles the requested LDAP distinguished name
+    Then it checks existence through SYS.EXA_ALL_USERS
+    And it reads DISTINGUISHED_NAME through SYS.EXA_DBA_USERS only for that comparison
+
   @exasol-user-create-missing-user
   Scenario: Create a missing user
     And the user does not exist

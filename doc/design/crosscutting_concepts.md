@@ -87,6 +87,13 @@ Needs: impl, utest
 
 The collection reads current Exasol metadata before planning user, role, or grant lifecycle SQL and emits statements only when the requested security-relevant state differs from the current state. For role memberships, it compares `EXA_DBA_ROLE_PRIVS.GRANTEE`, `GRANTED_ROLE`, and `ADMIN_OPTION` before planning `GRANT <role> TO <principal>` or `REVOKE <role> FROM <principal>`. Password changes are an explicit exception: when `update_password=always`, the collection must still plan `ALTER USER` for existing users because Exasol does not expose the current password for comparison.
 
+User and role existence checks query `SYS.EXA_ALL_USERS` and
+`SYS.EXA_ALL_ROLES`. User reconciliation queries `SYS.EXA_DBA_USERS` only for
+an existing LDAP user whose `DISTINGUISHED_NAME` must be compared. This keeps
+password-based user operations, user removal, and role operations independent
+of `SELECT ANY DICTIONARY` while preserving LDAP idempotency for accounts that
+have the privileged metadata access.
+
 Status: draft
 
 Covers:

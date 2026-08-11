@@ -158,7 +158,7 @@ collection:
            login_host: db.example.com
            login_user: "{{ vault_exasol_user }}"
            login_password: "{{ vault_exasol_password }}"
-           query: SELECT PARAM_VALUE FROM EXA_METADATA
+           query: SELECT PARAM_VALUE FROM SYS.EXA_METADATA
 
 .. raw:: html
 
@@ -192,7 +192,7 @@ parameters:
            login_schema: reporting
            query: >-
              SELECT PARAM_VALUE
-             FROM EXA_METADATA
+             FROM SYS.EXA_METADATA
            WHERE PARAM_NAME = 'databaseProductVersion'
 
 Use ``login_schema`` to select the schema opened by the connection. The former
@@ -290,7 +290,7 @@ in query text. Use the bound arguments described above for a single statement.
        login_user: "{{ vault_exasol_user }}"
        login_password: "{{ vault_exasol_password }}"
        query:
-         - SELECT COUNT(*) AS SCHEMA_COUNT FROM EXA_SCHEMAS
+         - SELECT COUNT(*) AS SCHEMA_COUNT FROM SYS.EXA_SCHEMAS
          - CREATE SCHEMA demo_check_mode
      check_mode: true
 

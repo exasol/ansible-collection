@@ -15,6 +15,22 @@ from common.user_assertions import assert_user_can_log_in
 from exasol.ansible_modules import exasol_user
 
 
+# [itest -> dsn~use-least-privileged-catalog-metadata~1]
+@pytest.mark.scenario_id("exasol-user-password-lifecycle-avoids-privileged-metadata")
+def test_password_user_metadata_probe_avoids_privileged_catalog() -> None:
+    """Verify password user existence probing has no DBA catalog dependency."""
+    assert "FROM SYS.EXA_ALL_USERS" in exasol_user.USER_EXISTS_QUERY
+    assert "EXA_DBA_USERS" not in exasol_user.USER_EXISTS_QUERY
+
+
+# [itest -> dsn~use-least-privileged-catalog-metadata~1]
+@pytest.mark.scenario_id("exasol-user-ldap-metadata-lookup-is-privileged-and-separate")
+def test_ldap_metadata_probe_is_separate_and_privileged() -> None:
+    """Verify only the LDAP distinguished-name probe uses DBA metadata."""
+    assert "FROM SYS.EXA_DBA_USERS" in exasol_user.USER_LDAP_DN_QUERY
+    assert "DISTINGUISHED_NAME" in exasol_user.USER_LDAP_DN_QUERY
+
+
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-create-missing-user")
@@ -34,7 +50,7 @@ def test_user_runtime_creates_missing_user(
     )
     user_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_USERS",
+        table="SYS.EXA_ALL_USERS",
         column="USER_NAME",
         object_name=user_name,
         result_key="USER_COUNT",
@@ -75,7 +91,7 @@ def test_user_runtime_leaves_existing_user_unchanged(
     )
     user_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_USERS",
+        table="SYS.EXA_ALL_USERS",
         column="USER_NAME",
         object_name=user_name,
         result_key="USER_COUNT",
@@ -115,7 +131,7 @@ def test_user_runtime_updates_existing_user_password(
     )
     user_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_USERS",
+        table="SYS.EXA_ALL_USERS",
         column="USER_NAME",
         object_name=user_name,
         result_key="USER_COUNT",
@@ -156,7 +172,7 @@ def test_user_runtime_drops_existing_user(
     )
     user_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_USERS",
+        table="SYS.EXA_ALL_USERS",
         column="USER_NAME",
         object_name=user_name,
         result_key="USER_COUNT",
@@ -189,7 +205,7 @@ def test_user_runtime_check_mode_predicts_create_without_writing(
     )
     user_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_USERS",
+        table="SYS.EXA_ALL_USERS",
         column="USER_NAME",
         object_name=user_name,
         result_key="USER_COUNT",
@@ -299,7 +315,7 @@ def test_user_runtime_check_mode_predicts_drop_without_writing(
     )
     user_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_USERS",
+        table="SYS.EXA_ALL_USERS",
         column="USER_NAME",
         object_name=user_name,
         result_key="USER_COUNT",

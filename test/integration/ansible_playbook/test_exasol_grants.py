@@ -793,7 +793,7 @@ def _system_privilege_count(
         login_vars,
         f"""
         SELECT COUNT(*) AS PRIVILEGE_COUNT
-        FROM EXA_DBA_SYS_PRIVS
+        FROM SYS.EXA_DBA_SYS_PRIVS
         WHERE UPPER(GRANTEE) = UPPER({_quote_sql_literal(grantee)})
         AND PRIVILEGE = {_quote_sql_literal(privilege)}
         """,
@@ -810,7 +810,7 @@ def _role_membership_count(
         login_vars,
         f"""
         SELECT COUNT(*) AS PRIVILEGE_COUNT
-        FROM EXA_DBA_ROLE_PRIVS
+        FROM SYS.EXA_DBA_ROLE_PRIVS
         WHERE UPPER(GRANTEE) = UPPER({_quote_sql_literal(grantee)})
         AND UPPER(GRANTED_ROLE) = UPPER({_quote_sql_literal(granted_role)})
         """,
@@ -828,7 +828,7 @@ def _schema_object_privilege_count(
         login_vars,
         f"""
         SELECT COUNT(*) AS PRIVILEGE_COUNT
-        FROM EXA_DBA_OBJ_PRIVS
+        FROM SYS.EXA_DBA_OBJ_PRIVS
         WHERE UPPER(GRANTEE) = UPPER({_quote_sql_literal(grantee)})
         AND PRIVILEGE = {_quote_sql_literal(privilege)}
         AND UPPER(COALESCE(OBJECT_SCHEMA, OBJECT_NAME)) =
@@ -851,7 +851,7 @@ def _object_privilege_count(
         login_vars,
         f"""
         SELECT COUNT(*) AS PRIVILEGE_COUNT
-        FROM EXA_DBA_OBJ_PRIVS
+        FROM SYS.EXA_DBA_OBJ_PRIVS
         WHERE UPPER(GRANTEE) = UPPER({_quote_sql_literal(grantee)})
         AND PRIVILEGE = {_quote_sql_literal(privilege)}
         AND UPPER(OBJECT_SCHEMA) = UPPER({_quote_sql_literal(schema_name)})

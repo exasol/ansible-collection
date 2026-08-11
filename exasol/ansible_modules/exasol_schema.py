@@ -28,8 +28,8 @@ SCHEMA_METADATA_QUERY = """
                                S.SCHEMA_OWNER,
                                S.SCHEMA_COMMENT,
                                O.RAW_OBJECT_SIZE_LIMIT AS RAW_SIZE_LIMIT
-                        FROM EXA_SCHEMAS S
-                        LEFT JOIN EXA_ALL_OBJECT_SIZES O
+                        FROM SYS.EXA_SCHEMAS S
+                        LEFT JOIN SYS.EXA_ALL_OBJECT_SIZES O
                           ON O.OBJECT_ID = S.SCHEMA_OBJECT_ID
                          AND O.OBJECT_TYPE = 'SCHEMA'
                         WHERE UPPER(S.SCHEMA_NAME) = UPPER(:schema_name)

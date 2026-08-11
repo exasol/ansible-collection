@@ -5,6 +5,14 @@ Feature: exasol-role Ansible module runtime specification
   Background:
     Given an Exasol database is reachable at localhost
 
+  @exasol-role-lifecycle-avoids-privileged-metadata
+  Scenario: Role lifecycle avoids privileged metadata
+    Given the connected account can manage roles
+    And the connected account does not have SELECT ANY DICTIONARY
+    When the role runtime creates or removes a role
+    Then it checks existence through SYS.EXA_ALL_ROLES
+    And it does not query a privileged dictionary view
+
   @exasol-role-create-missing-role
   Scenario: Create a missing role
     And the role does not exist

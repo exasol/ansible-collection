@@ -90,6 +90,22 @@ Covers:
 
 Needs: impl, utest, itest
 
+### Use Least-Privileged Catalog Metadata
+`dsn~use-least-privileged-catalog-metadata~1`
+
+Use explicitly `SYS.`-qualified Exasol catalog views and select only the view
+needed for the requested lifecycle decision: `SYS.EXA_ALL_USERS` and
+`SYS.EXA_ALL_ROLES` for existence checks, and `SYS.EXA_DBA_USERS` only to
+compare an existing LDAP user's `DISTINGUISHED_NAME`.
+
+Status: draft
+
+Covers:
+- `scn~metadata-access-matches-requested-lifecycle-operation~1`
+- `thrt~shared-or-over-privileged-accounts-cross-role-boundaries~1`
+
+Needs: impl, utest
+
 ### Delegate Authorization Decisions To Exasol
 `dsn~delegate-authorization-decisions-to-exasol~1`
 

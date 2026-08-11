@@ -358,7 +358,7 @@ def _schema_names_to_drop(connection: Any) -> tuple[str, ...]:
         for schema_name in _catalog_object_names(
             connection,
             catalog_column="SCHEMA_NAME",
-            catalog_table="EXA_ALL_SCHEMAS",
+            catalog_table="SYS.EXA_ALL_SCHEMAS",
         )
     )
 
@@ -371,7 +371,7 @@ def _user_names_to_drop(connection: Any, current_user: str) -> tuple[str, ...]:
         for user_name in _catalog_object_names(
             connection,
             catalog_column="USER_NAME",
-            catalog_table="EXA_ALL_USERS",
+            catalog_table="SYS.EXA_ALL_USERS",
         )
         if user_name.upper() not in protected_user_names
     )
@@ -384,7 +384,7 @@ def _role_names_to_drop(connection: Any) -> tuple[str, ...]:
         for role_name in _catalog_object_names(
             connection,
             catalog_column="ROLE_NAME",
-            catalog_table="EXA_ALL_ROLES",
+            catalog_table="SYS.EXA_ALL_ROLES",
         )
         if role_name.upper() not in SYSTEM_ROLE_NAMES
     )

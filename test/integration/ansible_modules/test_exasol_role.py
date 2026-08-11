@@ -14,6 +14,14 @@ from exasol.ansible_modules import (
 )
 
 
+# [itest -> dsn~use-least-privileged-catalog-metadata~1]
+@pytest.mark.scenario_id("exasol-role-lifecycle-avoids-privileged-metadata")
+def test_role_metadata_probe_avoids_privileged_catalog() -> None:
+    """Verify role lifecycle existence probing uses the non-DBA catalog view."""
+    assert "FROM SYS.EXA_ALL_ROLES" in exasol_role.ROLE_EXISTS_QUERY
+    assert "EXA_DBA" not in exasol_role.ROLE_EXISTS_QUERY
+
+
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-create-missing-role")
@@ -31,7 +39,7 @@ def test_role_runtime_creates_missing_role(
     )
     role_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_ROLES",
+        table="SYS.EXA_ALL_ROLES",
         column="ROLE_NAME",
         object_name=role_name,
         result_key="ROLE_COUNT",
@@ -62,7 +70,7 @@ def test_role_runtime_leaves_existing_role_unchanged(
     )
     role_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_ROLES",
+        table="SYS.EXA_ALL_ROLES",
         column="ROLE_NAME",
         object_name=role_name,
         result_key="ROLE_COUNT",
@@ -95,7 +103,7 @@ def test_role_runtime_drops_existing_role(
     )
     role_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_ROLES",
+        table="SYS.EXA_ALL_ROLES",
         column="ROLE_NAME",
         object_name=role_name,
         result_key="ROLE_COUNT",
@@ -126,7 +134,7 @@ def test_role_runtime_check_mode_predicts_create_without_writing(
     )
     role_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_ROLES",
+        table="SYS.EXA_ALL_ROLES",
         column="ROLE_NAME",
         object_name=role_name,
         result_key="ROLE_COUNT",
@@ -157,7 +165,7 @@ def test_role_runtime_check_mode_predicts_no_action_when_role_exists(
     )
     role_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_ROLES",
+        table="SYS.EXA_ALL_ROLES",
         column="ROLE_NAME",
         object_name=role_name,
         result_key="ROLE_COUNT",
@@ -191,7 +199,7 @@ def test_role_runtime_check_mode_predicts_drop_without_writing(
     )
     role_count = catalog_count(
         exasol_login_vars,
-        table="EXA_ALL_ROLES",
+        table="SYS.EXA_ALL_ROLES",
         column="ROLE_NAME",
         object_name=role_name,
         result_key="ROLE_COUNT",

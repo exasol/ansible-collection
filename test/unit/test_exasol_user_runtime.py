@@ -52,17 +52,22 @@ class FakeConnection:
         normalized_query = " ".join(query.split())
         self.executed.append((normalized_query, query_params))
 
-        if normalized_query.startswith("SELECT USER_NAME, DISTINGUISHED_NAME"):
+        if normalized_query.startswith("SELECT USER_NAME FROM SYS.EXA_ALL_USERS"):
             user_name = str((query_params or {})["user_name"])
             matched_name = _matching_identifier(self.users, user_name)
             rows = []
             if matched_name is not None:
-                rows = [
-                    {
-                        "USER_NAME": matched_name,
-                        "DISTINGUISHED_NAME": self.ldap_dns.get(matched_name),
-                    }
-                ]
+                rows = [{"USER_NAME": matched_name}]
+            return FakeStatement(rows=rows, rowcount=len(rows))
+
+        if normalized_query.startswith(
+            "SELECT DISTINGUISHED_NAME FROM SYS.EXA_DBA_USERS"
+        ):
+            user_name = str((query_params or {})["user_name"])
+            matched_name = _matching_identifier(self.users, user_name)
+            rows = []
+            if matched_name is not None:
+                rows = [{"DISTINGUISHED_NAME": self.ldap_dns.get(matched_name)}]
             return FakeStatement(rows=rows, rowcount=len(rows))
 
         if normalized_query.startswith("CREATE USER"):
@@ -91,6 +96,35 @@ class FakeConnection:
             return FakeStatement(result_type="rowCount")
 
         raise RuntimeError(f"unexpected query: {query}")
+
+
+class RestrictedMetadataConnection(FakeConnection):
+    """Reject privileged user metadata queries, qualified or unqualified."""
+
+    def execute(
+        self,
+        query: str,
+        query_params: dict[str, Any] | None = None,
+    ) -> FakeStatement:
+        if "EXA_DBA_USERS" in query:
+            raise PermissionError("SELECT ANY DICTIONARY is not granted")
+        return super().execute(query, query_params)
+
+
+# [utest -> dsn~use-least-privileged-catalog-metadata~1]
+@pytest.mark.parametrize(
+    "view_name",
+    ["SYS.EXA_DBA_USERS", "EXA_DBA_USERS"],
+    ids=["schema-qualified", "unqualified"],
+)
+def test_restricted_metadata_connection_rejects_privileged_user_metadata(
+    view_name: str,
+) -> None:
+    """Verify privileged user metadata is rejected in either query form."""
+    connection = RestrictedMetadataConnection()
+
+    with pytest.raises(PermissionError, match="SELECT ANY DICTIONARY"):
+        connection.execute(f"SELECT DISTINGUISHED_NAME FROM {view_name}")
 
 
 def test_quote_password_identifier_preserves_case_and_escapes_quotes() -> None:
@@ -191,6 +225,72 @@ def test_ensure_user_existing_on_create_password_mode_is_unchanged() -> None:
     assert len(connection.executed) == 1
 
 
+# [utest -> dsn~use-least-privileged-catalog-metadata~1]
+@pytest.mark.parametrize(
+    ("users", "params", "expected_query"),
+    [
+        (
+            set(),
+            {"name": "app_user", "password": "Initial_Secret_42"},
+            'CREATE USER "app_user" IDENTIFIED BY "********"',
+        ),
+        (
+            {"APP_USER"},
+            {
+                "name": "app_user",
+                "password": "Rotated_Secret_42",
+                "update_password": "always",
+            },
+            'ALTER USER "app_user" IDENTIFIED BY "********"',
+        ),
+        (
+            {"APP_USER"},
+            {"name": "app_user", "state": "absent"},
+            'DROP USER "app_user"',
+        ),
+    ],
+    ids=["create-password-user", "update-password-user", "drop-user"],
+)
+def test_password_user_operations_do_not_require_privileged_user_metadata(
+    users: set[str],
+    params: dict[str, object],
+    expected_query: str,
+) -> None:
+    """Verify non-LDAP user operations avoid SYS.EXA_DBA_USERS."""
+    connection = RestrictedMetadataConnection(users=users)
+
+    result = exasol_user.ensure_user(connection, params)
+
+    assert result["executed_queries"][0] == expected_query
+    assert connection.executed[0][0].startswith(
+        "SELECT USER_NAME FROM SYS.EXA_ALL_USERS"
+    )
+    assert all("EXA_DBA_USERS" not in query for query, _ in connection.executed)
+
+
+# [utest -> dsn~use-least-privileged-catalog-metadata~1]
+def test_ldap_user_metadata_lookup_is_separate_from_existence_check() -> None:
+    """Verify LDAP reconciliation alone reads privileged distinguished-name data."""
+    connection = FakeConnection(users={"APP_USER"}, ldap_dns={"APP_USER": "old-dn"})
+
+    result = exasol_user.ensure_user(
+        connection,
+        {
+            "name": "app_user",
+            "authentication_method": "ldap",
+            "ldap_dn": "new-dn",
+        },
+    )
+
+    assert result["executed_queries"] == [
+        "ALTER USER \"app_user\" IDENTIFIED AT LDAP AS '********'"
+    ]
+    assert [query for query, _ in connection.executed[:2]] == [
+        "SELECT USER_NAME FROM SYS.EXA_ALL_USERS WHERE UPPER(USER_NAME) = UPPER({user_name})",
+        "SELECT DISTINGUISHED_NAME FROM SYS.EXA_DBA_USERS WHERE UPPER(USER_NAME) = UPPER({user_name})",
+    ]
+
+
 # [utest -> dsn~password-update-semantics~1]
 def test_ensure_user_alters_existing_password_when_requested() -> None:
     """Verify update_password=always plans a password change for existing users."""
@@ -239,7 +339,7 @@ def test_ensure_user_changes_existing_user_to_ldap() -> None:
             "ALTER USER \"app_user\" IDENTIFIED AT LDAP AS '********'"
         ],
     }
-    assert connection.executed[1][0] == (
+    assert connection.executed[2][0] == (
         'ALTER USER "app_user" IDENTIFIED AT LDAP AS '
         "'cn=app_user,dc=authorization,dc=exasol,dc=com'"
     )
@@ -262,7 +362,7 @@ def test_ensure_user_existing_ldap_authentication_is_unchanged() -> None:
     assert result["changed"] is False
     assert result["exists"] is True
     assert result["executed_queries"] == []
-    assert len(connection.executed) == 1
+    assert len(connection.executed) == 2
 
 
 def test_ensure_user_absent_drops_existing_user_with_cascade() -> None:
@@ -340,7 +440,7 @@ def test_ensure_user_check_mode_predicts_ldap_update_without_writing() -> None:
         "ALTER USER \"app_user\" IDENTIFIED AT LDAP AS '********'"
     ]
     assert connection.ldap_dns == {}
-    assert len(connection.executed) == 1
+    assert len(connection.executed) == 2
 
 
 def test_ensure_user_check_mode_predicts_drop_without_writing() -> None:
@@ -437,6 +537,41 @@ def test_user_metadata_rejects_unexpected_row_shape(
 
     with pytest.raises(ValueError, match="unexpected row"):
         exasol_user._user_metadata(object(), "app_user")
+
+
+# [utest -> dsn~use-least-privileged-catalog-metadata~1]
+def test_ldap_metadata_lookup_returns_none_when_no_dba_row_exists(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify a missing LDAP metadata row is handled without a false update."""
+    monkeypatch.setattr(
+        exasol_user.common_query,
+        "execute_queries",
+        lambda *_args, **_kwargs: {"query_result": []},
+    )
+
+    assert exasol_user._user_ldap_dn(object(), "app_user") is None
+
+
+# [utest -> dsn~use-least-privileged-catalog-metadata~1]
+def test_ldap_metadata_lookup_rejects_unexpected_row_shape(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify malformed LDAP catalog data produces a clear failure."""
+    monkeypatch.setattr(
+        exasol_user.common_query,
+        "execute_queries",
+        lambda *_args, **_kwargs: {"query_result": [("cn=app_user",)]},
+    )
+
+    with pytest.raises(ValueError, match="unexpected row shape for Exasol LDAP"):
+        exasol_user._user_ldap_dn(object(), "app_user")
+
+
+def test_authentication_method_rejects_non_string_value() -> None:
+    """Verify authentication method validation rejects non-string values."""
+    with pytest.raises(TypeError, match="authentication_method must be a string"):
+        exasol_user._authentication_method({"authentication_method": True})
 
 
 # [utest -> dsn~exact-principal-identifier-lifecycle~1]

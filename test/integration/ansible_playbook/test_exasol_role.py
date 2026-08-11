@@ -42,7 +42,7 @@ def test_exasol_role_create_missing_role(
           exasol.exasol.exasol_query:
             query: >-
               SELECT COUNT(*) AS ROLE_COUNT
-              FROM EXA_ALL_ROLES
+              FROM SYS.EXA_ALL_ROLES
               WHERE ROLE_NAME = :role_name
             named_args:
               role_name: "{{ test_role }}"
@@ -99,7 +99,7 @@ def test_exasol_role_preserves_exact_identifier(
           exasol.exasol.exasol_query:
             query: >-
               SELECT COUNT(*) AS ROLE_COUNT
-              FROM EXA_ALL_ROLES
+              FROM SYS.EXA_ALL_ROLES
               WHERE UPPER(ROLE_NAME) = UPPER(:role_name)
             named_args:
               role_name: "{{ exact_test_role }}"
@@ -198,7 +198,7 @@ def test_exasol_role_present_idempotent_with_different_case_spelling(
           exasol.exasol.exasol_query:
             query: >-
               SELECT ROLE_NAME
-              FROM EXA_ALL_ROLES
+              FROM SYS.EXA_ALL_ROLES
               WHERE UPPER(ROLE_NAME) = UPPER(:role_name)
             named_args:
               role_name: "{{ exact_test_role }}"
@@ -255,7 +255,7 @@ def test_exasol_role_check_mode_create(
           exasol.exasol.exasol_query:
             query: >-
               SELECT COUNT(*) AS ROLE_COUNT
-              FROM EXA_ALL_ROLES
+              FROM SYS.EXA_ALL_ROLES
               WHERE ROLE_NAME = :role_name
             named_args:
               role_name: "{{ check_mode_role }}"
@@ -312,7 +312,7 @@ def test_exasol_role_check_mode_drop(
           exasol.exasol.exasol_query:
             query: >-
               SELECT COUNT(*) AS ROLE_COUNT
-              FROM EXA_ALL_ROLES
+              FROM SYS.EXA_ALL_ROLES
               WHERE ROLE_NAME = :role_name
             named_args:
               role_name: "{{ test_role }}"
@@ -368,7 +368,7 @@ def test_exasol_role_drop_existing_role(
           exasol.exasol.exasol_query:
             query: >-
               SELECT COUNT(*) AS ROLE_COUNT
-              FROM EXA_ALL_ROLES
+              FROM SYS.EXA_ALL_ROLES
               WHERE ROLE_NAME = :role_name
             named_args:
               role_name: "{{ test_role }}"

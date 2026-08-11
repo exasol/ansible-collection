@@ -780,7 +780,7 @@ def _stored_schema_names(login_vars: dict[str, object], schema_name: str) -> lis
     connection = connect_to_exasol(login_vars)
     try:
         rows = connection.execute(
-            "SELECT SCHEMA_NAME FROM EXA_SCHEMAS "
+            "SELECT SCHEMA_NAME FROM SYS.EXA_SCHEMAS "
             f"WHERE UPPER(SCHEMA_NAME) = UPPER({schema_name_literal})"
         ).fetchall()
     finally:
@@ -795,7 +795,7 @@ def _schema_value(
     connection = connect_to_exasol(login_vars)
     try:
         rows = connection.execute(
-            f"SELECT {column} FROM EXA_SCHEMAS WHERE SCHEMA_NAME = {schema_literal}"
+            f"SELECT {column} FROM SYS.EXA_SCHEMAS WHERE SCHEMA_NAME = {schema_literal}"
         ).fetchall()
     finally:
         connection.close()
@@ -807,7 +807,7 @@ def _raw_size_limit(login_vars: dict[str, object], schema_name: str) -> int | No
     connection = connect_to_exasol(login_vars)
     try:
         rows = connection.execute(
-            "SELECT RAW_OBJECT_SIZE_LIMIT FROM EXA_ALL_OBJECT_SIZES "
+            "SELECT RAW_OBJECT_SIZE_LIMIT FROM SYS.EXA_ALL_OBJECT_SIZES "
             f"WHERE OBJECT_TYPE = 'SCHEMA' AND OBJECT_NAME = {schema_literal}"
         ).fetchall()
     finally:
