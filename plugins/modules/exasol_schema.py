@@ -70,7 +70,10 @@ options:
   raw_size_limit:
     description:
       - Maximum raw size of the schema in bytes.
-      - Must be a non-negative integer and is reconciled only when provided.
+      - Set to C(-1) to clear an existing limit with C(ALTER SCHEMA ... SET
+        RAW_SIZE_LIMIT = NULL).
+      - A non-negative value is reconciled when provided; omitting the option
+        leaves the limit unmanaged.
     type: int
 requirements:
   - exasol-ansible-modules
@@ -117,6 +120,14 @@ EXAMPLES = r"""
     login_password: "{{ vault_exasol_admin_password }}"
     name: old_sales
     new_name: sales
+
+- name: Clear a schema raw size limit
+  exasol.exasol.exasol_schema:
+    login_host: db.example.com
+    login_user: "{{ vault_exasol_admin_user }}"
+    login_password: "{{ vault_exasol_admin_password }}"
+    name: sales
+    raw_size_limit: -1
 
 - name: Drop an Exasol schema and all contained objects
   exasol.exasol.exasol_schema:

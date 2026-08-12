@@ -64,6 +64,8 @@ Needs: impl, utest, itest
 **Then** it plans creation or rename before comment and raw-size changes, plans
 `CHANGE OWNER` last, and omits statements for properties that already match
 **And** omitted owner, comment, rename, and raw-size-limit options remain unmanaged
+**And** `raw_size_limit=-1` plans `SET RAW_SIZE_LIMIT = NULL` only when a
+limit is currently set
 **And** check mode returns the same plan without executing it
 
 Status: draft
@@ -71,6 +73,7 @@ Status: draft
 Covers:
 - `scn~schema-intrinsic-state-is-reconciled~1`
 - `scn~schema-check-mode-reports-property-changes-without-writing~1`
+- `scn~schema-raw-size-limit-can-be-cleared~1`
 
 Needs: impl, utest, itest
 

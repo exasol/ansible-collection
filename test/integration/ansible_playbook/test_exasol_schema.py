@@ -733,6 +733,53 @@ def test_exasol_schema_raw_size_limit_check_mode(
     assert _raw_size_limit(context.login_vars, context.test_schema) == 1024
 
 
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-clear-raw-size-limit-playbook")
+# [itest -> dsn~intrinsic-schema-property-reconciliation~1]
+def test_exasol_schema_clears_raw_size_limit(
+    ansible_runner_workspace: Any,
+    exasol_login_vars: dict[str, object],
+    scenario_id: str,
+) -> None:
+    """Scenario: Clear a raw size limit through a playbook."""
+    context = given_acceptance_context(ansible_runner_workspace, exasol_login_vars)
+    _create_schema(context.login_vars, context.test_schema)
+    _execute_sql(
+        context.login_vars,
+        f'ALTER SCHEMA "{context.test_schema}" SET RAW_SIZE_LIMIT = 1024',
+    )
+    playbook = """
+    - name: Clear schema quota
+      block:
+        - name: Remove schema quota
+          exasol.exasol.exasol_schema:
+            name: "{{ test_schema }}"
+            raw_size_limit: -1
+          register: schema_result
+        - name: Store scenario result
+          ansible.builtin.set_fact:
+            acceptance_result:
+              scenario_id: "{{ acceptance_scenario_id }}"
+              module_result: "{{ schema_result }}"
+            cacheable: true
+    """
+
+    result = _when_schema_scenario_runs(context, scenario_id, playbook)
+
+    _assert_schema_module_result(
+        result["module_result"],
+        changed=True,
+        schema=context.test_schema,
+        state="present",
+        exists=True,
+        executed_queries=[
+            f'ALTER SCHEMA "{context.test_schema}" SET RAW_SIZE_LIMIT = NULL'
+        ],
+    )
+    assert _raw_size_limit(context.login_vars, context.test_schema) is None
+
+
 def _when_schema_scenario_runs(
     context: AcceptanceContext,
     scenario_id: str,

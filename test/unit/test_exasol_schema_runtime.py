@@ -97,7 +97,8 @@ class FakeConnection:
 
         if " SET RAW_SIZE_LIMIT = " in normalized_query:
             schema_name = _quoted_identifier(normalized_query)
-            self.raw_size_limits[schema_name] = int(normalized_query.rsplit(" ", 1)[1])
+            value = normalized_query.rsplit(" ", 1)[1]
+            self.raw_size_limits[schema_name] = None if value == "NULL" else int(value)
             return FakeStatement(result_type="rowCount")
 
         if " CHANGE OWNER " in normalized_query:
@@ -271,6 +272,51 @@ def test_ensure_schema_matching_raw_size_limit_is_idempotent() -> None:
     assert result["executed_queries"] == []
 
 
+# [utest -> dsn~intrinsic-schema-property-reconciliation~1]
+def test_ensure_schema_clears_raw_size_limit() -> None:
+    """Verify the explicit sentinel removes an existing schema quota."""
+    connection = FakeConnection(schemas={"SALES"}, raw_size_limits={"SALES": 2048})
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "SALES", "raw_size_limit": -1}
+    )
+
+    assert result["changed"] is True
+    assert result["executed_queries"] == [
+        'ALTER SCHEMA "SALES" SET RAW_SIZE_LIMIT = NULL'
+    ]
+    assert connection.raw_size_limits["SALES"] is None
+
+
+# [utest -> dsn~intrinsic-schema-property-reconciliation~1]
+def test_ensure_schema_clearing_absent_raw_size_limit_is_idempotent() -> None:
+    """Verify an already-cleared quota does not produce SQL."""
+    connection = FakeConnection(schemas={"SALES"}, raw_size_limits={"SALES": None})
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "SALES", "raw_size_limit": -1}
+    )
+
+    assert result["changed"] is False
+    assert result["executed_queries"] == []
+
+
+# [utest -> dsn~intrinsic-schema-property-reconciliation~1]
+def test_ensure_schema_check_mode_predicts_raw_size_limit_clearing() -> None:
+    """Verify check mode reports clearing without changing metadata."""
+    connection = FakeConnection(schemas={"SALES"}, raw_size_limits={"SALES": 2048})
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "SALES", "raw_size_limit": -1}, check_mode=True
+    )
+
+    assert result["changed"] is True
+    assert result["executed_queries"] == [
+        'ALTER SCHEMA "SALES" SET RAW_SIZE_LIMIT = NULL'
+    ]
+    assert connection.raw_size_limits["SALES"] == 2048
+
+
 def test_ensure_schema_plans_owner_last_after_other_properties() -> None:
     """Verify ownership transfer cannot remove access before other updates."""
     connection = FakeConnection()
@@ -317,8 +363,8 @@ def test_ensure_schema_rejects_rename_when_source_and_target_exist() -> None:
         ),
         ({"name": "SALES", "comment": "bad\x00value"}, "NUL characters"),
         (
-            {"name": "SALES", "raw_size_limit": -1},
-            "raw_size_limit must be a non-negative integer",
+            {"name": "SALES", "raw_size_limit": -2},
+            "raw_size_limit must be a non-negative",
         ),
         (
             {"name": "SALES", "raw_size_limit": True},

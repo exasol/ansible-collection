@@ -19,6 +19,7 @@ from exasol.ansible_modules.common_param_validation import (
 DEFAULT_STATE = "present"
 DEFAULT_CASCADE = False
 MAX_SCHEMA_COMMENT_LENGTH = 2000
+CLEAR_RAW_SIZE_LIMIT = -1
 
 STATES = frozenset({"present", "absent"})
 
@@ -246,7 +247,10 @@ def _planned_schema_property_statements(
 
     if comment is not None and not _same_comment(metadata, comment):
         statements.append(_comment_schema_statement(schema_name, comment))
-    if raw_size_limit is not None and not _same_raw_size_limit(
+    if raw_size_limit == CLEAR_RAW_SIZE_LIMIT:
+        if metadata is not None and metadata.raw_size_limit is not None:
+            statements.append(_clear_raw_size_limit_statement(schema_name))
+    elif raw_size_limit is not None and not _same_raw_size_limit(
         metadata, raw_size_limit
     ):
         statements.append(_raw_size_limit_statement(schema_name, raw_size_limit))
@@ -298,6 +302,11 @@ def _raw_size_limit_statement(schema_name: str, raw_size_limit: int) -> SchemaSt
     return SchemaStatement(actual=query, public=query)
 
 
+def _clear_raw_size_limit_statement(schema_name: str) -> SchemaStatement:
+    query = f"ALTER SCHEMA {_quoted_schema(schema_name)} SET RAW_SIZE_LIMIT = NULL"
+    return SchemaStatement(actual=query, public=query)
+
+
 def _drop_schema_statement(schema_name: str, cascade: bool) -> SchemaStatement:
     query = f"DROP SCHEMA {_quoted_schema(schema_name)}"
     if cascade:
@@ -338,8 +347,8 @@ def _optional_raw_size_limit(params: Mapping[str, object]) -> int | None:
         return None
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError("raw_size_limit must be a non-negative integer.")
-    if value < 0:
-        raise ValueError("raw_size_limit must be a non-negative integer.")
+    if value < CLEAR_RAW_SIZE_LIMIT:
+        raise ValueError("raw_size_limit must be a non-negative integer or -1.")
     return value
 
 
