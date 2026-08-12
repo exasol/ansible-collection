@@ -43,17 +43,21 @@ Feature: exasol-schema specification
     And executed_queries equals []
     And schema "SALES" exists in EXA_SCHEMAS
 
-  @exasol-schema-apply-unchanged-with-different-case-spelling
-  Scenario: Applying same schema with different case spelling stays idempotent
+  @exasol-schema-creates-case-distinct-schema-by-default
+  Scenario: Applying a case-distinct schema creates it by default
+    Given SQL_IDENTIFIER_COMPARISON is CASE SENSITIVE
     And exact-identifier schema "Sales+/=Schema" already exists in EXA_SCHEMAS
-    When exasol_schema runs again with:
+    When exasol_schema runs with:
       | name             | state   |
       | "sales+/=schema" | present |
-    Then changed is false
+    Then changed is true
     And schema equals "\"sales+/=schema\""
     And exists is true
-    And executed_queries equals []
+    And executed_queries equals:
+      | sql                            |
+      | CREATE SCHEMA "sales+/=schema" |
     And EXA_SCHEMAS contains one row where SCHEMA_NAME equals "Sales+/=Schema"
+    And EXA_SCHEMAS contains one row where SCHEMA_NAME equals "sales+/=schema"
 
   @exasol-schema-check-mode-create
   Scenario: Check mode predicts create

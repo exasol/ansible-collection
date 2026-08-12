@@ -3,30 +3,18 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager
-from typing import Any
+from typing import cast
 
 import pytest
+from common.recording_connection import (
+    ExecutableConnection,
+    RecordingConnection,
+)
 
 from exasol.ansible_modules import (
     common_query,
     exasol_info,
 )
-
-
-class RecordingConnection:
-    """Record SQL while delegating execution to a real Exasol connection."""
-
-    def __init__(self, connection: object) -> None:
-        self._connection = connection
-        self.queries: list[str] = []
-
-    def execute(
-        self,
-        query: str,
-        query_params: dict[str, Any] | None = None,
-    ) -> object:
-        self.queries.append(" ".join(query.split()))
-        return self._connection.execute(query, query_params)  # type: ignore[attr-defined]
 
 
 class ConnectionContext(AbstractContextManager[object]):
@@ -80,7 +68,9 @@ def test_info_runtime_uses_qualified_statistical_cluster_metadata_view(
         exasol_login_vars,
         module_name="info metadata acceptance test",
     ) as connection:
-        recording_connection = RecordingConnection(connection)
+        recording_connection = RecordingConnection(
+            cast(ExecutableConnection, connection)
+        )
         monkeypatch.setattr(
             exasol_info.common_query,
             "connect_to_exasol",

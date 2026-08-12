@@ -91,3 +91,24 @@ Covers:
 - `scn~non-cascading-drop-protects-non-empty-schema~1`
 
 Needs: impl, utest, itest
+
+### Schema Identifier Comparison Follows The Connected Database
+`dsn~schema-identifier-comparison-follows-session~1`
+
+**Given** an Ansible Operator manages a schema with an exact identifier
+**When** the schema runtime reads schema metadata and plans lifecycle SQL
+**Then** it reads `SQL_IDENTIFIER_COMPARISON` from `SYS.EXA_PARAMETERS` for
+the connected database when the server exposes it, otherwise using the documented
+`CASE SENSITIVE` default
+**And** it compares schema names exactly for `CASE SENSITIVE` and without case
+for `IGNORE CASE`
+**And** it rejects multiple case-insensitive metadata matches as ambiguous
+**And** owner comparison remains case-insensitive because owners are users or
+roles
+
+Status: draft
+
+Covers:
+- `scn~schema-identifiers-follow-session-comparison~1`
+
+Needs: impl, utest, itest

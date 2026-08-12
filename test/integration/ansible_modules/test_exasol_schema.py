@@ -68,6 +68,28 @@ def test_schema_runtime_leaves_existing_schema_unchanged(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-identifiers-follow-session-comparison")
+# [itest -> dsn~schema-identifier-comparison-follows-session~1]
+def test_schema_runtime_creates_case_distinct_schema_in_default_session(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify default case-sensitive sessions preserve case-distinct schemas."""
+    original_name = unique_name("ANSIBLE_SCHEMA")
+    requested_name = original_name.lower()
+    execute_sql(exasol_login_vars, f'CREATE SCHEMA "{original_name}"')
+
+    result = exasol_schema.run_schema(
+        {**exasol_login_vars, "name": requested_name, "state": "present"}
+    )
+
+    assert result["changed"] is True
+    assert result["executed_queries"] == [f'CREATE SCHEMA "{requested_name}"']
+    assert _schema_count(exasol_login_vars, original_name) == 1
+    assert _schema_count(exasol_login_vars, requested_name) == 1
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-existing-schema")
 def test_schema_runtime_drops_existing_schema(
     exasol_login_vars: dict[str, object],

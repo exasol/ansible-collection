@@ -2,7 +2,7 @@
 orphan: true
 ---
 
-# Clear Exasol Schema Raw-Size Limits
+# GH-102 Clear Exasol Schema Raw-Size Limits
 
 ## Goal
 
@@ -23,4 +23,4 @@ In scope:
 - [x] Update requirements, runtime design, module documentation, and user guide.
 - [x] Implement the clear sentinel and idempotent plan.
 - [x] Add unit and backend integration coverage.
-- [ ] Run backend integration coverage with configured Exasol credentials.
+- [x] Run backend integration coverage with configured Exasol credentials.
