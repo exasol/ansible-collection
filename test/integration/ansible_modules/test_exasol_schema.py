@@ -575,6 +575,75 @@ def test_schema_runtime_leaves_matching_raw_size_limit_unchanged(
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-clear-raw-size-limit")
+# [itest -> dsn~intrinsic-schema-property-reconciliation~1]
+def test_schema_runtime_clears_raw_size_limit(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify the clear sentinel removes an existing backend schema quota."""
+    schema_name = unique_name("ANSIBLE_SCHEMA")
+    execute_sql(exasol_login_vars, f'CREATE SCHEMA "{schema_name}"')
+    execute_sql(
+        exasol_login_vars, f'ALTER SCHEMA "{schema_name}" SET RAW_SIZE_LIMIT = 2048'
+    )
+
+    result = exasol_schema.run_schema(
+        {**exasol_login_vars, "name": schema_name, "raw_size_limit": -1}
+    )
+
+    assert result["changed"] is True
+    assert result["executed_queries"] == [
+        f'ALTER SCHEMA "{schema_name}" SET RAW_SIZE_LIMIT = NULL'
+    ]
+    assert _raw_size_limit(exasol_login_vars, schema_name) is None
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-clear-raw-size-limit-idempotent")
+def test_schema_runtime_leaves_cleared_raw_size_limit_unchanged(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify clearing an absent backend schema quota is idempotent."""
+    schema_name = unique_name("ANSIBLE_SCHEMA")
+    execute_sql(exasol_login_vars, f'CREATE SCHEMA "{schema_name}"')
+
+    result = exasol_schema.run_schema(
+        {**exasol_login_vars, "name": schema_name, "raw_size_limit": -1}
+    )
+
+    assert result["changed"] is False
+    assert result["executed_queries"] == []
+    assert _raw_size_limit(exasol_login_vars, schema_name) is None
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+@pytest.mark.scenario_id("exasol-schema-clear-raw-size-limit-check-mode")
+def test_schema_runtime_predicts_raw_size_limit_clearing_without_writing(
+    exasol_login_vars: dict[str, object],
+) -> None:
+    """Verify check mode leaves a backend schema quota unchanged."""
+    schema_name = unique_name("ANSIBLE_SCHEMA")
+    execute_sql(exasol_login_vars, f'CREATE SCHEMA "{schema_name}"')
+    execute_sql(
+        exasol_login_vars, f'ALTER SCHEMA "{schema_name}" SET RAW_SIZE_LIMIT = 2048'
+    )
+
+    result = exasol_schema.run_schema(
+        {**exasol_login_vars, "name": schema_name, "raw_size_limit": -1},
+        check_mode=True,
+    )
+
+    assert result["changed"] is True
+    assert result["executed_queries"] == [
+        f'ALTER SCHEMA "{schema_name}" SET RAW_SIZE_LIMIT = NULL'
+    ]
+    assert _raw_size_limit(exasol_login_vars, schema_name) == 2048
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-raw-size-limit-check-mode")
 def test_schema_runtime_predicts_raw_size_limit_change_without_writing(
     exasol_login_vars: dict[str, object],

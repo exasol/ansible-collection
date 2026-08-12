@@ -899,6 +899,11 @@ only supplied ``new_name``, ``owner``, ``comment``, and ``raw_size_limit``
 values. Omitted mutable properties remain unmanaged, and a repeated task that
 already matches the requested state reports ``changed=false``.
 
+Set ``raw_size_limit: -1`` to clear an existing raw-size limit. This emits
+``ALTER SCHEMA ... SET RAW_SIZE_LIMIT = NULL`` only when a limit is currently
+set. Omitting ``raw_size_limit`` remains distinct: it leaves the limit
+unmanaged.
+
 ``state=absent`` uses a non-cascading drop by default, so Exasol rejects the
 operation for a non-empty schema. Set ``cascade=true`` only when deleting all
 contained objects is intended.
@@ -913,6 +918,14 @@ contained objects is intended.
        name: reporting
        owner: app_reader
        comment: Reporting data
+
+   - name: Remove the reporting schema size limit
+     exasol.exasol.exasol_schema:
+       login_host: db.example.com
+       login_user: "{{ vault_exasol_admin_user }}"
+       login_password: "{{ vault_exasol_admin_password }}"
+       name: reporting
+       raw_size_limit: -1
 
 In check mode, the module reads schema metadata and returns the same SQL plan
 it would execute without changing Exasol. Its ``exists`` value reports the

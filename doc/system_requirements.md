@@ -226,8 +226,8 @@ Needs: scn
 `req~reconcile-physical-schema-state~1`
 
 Schema management must idempotently reconcile existence, exact name, owner,
-comment, and raw-size limit, and must report the same statement plan without
-writing in check mode.
+comment, and raw-size limit, including clearing a requested raw-size limit,
+and must report the same statement plan without writing in check mode.
 
 Rationale:
 
@@ -355,6 +355,22 @@ The following scenarios describe observable behavior in Given-When-Then form.
 **When** an Ansible Operator manages the schema with `state=present`
 **Then** the collection emits only the supported Exasol DDL needed to reach the requested state
 **And** a repeated run emits no additional SQL
+
+Status: draft
+
+Covers:
+- `req~reconcile-physical-schema-state~1`
+
+Needs: dsn
+
+### Schema Raw-Size Limit Can Be Cleared
+`scn~schema-raw-size-limit-can-be-cleared~1`
+
+**Given** a physical schema has a raw-size limit
+**When** an Ansible Operator requests `raw_size_limit=-1` with `state=present`
+**Then** the collection emits `ALTER SCHEMA ... SET RAW_SIZE_LIMIT = NULL`
+**And** a repeated request emits no SQL
+**And** check mode reports the statement without changing Exasol metadata
 
 Status: draft
 

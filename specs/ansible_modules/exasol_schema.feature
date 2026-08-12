@@ -214,6 +214,29 @@ Feature: exasol-schema Ansible module runtime specification
     And executed_queries equals []
     And EXA_ALL_OBJECT_SIZES still reports the requested raw size limit
 
+  @exasol-schema-clear-raw-size-limit
+  Scenario: Clear a schema raw size limit
+    And the schema exists with a raw size limit
+    When the schema runtime runs with state present and raw_size_limit -1
+    Then changed is true
+    And executed_queries equals a single ALTER SCHEMA SET RAW_SIZE_LIMIT NULL statement
+    And EXA_ALL_OBJECT_SIZES reports no raw size limit
+
+  @exasol-schema-clear-raw-size-limit-idempotent
+  Scenario: Leave an already cleared schema raw size limit unchanged
+    And the schema exists without a raw size limit
+    When the schema runtime runs with state present and raw_size_limit -1
+    Then changed is false
+    And executed_queries equals []
+
+  @exasol-schema-clear-raw-size-limit-check-mode
+  Scenario: Check mode predicts clearing a raw size limit without writing
+    And the schema exists with a raw size limit
+    When the schema runtime runs in check mode with state present and raw_size_limit -1
+    Then changed is true
+    And executed_queries equals a single ALTER SCHEMA SET RAW_SIZE_LIMIT NULL statement
+    And EXA_ALL_OBJECT_SIZES still reports the original raw size limit
+
   @exasol-schema-raw-size-limit-check-mode
   Scenario: Check mode predicts a raw size limit change without writing
     And the schema exists with a different raw size limit

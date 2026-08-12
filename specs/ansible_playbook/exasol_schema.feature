@@ -203,3 +203,11 @@ Feature: exasol-schema specification
     Then changed is true
     And executed_queries contains an ALTER SCHEMA SET RAW_SIZE_LIMIT statement
     And EXA_ALL_OBJECT_SIZES still reports the original limit
+
+  @exasol-schema-clear-raw-size-limit-playbook
+  Scenario: Clear a raw size limit through a playbook
+    And the schema exists with a raw size limit
+    When a playbook runs exasol_schema with raw_size_limit -1
+    Then changed is true
+    And executed_queries contains an ALTER SCHEMA SET RAW_SIZE_LIMIT NULL statement
+    And EXA_ALL_OBJECT_SIZES reports no limit
