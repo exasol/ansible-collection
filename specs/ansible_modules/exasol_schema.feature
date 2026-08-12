@@ -25,6 +25,15 @@ Feature: exasol-schema Ansible module runtime specification
     And executed_queries equals []
     And the schema still exists in EXA_SCHEMAS
 
+  @exasol-schema-identifiers-follow-session-comparison
+  Scenario: Create a case-distinct schema in a case-sensitive session
+    Given SQL_IDENTIFIER_COMPARISON is CASE SENSITIVE
+    And exact-identifier schema "Sales+/=Schema" already exists
+    When the schema runtime runs with name "sales+/=schema" and state present
+    Then changed is true
+    And executed_queries equals a single CREATE SCHEMA statement
+    And both exact-identifier schemas exist in EXA_SCHEMAS
+
   @exasol-schema-drop-existing-schema
   Scenario: Drop an existing schema
     And the schema already exists

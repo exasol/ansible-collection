@@ -41,11 +41,13 @@ class FakeConnection:
         owners: dict[str, str] | None = None,
         comments: dict[str, str | None] | None = None,
         raw_size_limits: dict[str, int | None] | None = None,
+        identifier_comparison: str = exasol_schema.CASE_SENSITIVE,
     ) -> None:
         self.schemas = schemas or set()
         self.owners = owners or {}
         self.comments = comments or {}
         self.raw_size_limits = raw_size_limits or {}
+        self.identifier_comparison = identifier_comparison
         self.executed: list[tuple[str, dict[str, Any] | None]] = []
 
     def execute(
@@ -55,22 +57,28 @@ class FakeConnection:
 
         self.executed.append((normalized_query, query_params))
 
+        if normalized_query.startswith("SELECT SYSTEM_VALUE FROM SYS.EXA_PARAMETERS"):
+            return FakeStatement(
+                rows=[{"SYSTEM_VALUE": self.identifier_comparison}], rowcount=1
+            )
+
         if normalized_query.startswith("SELECT S.SCHEMA_NAME"):
             schema_name = str((query_params or {})["schema_name"])
 
-            matched_schema = _matching_identifier(self.schemas, schema_name)
-
-            rows = []
-
-            if matched_schema is not None:
-                rows = [
-                    {
-                        "SCHEMA_NAME": matched_schema,
-                        "SCHEMA_OWNER": self.owners.get(matched_schema, "SYS"),
-                        "SCHEMA_COMMENT": self.comments.get(matched_schema),
-                        "RAW_SIZE_LIMIT": self.raw_size_limits.get(matched_schema),
-                    }
-                ]
+            matched_schemas = _matching_schema_identifiers(
+                self.schemas,
+                schema_name,
+                case_sensitive="UPPER(S.SCHEMA_NAME)" not in normalized_query,
+            )
+            rows = [
+                {
+                    "SCHEMA_NAME": matched_schema,
+                    "SCHEMA_OWNER": self.owners.get(matched_schema, "SYS"),
+                    "SCHEMA_COMMENT": self.comments.get(matched_schema),
+                    "RAW_SIZE_LIMIT": self.raw_size_limits.get(matched_schema),
+                }
+                for matched_schema in matched_schemas
+            ]
 
             return FakeStatement(rows=rows, rowcount=len(rows))
 
@@ -81,7 +89,9 @@ class FakeConnection:
 
         if normalized_query.startswith("RENAME SCHEMA"):
             old_name, new_name = _quoted_identifiers(normalized_query)
-            matched_schema = _matching_identifier(self.schemas, old_name)
+            matched_schema = _matching_schema_identifier(
+                self.schemas, old_name, self.identifier_comparison
+            )
             if matched_schema is not None:
                 self.schemas.remove(matched_schema)
                 self.schemas.add(new_name)
@@ -109,7 +119,9 @@ class FakeConnection:
         if normalized_query.startswith("DROP SCHEMA"):
             schema_name = _quoted_identifier(normalized_query)
 
-            matched_schema = _matching_identifier(self.schemas, schema_name)
+            matched_schema = _matching_schema_identifier(
+                self.schemas, schema_name, self.identifier_comparison
+            )
 
             if matched_schema is not None:
                 self.schemas.remove(matched_schema)
@@ -400,23 +412,69 @@ def test_ensure_schema_existing_schema_is_idempotent() -> None:
     assert result["exists"] is True
     assert result["executed_queries"] == []
 
-    assert len(connection.executed) == 1
+    assert len(connection.executed) == 2
 
 
-def test_ensure_schema_existing_schema_with_different_case_is_idempotent() -> None:
-    """Verify regular identifiers use Exasol case-insensitive lookup."""
+def test_ensure_schema_creates_case_distinct_schema_by_default() -> None:
+    """Verify default case-sensitive comparison preserves distinct schemas."""
     connection = FakeConnection(schemas={"SALES"})
 
     result = exasol_schema.ensure_schema(
         connection, {"name": "sales", "state": "present"}
     )
 
-    assert result["changed"] is False
+    assert result["changed"] is True
     assert result["schema"] == "sales"
     assert result["exists"] is True
-    assert result["executed_queries"] == []
+    assert result["executed_queries"] == ['CREATE SCHEMA "sales"']
 
-    assert connection.schemas == {"SALES"}
+    assert connection.schemas == {"SALES", "sales"}
+
+
+def test_identifier_comparison_defaults_to_case_sensitive_when_not_advertised(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verify older Exasol versions retain their documented default."""
+    monkeypatch.setattr(
+        exasol_schema.common_query,
+        "execute_queries",
+        lambda *_args, **_kwargs: {"query_result": []},
+    )
+
+    assert (
+        exasol_schema._identifier_comparison(object()) == exasol_schema.CASE_SENSITIVE
+    )
+
+
+# [utest -> dsn~schema-identifier-comparison-follows-session~1]
+def test_ensure_schema_case_insensitive_session_matches_case_variant() -> None:
+    """Verify ignore-case sessions do not recreate a matching schema."""
+    connection = FakeConnection(
+        schemas={"Sales+/=Schema"},
+        identifier_comparison=exasol_schema.IGNORE_CASE,
+    )
+
+    result = exasol_schema.ensure_schema(
+        connection, {"name": "sales+/=schema", "state": "present"}
+    )
+
+    assert result["changed"] is False
+    assert result["executed_queries"] == []
+    assert connection.schemas == {"Sales+/=Schema"}
+
+
+# [utest -> dsn~schema-identifier-comparison-follows-session~1]
+def test_ensure_schema_rejects_ambiguous_case_insensitive_metadata() -> None:
+    """Verify multiple matching schema names fail instead of selecting one."""
+    connection = FakeConnection(
+        schemas={"Sales+/=Schema", "sales+/=schema"},
+        identifier_comparison=exasol_schema.IGNORE_CASE,
+    )
+
+    with pytest.raises(ValueError, match="schema metadata lookup is ambiguous"):
+        exasol_schema.ensure_schema(
+            connection, {"name": "SALES+/=SCHEMA", "state": "present"}
+        )
 
 
 def test_ensure_schema_absent_drops_existing_schema() -> None:
@@ -532,7 +590,7 @@ def test_schema_metadata_rejects_unexpected_row_shape(
     monkeypatch.setattr(exasol_schema.common_query, "execute_queries", execute_queries)
 
     with pytest.raises(ValueError, match="unexpected row"):
-        exasol_schema._schema_metadata(object(), "SALES")
+        exasol_schema._schema_metadata(object(), "SALES", exasol_schema.CASE_SENSITIVE)
 
 
 def test_normalized_error_message_delegates_schema_secrets(
@@ -664,10 +722,22 @@ def _sql_comment(query: str) -> str | None:
     return value[1:-1].replace("''", "'")
 
 
-def _matching_identifier(values: set[str], identifier: str) -> str | None:
-    """Find identifier using Exasol case-insensitive comparison."""
-    for value in values:
-        if value.casefold() == identifier.casefold():
-            return value
+def _matching_schema_identifier(
+    values: set[str], identifier: str, identifier_comparison: str
+) -> str | None:
+    """Find one schema using the configured identifier comparison."""
+    matches = _matching_schema_identifiers(
+        values,
+        identifier,
+        case_sensitive=identifier_comparison == exasol_schema.CASE_SENSITIVE,
+    )
+    return matches[0] if matches else None
 
-    return None
+
+def _matching_schema_identifiers(
+    values: set[str], identifier: str, case_sensitive: bool
+) -> list[str]:
+    """Find schema identifiers using one Exasol comparison mode."""
+    if case_sensitive:
+        return [value for value in values if value == identifier]
+    return [value for value in values if value.casefold() == identifier.casefold()]

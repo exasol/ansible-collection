@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from exasol.ansible_modules import common_query
 from exasol.ansible_modules.common_identifier_validation import (
@@ -16,6 +17,9 @@ from exasol.ansible_modules.common_param_validation import (
     validate_required_param,
 )
 
+if TYPE_CHECKING:
+    from pyexasol.connection import ExaConnection
+
 DEFAULT_STATE = "present"
 DEFAULT_CASCADE = False
 MAX_SCHEMA_COMMENT_LENGTH = 2000
@@ -23,6 +27,15 @@ CLEAR_RAW_SIZE_LIMIT = -1
 
 STATES = frozenset({"present", "absent"})
 
+
+IDENTIFIER_COMPARISON_QUERY = """
+                              SELECT SYSTEM_VALUE
+                              FROM SYS.EXA_PARAMETERS
+                              WHERE PARAMETER_NAME = 'SQL_IDENTIFIER_COMPARISON'
+                              """
+
+CASE_SENSITIVE = "CASE SENSITIVE"
+IGNORE_CASE = "IGNORE CASE"
 
 SCHEMA_METADATA_QUERY = """
                         SELECT S.SCHEMA_NAME,
@@ -33,8 +46,11 @@ SCHEMA_METADATA_QUERY = """
                         LEFT JOIN SYS.EXA_ALL_OBJECT_SIZES O
                           ON O.OBJECT_ID = S.SCHEMA_OBJECT_ID
                          AND O.OBJECT_TYPE = 'SCHEMA'
-                        WHERE UPPER(S.SCHEMA_NAME) = UPPER(:schema_name)
+                        WHERE {identifier_predicate}
                         """
+
+CASE_SENSITIVE_IDENTIFIER_PREDICATE = "S.SCHEMA_NAME = :schema_name"
+IGNORE_CASE_IDENTIFIER_PREDICATE = "UPPER(S.SCHEMA_NAME) = UPPER(:schema_name)"
 
 
 @dataclass(frozen=True)
@@ -60,18 +76,21 @@ class SchemaMetadata:
 # [impl -> dsn~derive-changed-from-planned-sql~1]
 # [impl -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
 def ensure_schema(
-    connection: object, params: Mapping[str, object], check_mode: bool = False
+    connection: ExaConnection, params: Mapping[str, object], check_mode: bool = False
 ) -> dict[str, object]:
     """Ensure an Exasol schema has the requested lifecycle state."""
     schema_name = _exact_schema_name(validate_required_param(params, "name"))
     state = _state(params)
     new_name = _optional_schema_name(params, "new_name")
     _validate_state_options(params, state, new_name)
+    identifier_comparison = _identifier_comparison(connection)
 
-    metadata = _schema_metadata(connection, schema_name)
+    metadata = _schema_metadata(connection, schema_name, identifier_comparison)
     target_metadata = None
-    if new_name is not None and not _same_identifier(schema_name, new_name):
-        target_metadata = _schema_metadata(connection, new_name)
+    if new_name is not None and not _same_schema_identifier(
+        schema_name, new_name, identifier_comparison
+    ):
+        target_metadata = _schema_metadata(connection, new_name, identifier_comparison)
 
     effective_name, effective_metadata, statements = _planned_schema_statements(
         schema_name=schema_name,
@@ -79,6 +98,7 @@ def ensure_schema(
         metadata=metadata,
         target_metadata=target_metadata,
         params=params,
+        identifier_comparison=identifier_comparison,
     )
 
     if statements and not check_mode:
@@ -159,13 +179,37 @@ def _optional_schema_name(params: Mapping[str, object], name: str) -> str | None
     return validate_schema_name(value)
 
 
-def _schema_metadata(connection: object, schema_name: str) -> SchemaMetadata | None:
+def _identifier_comparison(connection: ExaConnection) -> str:
+    result = common_query.execute_queries(connection, [IDENTIFIER_COMPARISON_QUERY])
+    rows = result["query_result"]
+    if not rows:
+        return CASE_SENSITIVE
+    if len(rows) != 1 or not isinstance(rows[0], dict):
+        raise ValueError("unexpected SQL_IDENTIFIER_COMPARISON metadata.")
+
+    value = rows[0].get("SYSTEM_VALUE")
+    if not isinstance(value, str) or value not in {CASE_SENSITIVE, IGNORE_CASE}:
+        raise ValueError("unsupported SQL_IDENTIFIER_COMPARISON value.")
+    return value
+
+
+def _schema_metadata(
+    connection: ExaConnection, schema_name: str, identifier_comparison: str
+) -> SchemaMetadata | None:
+    identifier_predicate = (
+        CASE_SENSITIVE_IDENTIFIER_PREDICATE
+        if identifier_comparison == CASE_SENSITIVE
+        else IGNORE_CASE_IDENTIFIER_PREDICATE
+    )
+    query = SCHEMA_METADATA_QUERY.format(identifier_predicate=identifier_predicate)
     result = common_query.execute_queries(
-        connection, [SCHEMA_METADATA_QUERY], named_args={"schema_name": schema_name}
+        connection, [query], named_args={"schema_name": schema_name}
     )
     rows = result["query_result"]
     if not rows:
         return None
+    if len(rows) > 1:
+        raise ValueError("schema metadata lookup is ambiguous.")
 
     row = rows[0]
     if not isinstance(row, dict):
@@ -204,6 +248,7 @@ def _planned_schema_statements(
     metadata: SchemaMetadata | None,
     target_metadata: SchemaMetadata | None,
     params: Mapping[str, object],
+    identifier_comparison: str,
 ) -> tuple[str, SchemaMetadata | None, list[SchemaStatement]]:
     state = _state(params)
     if state == "absent":
@@ -217,7 +262,9 @@ def _planned_schema_statements(
     effective_metadata = metadata
     statements: list[SchemaStatement] = []
 
-    if new_name is not None and not _same_identifier(schema_name, new_name):
+    if new_name is not None and not _same_schema_identifier(
+        schema_name, new_name, identifier_comparison
+    ):
         if metadata is not None and target_metadata is not None:
             raise ValueError(
                 "name and new_name both identify existing schemas; refusing to rename."
@@ -352,7 +399,9 @@ def _optional_raw_size_limit(params: Mapping[str, object]) -> int | None:
     return value
 
 
-def _same_identifier(left: str, right: str) -> bool:
+def _same_schema_identifier(left: str, right: str, identifier_comparison: str) -> bool:
+    if identifier_comparison == CASE_SENSITIVE:
+        return left == right
     return left.casefold() == right.casefold()
 
 
@@ -360,7 +409,7 @@ def _same_owner(metadata: SchemaMetadata | None, owner: str) -> bool:
     return (
         metadata is not None
         and metadata.owner is not None
-        and _same_identifier(metadata.owner, owner)
+        and metadata.owner.casefold() == owner.casefold()
     )
 
 

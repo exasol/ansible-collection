@@ -145,17 +145,17 @@ def test_exasol_schema_apply_unchanged(
 
 @pytest.mark.integration
 @pytest.mark.slow
-@pytest.mark.scenario_id("exasol-schema-apply-unchanged-with-different-case-spelling")
-def test_exasol_schema_apply_unchanged_with_different_case_spelling(
+@pytest.mark.scenario_id("exasol-schema-creates-case-distinct-schema-by-default")
+def test_exasol_schema_creates_case_distinct_schema_by_default(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
     scenario_id: str,
 ) -> None:
-    """Scenario: Applying a case-only spelling change stays idempotent."""
+    """Scenario: Applying a case-distinct schema creates it by default."""
     playbook = """
-    - name: Apply schema with different case spelling
+    - name: Create case-distinct schema
       block:
-        - name: When exasol_schema runs with a case-only spelling change
+        - name: When exasol_schema runs with a case-distinct spelling
           exasol.exasol.exasol_schema:
             name: "{{ exact_test_schema | lower }}"
             state: present
@@ -175,14 +175,15 @@ def test_exasol_schema_apply_unchanged_with_different_case_spelling(
 
     _assert_schema_module_result(
         result["module_result"],
-        changed=False,
+        changed=True,
         schema=context.exact_test_schema.lower(),
         state="present",
         exists=True,
-        executed_queries=[],
+        executed_queries=[_create_schema_query(context.exact_test_schema.lower())],
     )
     assert _stored_schema_names(context.login_vars, context.exact_test_schema) == [
-        context.exact_test_schema
+        context.exact_test_schema,
+        context.exact_test_schema.lower(),
     ]
 
 

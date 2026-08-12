@@ -255,6 +255,28 @@ Covers:
 
 Needs: scn
 
+### Honor Exasol Schema Identifier Comparison
+`req~honor-exasol-schema-identifier-comparison~1`
+
+Schema lifecycle operations must compare schema identifiers using the
+`SQL_IDENTIFIER_COMPARISON` setting of the connected Exasol database when it is
+available, and otherwise use Exasol's documented default of `CASE SENSITIVE`,
+so case-distinct schemas are reconciled correctly under the server's identifier
+semantics.
+
+Rationale:
+
+Delimited schema identifiers are distinct by case under Exasol's default
+`CASE SENSITIVE` setting, while user and role identifiers remain
+case-insensitive.
+
+Status: draft
+
+Covers:
+- `feat~declarative-exasol-schema-management~1`
+
+Needs: scn
+
 ### Execute Multi-Statement Exasol Scripts
 `req~execute-multi-statement-exasol-scripts~1`
 
@@ -391,6 +413,22 @@ Status: draft
 
 Covers:
 - `req~reconcile-physical-schema-state~1`
+
+Needs: dsn
+
+### Schema Identifiers Follow The Connected Session Setting
+`scn~schema-identifiers-follow-session-comparison~1`
+
+**Given** a `CASE SENSITIVE` Exasol session contains a schema whose delimited
+identifier differs from the requested schema only by case
+**When** an Ansible Operator manages the requested schema with `state=present`
+**Then** the collection creates the requested case-distinct schema
+**And** both schemas exist after the operation
+
+Status: draft
+
+Covers:
+- `req~honor-exasol-schema-identifier-comparison~1`
 
 Needs: dsn
 
