@@ -24,7 +24,7 @@ from noxconfig import PROJECT_CONFIG
 nox.options.sessions = ["format:fix"]
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
-OPENFASTTRACE_VERSION = "4.4.0"
+OPENFASTTRACE_VERSION = "4.9.0"
 
 
 @lru_cache(maxsize=1)
@@ -320,12 +320,6 @@ def requirements_trace(session: nox.Session) -> None:
     """Run OpenFastTrace locally or in CI without a shell wrapper."""
     jar_file = _openfasttrace_jar_file(session)
     default_args = ["trace", "."]
-    # Only include artifact types currently present in the repository.
-    default_args = default_args + [
-        "--wanted-artifact-types",
-        "feat,req,scn,thrt,dsn,uman",
-    ]
-
     trace_args = session.posargs or default_args
 
     with session.chdir(PROJECT_ROOT):

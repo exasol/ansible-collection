@@ -18,6 +18,7 @@ MODULE_NAME = "exasol_role"
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-create-missing-role")
+# [itest -> scn~ansible-playbook.exasol-role-create-missing-role~1]
 def test_exasol_role_create_missing_role(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -74,6 +75,7 @@ def test_exasol_role_create_missing_role(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-preserves-exact-identifier")
+# [itest -> scn~ansible-playbook.exasol-role-preserves-exact-identifier~1]
 # [itest -> dsn~exact-principal-identifier-lifecycle~1]
 def test_exasol_role_preserves_exact_identifier(
     ansible_runner_workspace: Any,
@@ -131,6 +133,7 @@ def test_exasol_role_preserves_exact_identifier(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-present-idempotent")
+# [itest -> scn~ansible-playbook.exasol-role-present-idempotent~1]
 # [itest -> dsn~authorization-state-reconciliation~1]
 # [itest -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
 # [itest -> dsn~derive-changed-from-planned-sql~1]
@@ -176,6 +179,7 @@ def test_exasol_role_present_idempotent(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-present-idempotent-with-different-case-spelling")
+# [itest -> scn~ansible-playbook.exasol-role-present-idempotent-with-different-case-spelling~1]
 def test_exasol_role_present_idempotent_with_different_case_spelling(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -230,6 +234,7 @@ def test_exasol_role_present_idempotent_with_different_case_spelling(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-check-mode-create")
+# [itest -> scn~ansible-playbook.exasol-role-check-mode-create~1]
 def test_exasol_role_check_mode_create(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -287,6 +292,7 @@ def test_exasol_role_check_mode_create(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-check-mode-drop")
+# [itest -> scn~ansible-playbook.exasol-role-check-mode-drop~1]
 def test_exasol_role_check_mode_drop(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -344,6 +350,7 @@ def test_exasol_role_check_mode_drop(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-drop-existing-role")
+# [itest -> scn~ansible-playbook.exasol-role-drop-existing-role~1]
 def test_exasol_role_drop_existing_role(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -400,6 +407,7 @@ def test_exasol_role_drop_existing_role(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-drop-missing-role")
+# [itest -> scn~ansible-playbook.exasol-role-drop-missing-role~1]
 def test_exasol_role_drop_missing_role(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],

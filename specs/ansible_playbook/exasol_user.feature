@@ -4,8 +4,10 @@ Feature: exasol-user specification
   Background:
     Given an Exasol database is reachable at localhost
 
-  @exasol-user-create-missing-user
-  Scenario: Create missing user
+@id:scn~ansible-playbook.exasol-user-create-missing-user~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Create missing user
     And user "ALICE" does not exist in EXA_ALL_USERS
     When exasol_user runs with:
       | name  | authentication_method | password          | state   |
@@ -20,8 +22,10 @@ Feature: exasol-user specification
     And user "ALICE" can run query "SELECT 17 AS A" with password "Initial_Secret_42"
     And the module result does not contain "Initial_Secret_42"
 
-  @exasol-user-preserves-exact-identifier
-  Scenario: Create user with exact identifier semantics
+@id:scn~ansible-playbook.exasol-user-preserves-exact-identifier~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Create user with exact identifier semantics
     And exact-identifier user "Alice+/=User" does not exist in EXA_ALL_USERS
     When exasol_user runs with:
       | name             | authentication_method | password          | state   |
@@ -36,8 +40,10 @@ Feature: exasol-user specification
     And user "Alice+/=User" can run query "SELECT 17 AS A" with password "Initial_Secret_42"
     And the module result does not contain "Initial_Secret_42"
 
-  @exasol-user-apply-unchanged
-  Scenario: Applying identical user state results in no changes
+@id:scn~ansible-playbook.exasol-user-apply-unchanged~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Applying identical user state results in no changes
     And user "ALICE" already exists after exasol_user created it with password "Initial_Secret_42"
     When exasol_user runs again with:
       | name  | authentication_method | password          | state   | update_password |
@@ -46,8 +52,10 @@ Feature: exasol-user specification
     And exists is true
     And executed_queries equals []
 
-  @exasol-user-apply-unchanged-with-different-case-spelling
-  Scenario: Applying same user with different case spelling stays idempotent
+@id:scn~ansible-playbook.exasol-user-apply-unchanged-with-different-case-spelling~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Applying same user with different case spelling stays idempotent
     And exact-identifier user "Alice+/=User" already exists after exasol_user created it with password "Initial_Secret_42"
     When exasol_user runs again with:
       | name             | authentication_method | password          | state   | update_password |
@@ -58,8 +66,10 @@ Feature: exasol-user specification
     And executed_queries equals []
     And EXA_DBA_USERS contains one row where USER_NAME equals "Alice+/=User"
 
-  @exasol-user-change-authentication-to-ldap
-  Scenario: Change authentication to LDAP
+@id:scn~ansible-playbook.exasol-user-change-authentication-to-ldap~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Change authentication to LDAP
     And user "ALICE" exists with password authentication and password "Initial_Secret_42"
     When exasol_user runs with:
       | name  | authentication_method | ldap_dn                                      |
@@ -73,8 +83,10 @@ Feature: exasol-user specification
     And the module result does not contain "cn=alice,dc=authorization,dc=exasol,dc=com"
 
 
-  @exasol-user-rotate-password
-  Scenario: Rotate password
+@id:scn~ansible-playbook.exasol-user-rotate-password~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Rotate password
     And user "ALICE" exists with password "Initial_Secret_42"
     When exasol_user runs with:
       | name  | password          | update_password |
@@ -89,8 +101,10 @@ Feature: exasol-user specification
     And the module result does not contain "Rotated_Secret_42"
     And the module result does not contain "Initial_Secret_42"
 
-  @exasol-user-check-mode-create
-  Scenario: Check mode predicts create
+@id:scn~ansible-playbook.exasol-user-check-mode-create~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Check mode predicts create
     And user "BOB" does not exist in EXA_ALL_USERS
     When exasol_user runs in check mode with:
       | name | authentication_method | password        | state   |
@@ -104,8 +118,10 @@ Feature: exasol-user specification
     And user "BOB" does not exist in EXA_ALL_USERS
     And the module result does not contain "Check_Secret_42"
 
-  @exasol-user-check-mode-update-ldap
-  Scenario: Check mode predicts LDAP update
+@id:scn~ansible-playbook.exasol-user-check-mode-update-ldap~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Check mode predicts LDAP update
     And user "ALICE" exists with password authentication and password "Initial_Secret_42"
     When exasol_user runs in check mode with:
       | name  | authentication_method | ldap_dn                                            |
@@ -118,8 +134,10 @@ Feature: exasol-user specification
     And EXA_DBA_USERS.DISTINGUISHED_NAME for "ALICE" is unchanged
     And the module result does not contain "cn=alice-check,dc=authorization,dc=exasol,dc=com"
 
-  @exasol-user-check-mode-drop
-  Scenario: Check mode predicts drop
+@id:scn~ansible-playbook.exasol-user-check-mode-drop~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Check mode predicts drop
     And user "ALICE" exists with password "Initial_Secret_42"
     When exasol_user runs in check mode with:
       | name  | state  | cascade |
@@ -131,8 +149,10 @@ Feature: exasol-user specification
       | DROP USER "ALICE" CASCADE |
     And user "ALICE" still exists in EXA_ALL_USERS
 
-  @exasol-user-drop-existing-user
-  Scenario: Drop existing user
+@id:scn~ansible-playbook.exasol-user-drop-existing-user~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Drop existing user
     And user "ALICE" exists with password "Initial_Secret_42"
     When exasol_user runs with:
       | name  | state  | cascade |
@@ -144,8 +164,10 @@ Feature: exasol-user specification
       | DROP USER "ALICE" CASCADE |
     And user "ALICE" no longer exists in EXA_ALL_USERS
 
-  @exasol-user-drop-missing-user
-  Scenario: Drop missing user
+@id:scn~ansible-playbook.exasol-user-drop-missing-user~1
+# Covers: req~exasol-user-module~1
+# Needs: itest
+Scenario: Drop missing user
     And user "ALICE" does not exist in EXA_ALL_USERS
     When exasol_user runs with:
       | name  | state  |

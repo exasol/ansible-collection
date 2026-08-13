@@ -19,6 +19,7 @@ MODULE_NAME = "exasol_script"
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-execute-simple-multi-statement-script")
+# [itest -> scn~ansible-playbook.exasol-script-execute-simple-multi-statement-script~1]
 def test_exasol_script_execute_simple_multi_statement_script(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -75,6 +76,7 @@ def test_exasol_script_execute_simple_multi_statement_script(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-execute-script-body-with-slash-terminator")
+# [itest -> scn~ansible-playbook.exasol-script-execute-script-body-with-slash-terminator~1]
 def test_exasol_script_execute_script_body_with_slash_terminator(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -134,6 +136,7 @@ def test_exasol_script_execute_script_body_with_slash_terminator(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-read-only-script-reports-unchanged")
+# [itest -> scn~ansible-playbook.exasol-script-read-only-script-reports-unchanged~1]
 def test_exasol_script_read_only_script_reports_unchanged(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -182,6 +185,7 @@ def test_exasol_script_read_only_script_reports_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-failing-statement-blocks-later-statements")
+# [itest -> scn~ansible-playbook.exasol-script-failing-statement-blocks-later-statements~1]
 def test_exasol_script_failing_statement_blocks_later_statements(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -242,6 +246,7 @@ def test_exasol_script_failing_statement_blocks_later_statements(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-check-mode-read-only-script")
+# [itest -> scn~ansible-playbook.exasol-script-check-mode-read-only-script~1]
 def test_exasol_script_check_mode_read_only_script(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -287,6 +292,7 @@ def test_exasol_script_check_mode_read_only_script(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-check-mode-write-script")
+# [itest -> scn~ansible-playbook.exasol-script-check-mode-write-script~1]
 def test_exasol_script_check_mode_write_script(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -340,6 +346,7 @@ def test_exasol_script_check_mode_write_script(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-sanitize-bad-credentials")
+# [itest -> scn~ansible-playbook.exasol-script-sanitize-bad-credentials~1]
 def test_exasol_script_sanitize_bad_credentials(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -386,6 +393,7 @@ def test_exasol_script_sanitize_bad_credentials(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-reject-unsupported-bound-arguments")
+# [itest -> scn~ansible-playbook.exasol-script-reject-unsupported-bound-arguments~1]
 def test_exasol_script_reject_unsupported_bound_arguments(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -427,6 +435,7 @@ def test_exasol_script_reject_unsupported_bound_arguments(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-reports-per-statement-results-and-rowcount")
+# [itest -> scn~ansible-playbook.exasol-script-reports-per-statement-results-and-rowcount~1]
 def test_exasol_script_reports_per_statement_results_and_rowcount(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -475,6 +484,7 @@ def test_exasol_script_reports_per_statement_results_and_rowcount(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-reports-execution-time-per-statement")
+# [itest -> scn~ansible-playbook.exasol-script-reports-execution-time-per-statement~1]
 def test_exasol_script_reports_execution_time_per_statement(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -517,6 +527,7 @@ def test_exasol_script_reports_execution_time_per_statement(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-statement-failure-does-not-expose-password")
+# [itest -> scn~ansible-playbook.exasol-script-statement-failure-does-not-expose-password~1]
 def test_exasol_script_statement_failure_does_not_expose_password(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -559,6 +570,7 @@ def test_exasol_script_statement_failure_does_not_expose_password(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-reject-named-args")
+# [itest -> scn~ansible-playbook.exasol-script-reject-named-args~1]
 def test_exasol_script_reject_named_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],

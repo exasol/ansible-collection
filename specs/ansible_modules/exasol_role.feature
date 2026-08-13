@@ -5,16 +5,20 @@ Feature: exasol-role Ansible module runtime specification
   Background:
     Given an Exasol database is reachable at localhost
 
-  @exasol-role-lifecycle-avoids-privileged-metadata
-  Scenario: Role lifecycle avoids privileged metadata
+@id:scn~ansible-modules.exasol-role-lifecycle-avoids-privileged-metadata~1
+# Covers: req~exasol-role-module~1
+# Needs: itest
+Scenario: Role lifecycle avoids privileged metadata
     Given the connected account can manage roles
     And the connected account does not have SELECT ANY DICTIONARY
     When the role runtime creates or removes a role
     Then it checks existence through SYS.EXA_ALL_ROLES
     And it does not query a privileged dictionary view
 
-  @exasol-role-create-missing-role
-  Scenario: Create a missing role
+@id:scn~ansible-modules.exasol-role-create-missing-role~1
+# Covers: req~exasol-role-module~1
+# Needs: itest
+Scenario: Create a missing role
     And the role does not exist
     When the role runtime runs with state present
     Then changed is true
@@ -23,8 +27,10 @@ Feature: exasol-role Ansible module runtime specification
     And executed_queries equals a single CREATE ROLE statement
     And the role exists in EXA_ALL_ROLES
 
-  @exasol-role-leave-existing-role-unchanged
-  Scenario: Leave an existing role unchanged
+@id:scn~ansible-modules.exasol-role-leave-existing-role-unchanged~1
+# Covers: req~exasol-role-module~1
+# Needs: itest
+Scenario: Leave an existing role unchanged
     And the role already exists
     When the role runtime runs with state present
     Then changed is false
@@ -33,8 +39,10 @@ Feature: exasol-role Ansible module runtime specification
     And executed_queries equals []
     And the role still exists in EXA_ALL_ROLES
 
-  @exasol-role-drop-existing-role
-  Scenario: Drop an existing role
+@id:scn~ansible-modules.exasol-role-drop-existing-role~1
+# Covers: req~exasol-role-module~1
+# Needs: itest
+Scenario: Drop an existing role
     And the role already exists
     When the role runtime runs with state absent and cascade
     Then changed is true
@@ -43,8 +51,10 @@ Feature: exasol-role Ansible module runtime specification
     And executed_queries equals a single DROP ROLE CASCADE statement
     And the role no longer exists in EXA_ALL_ROLES
 
-  @exasol-role-check-mode-predicts-create-without-writing
-  Scenario: Check mode predicts create without writing
+@id:scn~ansible-modules.exasol-role-check-mode-predicts-create-without-writing~1
+# Covers: req~exasol-role-module~1
+# Needs: itest
+Scenario: Check mode predicts create without writing
     And the role does not exist
     When the role runtime runs in check mode with state present
     Then changed is true
@@ -52,8 +62,10 @@ Feature: exasol-role Ansible module runtime specification
     And executed_queries equals a single CREATE ROLE statement
     And the role still does not exist in EXA_ALL_ROLES
 
-  @exasol-role-check-mode-predicts-no-action-when-role-exists
-  Scenario: Check mode predicts no action when role exists
+@id:scn~ansible-modules.exasol-role-check-mode-predicts-no-action-when-role-exists~1
+# Covers: req~exasol-role-module~1
+# Needs: itest
+Scenario: Check mode predicts no action when role exists
     And the role already exists
     When the role runtime runs in check mode with state present
     Then changed is false
@@ -61,8 +73,10 @@ Feature: exasol-role Ansible module runtime specification
     And executed_queries equals []
     And the role still exists in EXA_ALL_ROLES
 
-  @exasol-role-check-mode-predicts-drop-without-writing
-  Scenario: Check mode predicts drop without writing
+@id:scn~ansible-modules.exasol-role-check-mode-predicts-drop-without-writing~1
+# Covers: req~exasol-role-module~1
+# Needs: itest
+Scenario: Check mode predicts drop without writing
     And the role already exists
     When the role runtime runs in check mode with state absent and cascade
     Then changed is true

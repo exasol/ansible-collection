@@ -20,6 +20,9 @@ SPEC_ROOT = PROJECT_ROOT / "specs"
 ANSIBLE_PLAYBOOK_SPEC_ROOT = SPEC_ROOT / "ansible_playbook"
 ANSIBLE_MODULES_SPEC_ROOT = SPEC_ROOT / "ansible_modules"
 SCENARIO_ID_PATTERN = re.compile(r"^[a-z0-9-]+$")
+OFT_SCENARIO_ID_PATTERN = re.compile(
+    r"^scn~(?:ansible-modules|ansible-playbook)\.([a-z0-9-]+)~[1-9][0-9]*$"
+)
 SCENARIO_TASKS_PLACEHOLDER = "        __ACCEPTANCE_SCENARIO_TASKS__"
 
 
@@ -28,6 +31,7 @@ class Scenario:
     """Scenario identity shared by specs, playbooks, and tests."""
 
     scenario_id: str
+    oft_scenario_id: str
 
 
 def _spec_module_names(spec_root: Path) -> set[str]:
@@ -62,9 +66,9 @@ def test_ansible_playbook_specs_and_tests_are_in_sync() -> None:
 
 def test_ansible_modules_specs_and_tests_are_in_sync() -> None:
     """Verify every ansible-modules spec has a matching test, and vice versa."""
-    assert _spec_module_names(ANSIBLE_MODULES_SPEC_ROOT) == _test_module_names(
-        ANSIBLE_MODULES_TEST_ROOT
-    )
+    assert _spec_module_names(ANSIBLE_MODULES_SPEC_ROOT) - {
+        "security_requirements"
+    } == _test_module_names(ANSIBLE_MODULES_TEST_ROOT)
 
 
 def _contract_files(spec_root: Path, test_root: Path, id_prefix: str) -> list[object]:
@@ -104,8 +108,10 @@ def test_spec_scenarios_match_acceptance_scenarios(
     """Every spec scenario must have a matching acceptance test."""
     scenarios = _spec_scenarios(spec_file)
 
-    assert scenarios == _acceptance_scenarios(acceptance_file)
-    _assert_scenario_ids_declared_once(acceptance_file, scenarios)
+    assert [scenario.scenario_id for scenario in scenarios] == [
+        scenario.scenario_id for scenario in _acceptance_scenarios(acceptance_file)
+    ]
+    _assert_scenario_trace_tags_declared_once(acceptance_file, scenarios)
 
 
 def test_ansible_playbook_root_contains_only_test_modules() -> None:
@@ -327,9 +333,13 @@ def _spec_scenarios(path: Path) -> list[Scenario]:
             continue
 
         assert pending_tags, f"{path}: Scenario '{stripped}' needs an @id tag"
-        scenario_id = pending_tags[0].removeprefix("@")
-        assert SCENARIO_ID_PATTERN.fullmatch(scenario_id)
-        scenarios.append(Scenario(scenario_id=scenario_id))
+        oft_scenario_id = pending_tags[0].removeprefix("@id:")
+        match = OFT_SCENARIO_ID_PATTERN.fullmatch(oft_scenario_id)
+        assert match, f"{path}: scenario needs an OpenFastTrace scn ID"
+        scenario_id = match.group(1)
+        scenarios.append(
+            Scenario(scenario_id=scenario_id, oft_scenario_id=oft_scenario_id)
+        )
         pending_tags = []
 
     return scenarios
@@ -344,7 +354,7 @@ def _acceptance_scenarios(path: Path) -> list[Scenario]:
             continue
 
         scenario_id = _acceptance_function_scenario_id(path, node)
-        scenarios.append(Scenario(scenario_id=scenario_id))
+        scenarios.append(Scenario(scenario_id=scenario_id, oft_scenario_id=""))
 
     return scenarios
 
@@ -392,14 +402,12 @@ def _scenario_id_marker_value(decorator: ast.expr) -> str | None:
     )
 
 
-def _assert_scenario_ids_declared_once(path: Path, scenarios: list[Scenario]) -> None:
+def _assert_scenario_trace_tags_declared_once(path: Path, scenarios: list[Scenario]) -> None:
     content = path.read_text(encoding="utf-8")
     for scenario in scenarios:
-        pattern = re.compile(
-            rf"(?<![a-z0-9-]){re.escape(scenario.scenario_id)}(?![a-z0-9-])"
-        )
+        pattern = re.compile(rf"\[itest -> {re.escape(scenario.oft_scenario_id)}\]")
         count = len(pattern.findall(content))
         assert count == 1, (
-            f"{path}: scenario id {scenario.scenario_id} must be declared once, "
+            f"{path}: scenario trace tag {scenario.oft_scenario_id} must be declared once, "
             f"found {count}"
         )

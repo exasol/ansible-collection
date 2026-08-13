@@ -20,6 +20,7 @@ MODULE_NAME = "exasol_query"
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-read-metadata-version")
+# [itest -> scn~ansible-playbook.exasol-query-read-metadata-version~1]
 def test_exasol_query_read_metadata_version(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -72,6 +73,7 @@ def test_exasol_query_read_metadata_version(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-single-select")
+# [itest -> scn~ansible-playbook.exasol-query-single-select~1]
 def test_exasol_query_single_select(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -116,6 +118,7 @@ def test_exasol_query_single_select(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-login-schema-canonical")
+# [itest -> scn~ansible-playbook.exasol-query-login-schema-canonical~1]
 def test_exasol_query_selects_schema_with_login_schema(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -142,6 +145,7 @@ def test_exasol_query_selects_schema_with_login_schema(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-login-db-deprecated-alias")
+# [itest -> scn~ansible-playbook.exasol-query-login-db-deprecated-alias~1]
 def test_exasol_query_selects_schema_with_login_db_alias(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -168,6 +172,7 @@ def test_exasol_query_selects_schema_with_login_db_alias(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-login-schema-legacy-precedence")
+# [itest -> scn~ansible-playbook.exasol-query-login-schema-legacy-precedence~1]
 def test_exasol_query_prefers_login_db_when_both_schema_parameters_are_set(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -206,6 +211,7 @@ def test_exasol_query_prefers_login_db_when_both_schema_parameters_are_set(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-login-schema-same-value-warning")
+# [itest -> scn~ansible-playbook.exasol-query-login-schema-same-value-warning~1]
 def test_exasol_query_warns_when_both_schema_parameters_have_the_same_value(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -238,6 +244,7 @@ def test_exasol_query_warns_when_both_schema_parameters_have_the_same_value(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-batch-statements")
+# [itest -> scn~ansible-playbook.exasol-query-batch-statements~1]
 def test_exasol_query_batch_statements(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -324,6 +331,7 @@ def test_exasol_query_batch_statements(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-positional-args")
+# [itest -> scn~ansible-playbook.exasol-query-positional-args~1]
 def test_exasol_query_positional_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -369,6 +377,7 @@ def test_exasol_query_positional_args(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-named-args")
+# [itest -> scn~ansible-playbook.exasol-query-named-args~1]
 def test_exasol_query_named_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -414,6 +423,7 @@ def test_exasol_query_named_args(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-check-mode-select")
+# [itest -> scn~ansible-playbook.exasol-query-check-mode-select~1]
 def test_exasol_query_check_mode_select(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -458,6 +468,7 @@ def test_exasol_query_check_mode_select(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-check-mode-write")
+# [itest -> scn~ansible-playbook.exasol-query-check-mode-write~1]
 def test_exasol_query_check_mode_write(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -526,6 +537,7 @@ def test_exasol_query_check_mode_write(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-sanitize-bad-credentials")
+# [itest -> scn~ansible-playbook.exasol-query-sanitize-bad-credentials~1]
 def test_exasol_query_sanitize_bad_credentials(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -572,6 +584,7 @@ def test_exasol_query_sanitize_bad_credentials(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-reject-batch-args")
+# [itest -> scn~ansible-playbook.exasol-query-reject-batch-args~1]
 def test_exasol_query_reject_batch_args(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -625,6 +638,7 @@ def test_exasol_query_reject_batch_args(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-check-mode-mixed-batch")
+# [itest -> scn~ansible-playbook.exasol-query-check-mode-mixed-batch~1]
 def test_exasol_query_check_mode_mixed_batch(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],

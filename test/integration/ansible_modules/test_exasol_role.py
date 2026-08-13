@@ -16,6 +16,7 @@ from exasol.ansible_modules import (
 
 # [itest -> dsn~use-least-privileged-catalog-metadata~1]
 @pytest.mark.scenario_id("exasol-role-lifecycle-avoids-privileged-metadata")
+# [itest -> scn~ansible-modules.exasol-role-lifecycle-avoids-privileged-metadata~1]
 def test_role_metadata_probe_avoids_privileged_catalog() -> None:
     """Verify role lifecycle existence probing uses the non-DBA catalog view."""
     assert "FROM SYS.EXA_ALL_ROLES" in exasol_role.ROLE_EXISTS_QUERY
@@ -25,6 +26,7 @@ def test_role_metadata_probe_avoids_privileged_catalog() -> None:
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-create-missing-role")
+# [itest -> scn~ansible-modules.exasol-role-create-missing-role~1]
 def test_role_runtime_creates_missing_role(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -55,6 +57,7 @@ def test_role_runtime_creates_missing_role(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-leave-existing-role-unchanged")
+# [itest -> scn~ansible-modules.exasol-role-leave-existing-role-unchanged~1]
 def test_role_runtime_leaves_existing_role_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -86,6 +89,7 @@ def test_role_runtime_leaves_existing_role_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-drop-existing-role")
+# [itest -> scn~ansible-modules.exasol-role-drop-existing-role~1]
 def test_role_runtime_drops_existing_role(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -119,6 +123,7 @@ def test_role_runtime_drops_existing_role(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-check-mode-predicts-create-without-writing")
+# [itest -> scn~ansible-modules.exasol-role-check-mode-predicts-create-without-writing~1]
 def test_role_runtime_check_mode_predicts_create_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -149,6 +154,7 @@ def test_role_runtime_check_mode_predicts_create_without_writing(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-check-mode-predicts-no-action-when-role-exists")
+# [itest -> scn~ansible-modules.exasol-role-check-mode-predicts-no-action-when-role-exists~1]
 def test_role_runtime_check_mode_predicts_no_action_when_role_exists(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -181,6 +187,7 @@ def test_role_runtime_check_mode_predicts_no_action_when_role_exists(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-role-check-mode-predicts-drop-without-writing")
+# [itest -> scn~ansible-modules.exasol-role-check-mode-predicts-drop-without-writing~1]
 def test_role_runtime_check_mode_predicts_drop_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
