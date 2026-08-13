@@ -5,6 +5,7 @@ Feature: exasol-role Ansible module runtime specification
   Background:
     Given an Exasol database is reachable at localhost
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-role-lifecycle-avoids-privileged-metadata~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -15,6 +16,7 @@ Scenario: Role lifecycle avoids privileged metadata
     Then it checks existence through SYS.EXA_ALL_ROLES
     And it does not query a privileged dictionary view
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-role-create-missing-role~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -27,6 +29,7 @@ Scenario: Create a missing role
     And executed_queries equals a single CREATE ROLE statement
     And the role exists in EXA_ALL_ROLES
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-role-leave-existing-role-unchanged~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -39,6 +42,7 @@ Scenario: Leave an existing role unchanged
     And executed_queries equals []
     And the role still exists in EXA_ALL_ROLES
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-role-drop-existing-role~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -51,6 +55,7 @@ Scenario: Drop an existing role
     And executed_queries equals a single DROP ROLE CASCADE statement
     And the role no longer exists in EXA_ALL_ROLES
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-role-check-mode-predicts-create-without-writing~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -62,6 +67,7 @@ Scenario: Check mode predicts create without writing
     And executed_queries equals a single CREATE ROLE statement
     And the role still does not exist in EXA_ALL_ROLES
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-role-check-mode-predicts-no-action-when-role-exists~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -73,6 +79,7 @@ Scenario: Check mode predicts no action when role exists
     And executed_queries equals []
     And the role still exists in EXA_ALL_ROLES
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-role-check-mode-predicts-drop-without-writing~1
 # Covers: req~exasol-role-module~1
 # Needs: itest

@@ -37,6 +37,7 @@ jobs:
         run: poetry run nox -s collection:sanity
 
       - name: Publish Collection to Ansible Galaxy
+        # [impl -> dsn~treat-ci-redaction-and-publishing-credential-protection-as-release-gates~1]
         id: publish-collection-to-ansible-galaxy
         run: poetry run nox -s collection:publish
         env:

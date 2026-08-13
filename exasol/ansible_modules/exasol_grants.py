@@ -199,6 +199,8 @@ class GrantMetadata:
 # [impl -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
 # [impl -> dsn~derive-changed-from-planned-sql~1]
 # [impl -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
+# [impl -> dsn~make-privilege-changes-reviewable-through-planned-sql-and-exasol-audit-trails~1]
+# [impl -> dsn~rely-on-exasol-for-authoritative-audit-trails~1]
 def ensure_grants(
     connection: object,
     params: Mapping[str, object],

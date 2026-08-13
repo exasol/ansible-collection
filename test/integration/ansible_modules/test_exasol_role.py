@@ -14,7 +14,6 @@ from exasol.ansible_modules import (
 )
 
 
-# [itest -> dsn~use-least-privileged-catalog-metadata~1]
 @pytest.mark.scenario_id("exasol-role-lifecycle-avoids-privileged-metadata")
 # [itest -> scn~ansible-modules.exasol-role-lifecycle-avoids-privileged-metadata~1]
 def test_role_metadata_probe_avoids_privileged_catalog() -> None:

@@ -4,6 +4,7 @@ Feature: exasol-script specification
   Background:
     Given an Exasol database is reachable at localhost
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-execute-simple-multi-statement-script~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -13,6 +14,7 @@ Scenario: Execute a simple multi-statement script
     And executed_queries preserves the supplied statement order
     And query_result contains the inserted row's id
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-execute-script-body-with-slash-terminator~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -23,6 +25,7 @@ Scenario: Execute a script body terminated by a standalone slash line
     And query_result contains the selected value
     And the script exists in EXA_ALL_SCRIPTS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-read-only-script-reports-unchanged~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -35,6 +38,7 @@ Scenario: Read-only script reports unchanged
     And rowcount contains one entry per SELECT statement
     And execution_time_ms contains one entry per SELECT statement
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-failing-statement-blocks-later-statements~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -44,6 +48,7 @@ Scenario: Failing statement blocks later statements
     And the schema from the first statement exists in EXA_ALL_SCHEMAS
     And the table from the third statement does not exist in EXA_ALL_TABLES
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-check-mode-read-only-script~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -56,6 +61,7 @@ Scenario: Check mode keeps a read-only script on the execution path
     And rowcount contains one entry with value 1
     And execution_time_ms contains one non-negative entry
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-check-mode-write-script~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -65,6 +71,7 @@ Scenario: Check mode predicts a write script without executing it
     And executed_queries equals the whole script as one entry
     And the schema does not exist in EXA_ALL_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-sanitize-bad-credentials~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -73,6 +80,7 @@ Scenario: Sanitize bad credential errors
     Then the module fails with an authentication error
     And the invalid password is not exposed
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-reject-unsupported-bound-arguments~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -80,6 +88,7 @@ Scenario: Reject unsupported bound arguments
     When exasol_script runs with a positional_args argument
     Then the module fails with an unsupported parameters error
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-reports-per-statement-results-and-rowcount~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -89,6 +98,7 @@ Scenario: Report one result list and rowcount entry per statement
     And the entry for the SELECT statement contains the selected row
     And rowcount contains one entry per statement
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-reports-execution-time-per-statement~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -96,6 +106,7 @@ Scenario: Report execution time per statement
     When exasol_script runs a script containing two statements
     Then execution_time_ms contains one entry per statement
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-statement-failure-does-not-expose-password~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -104,6 +115,7 @@ Scenario: Statement failure error does not expose the connection password
     Then the module fails with an error mentioning the failing statement
     And the login password is not exposed
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-script-reject-named-args~1
 # Covers: req~exasol-script-module~1
 # Needs: itest

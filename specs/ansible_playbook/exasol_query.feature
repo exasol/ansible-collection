@@ -4,6 +4,7 @@ Feature: exasol-query specification
   Background:
     Given an Exasol database is reachable at localhost
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-read-metadata-version~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -13,6 +14,7 @@ Scenario: Read database version metadata
     And one result row contains a non-empty database version
     And execution_time_ms contains one entry
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-single-select~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -25,14 +27,16 @@ Scenario: Execute single SELECT
       | sql            |
       | SELECT 11 AS A |
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-login-schema-canonical~1
 # Covers: req~exasol-query-module~1
-# Needs: itest
+# Needs: dsn, itest
 Scenario: Select a connection schema with login_schema
     Given a schema exists for the connection
     When exasol_query runs with login_schema set to that schema and login_db unset
     Then the query runs with that schema selected
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-login-db-deprecated-alias~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -41,6 +45,7 @@ Scenario: Select a connection schema with deprecated login_db
     When exasol_query runs with login_schema unset and login_db set to that schema
     Then the query runs with that schema selected
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-login-schema-legacy-precedence~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -50,6 +55,7 @@ Scenario: Prefer login_db when both schema parameters are supplied
     Then the query runs with the login_db schema selected
     And Ansible warns that both the option and its alias are set
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-login-schema-same-value-warning~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -59,6 +65,7 @@ Scenario: Warn when both schema parameters have the same value
     Then the query runs with that schema selected
     And Ansible warns that both the option and its alias are set
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-batch-statements~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -70,6 +77,7 @@ Scenario: Execute statement batch on one connection
     And query_result contains row count "2"
     And query_result contains note "backend"
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-positional-args~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -78,6 +86,7 @@ Scenario: Bind positional arguments
     Then changed is false
     And query_result contains value "42"
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-named-args~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -86,6 +95,7 @@ Scenario: Bind named arguments
     Then changed is false
     And query_result contains value "7"
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-check-mode-select~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -94,6 +104,7 @@ Scenario: Execute read-only query in check mode
     Then changed is false
     And query_result contains value "13"
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-check-mode-write~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -104,6 +115,7 @@ Scenario: Predict write in check mode without execution
     And no query is executed
     And the check-mode schema still does not exist
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-sanitize-bad-credentials~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -112,6 +124,7 @@ Scenario: Sanitize bad credential errors
     Then the module fails with an authentication error
     And the invalid password is not exposed
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-reject-batch-args~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -120,6 +133,7 @@ Scenario: Reject bound arguments for statement batch
     Then the module fails with a validation error
     And the error explains that bound arguments require a single statement
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-query-check-mode-mixed-batch~1
 # Covers: req~exasol-query-module~1
 # Needs: itest

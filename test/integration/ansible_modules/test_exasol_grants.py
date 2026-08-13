@@ -23,6 +23,7 @@ from exasol.ansible_modules.common_identifier_validation import (
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-missing-system-privilege")
 # [itest -> scn~ansible-modules.exasol-grants-grant-missing-system-privilege~1]
+# [itest -> dsn~make-privilege-changes-reviewable-through-planned-sql-and-exasol-audit-trails~1]
 def test_grants_runtime_grants_missing_system_privilege(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -220,7 +221,6 @@ def test_grants_runtime_missing_schema_object_privilege_absent_is_unchanged(
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-check-mode-predicts-system-grant")
 # [itest -> scn~ansible-modules.exasol-grants-check-mode-predicts-system-grant~1]
-# [itest -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
 def test_grants_runtime_check_mode_predicts_system_grant(
     exasol_login_vars: dict[str, object],
 ) -> None:

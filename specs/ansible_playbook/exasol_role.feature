@@ -4,6 +4,7 @@ Feature: exasol-role specification
   Background:
     Given an Exasol database is reachable at localhost
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-role-create-missing-role~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -20,6 +21,7 @@ Scenario: Create missing role
       | CREATE ROLE "READER" |
     And EXA_ALL_ROLES contains one row where ROLE_NAME equals "READER"
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-role-preserves-exact-identifier~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -36,6 +38,7 @@ Scenario: Create role with exact identifier semantics
       | CREATE ROLE "Reader+/=Role"   |
     And EXA_ALL_ROLES contains one row where ROLE_NAME equals "Reader+/=Role"
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-role-present-idempotent~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -48,6 +51,7 @@ Scenario: Present role is idempotent
     And exists is true
     And executed_queries equals []
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-role-present-idempotent-with-different-case-spelling~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -62,6 +66,7 @@ Scenario: Present role stays idempotent across case-only spelling changes
     And executed_queries equals []
     And EXA_ALL_ROLES contains one row where ROLE_NAME equals "Reader+/=Role"
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-role-check-mode-create~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -77,6 +82,7 @@ Scenario: Check mode predicts create
       | CREATE ROLE "CHECK_READER" |
     And role "CHECK_READER" still does not exist in EXA_ALL_ROLES
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-role-check-mode-drop~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -92,6 +98,7 @@ Scenario: Check mode predicts drop
       | DROP ROLE "READER" CASCADE |
     And role "READER" still exists in EXA_ALL_ROLES
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-role-drop-existing-role~1
 # Covers: req~exasol-role-module~1
 # Needs: itest
@@ -107,6 +114,7 @@ Scenario: Drop existing role
       | DROP ROLE "READER" CASCADE |
     And role "READER" no longer exists in EXA_ALL_ROLES
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-role-drop-missing-role~1
 # Covers: req~exasol-role-module~1
 # Needs: itest

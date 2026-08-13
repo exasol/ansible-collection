@@ -167,7 +167,6 @@ collection:
 Status: draft
 
 Covers:
-- scn~fully-qualified-collection-names-are-explained~1
 
 .. raw:: html
 
@@ -211,7 +210,6 @@ exasol_query
 Status: draft
 
 Covers:
-- scn~direct-sql-guidance-protects-secrets~1
 
 .. raw:: html
 
@@ -363,7 +361,6 @@ exasol_info
 Status: draft
 
 Covers:
-- scn~public-module-workflows-are-documented~1
 
 .. raw:: html
 

@@ -4,6 +4,7 @@ Feature: exasol-schema specification
   Background:
     Given an Exasol database is reachable at localhost
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-create-missing-schema~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -20,6 +21,7 @@ Scenario: Create missing schema
       | CREATE SCHEMA "SALES" |
     And schema "SALES" exists in EXA_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-preserves-exact-identifier~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -36,6 +38,7 @@ Scenario: Create schema with exact identifier semantics
       | CREATE SCHEMA "Sales+/=Schema"       |
     And schema "Sales+/=Schema" exists in EXA_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-apply-unchanged~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -49,6 +52,7 @@ Scenario: Applying identical schema state results in no changes
     And executed_queries equals []
     And schema "SALES" exists in EXA_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-creates-case-distinct-schema-by-default~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -67,6 +71,7 @@ Scenario: Applying a case-distinct schema creates it by default
     And EXA_SCHEMAS contains one row where SCHEMA_NAME equals "Sales+/=Schema"
     And EXA_SCHEMAS contains one row where SCHEMA_NAME equals "sales+/=schema"
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-check-mode-create~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -82,6 +87,7 @@ Scenario: Check mode predicts create
       | CREATE SCHEMA "SALES" |
     And schema "SALES" does not exist in EXA_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-check-mode-drop~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -97,6 +103,7 @@ Scenario: Check mode predicts drop
       | DROP SCHEMA "SALES" |
     And schema "SALES" still exists in EXA_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-check-mode-drop-cascade~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -113,6 +120,7 @@ Scenario: Check mode predicts cascade drop
       | DROP SCHEMA "SALES" CASCADE |
     And schema "SALES" still exists in EXA_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-drop-existing-schema~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -129,6 +137,7 @@ Scenario: Drop existing empty schema
       | DROP SCHEMA "SALES" |
     And schema "SALES" no longer exists in EXA_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-drop-existing-schema-cascade~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -145,6 +154,7 @@ Scenario: Drop existing non-empty schema using cascade
       | DROP SCHEMA "SALES" CASCADE |
     And schema "SALES" no longer exists in EXA_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-drop-non-empty-without-cascade~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -158,6 +168,7 @@ Scenario: Refuse to drop a non-empty schema without cascade
     Then the module fails with an error mentioning CASCADE
     And schema "SALES" still exists in EXA_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-drop-missing-schema~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -170,6 +181,7 @@ Scenario: Drop missing schema
     And exists is false
     And executed_queries equals []
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-create-with-owner~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -181,6 +193,7 @@ Scenario: Create a schema and assign its owner
     And CREATE SCHEMA is followed by ALTER SCHEMA CHANGE OWNER
     And EXA_SCHEMAS reports the requested owner
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-change-owner~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -192,6 +205,7 @@ Scenario: Change the owner of an existing schema through a playbook
     And executed_queries equals a single ALTER SCHEMA CHANGE OWNER statement
     And EXA_SCHEMAS reports the requested owner
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-owner-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -202,6 +216,7 @@ Scenario: Keep an identical schema owner unchanged
     And executed_queries equals []
     And EXA_SCHEMAS still reports the requested owner
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-set-comment~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -212,6 +227,7 @@ Scenario: Set a schema comment through a playbook
     And executed_queries contains a COMMENT ON SCHEMA statement
     And EXA_SCHEMAS reports the requested comment
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-rename~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -223,6 +239,7 @@ Scenario: Rename a schema through a playbook
     And executed_queries contains a RENAME SCHEMA statement
     And only the target schema exists
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-rename-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -234,6 +251,7 @@ Scenario: Leave an already renamed schema unchanged through a playbook
     And executed_queries equals []
     And only the target schema exists
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-raw-size-limit-check-mode~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -244,6 +262,7 @@ Scenario: Predict a raw size limit change through a playbook
     And executed_queries contains an ALTER SCHEMA SET RAW_SIZE_LIMIT statement
     And EXA_ALL_OBJECT_SIZES still reports the original limit
 
+Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-schema-clear-raw-size-limit-playbook~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest

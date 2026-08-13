@@ -291,6 +291,10 @@ def _explicit_certificate_fingerprint(value: object) -> str | None:
 
 
 # [impl -> dsn~keep-secret-handling-transient-within-task-execution~1]
+# [impl -> dsn~avoid-extra-control-plane-services~1]
+# [impl -> dsn~keep-secret-rotation-and-revocation-outside-the-collection~1]
+# [impl -> dsn~keep-the-trust-boundary-at-the-authenticated-account-and-operator-environment~1]
+# [impl -> dsn~apply-the-security-model-to-future-administrative-modules~1]
 @contextmanager
 def connect_to_exasol(
     params: Mapping[str, object],
@@ -321,6 +325,7 @@ def _mapping_or_empty(value: object) -> Mapping[str, object]:
     return {}
 
 
+# [impl -> dsn~surface-exasol-authorization-rejections-without-local-privilege-logic~1]
 def normalized_exasol_error_message(
     error: BaseException,
     params: Mapping[str, object],
@@ -381,6 +386,8 @@ def normalize_query_list(query: object) -> list[str]:
 
 
 # [impl -> dsn~avoid-autonomous-retry-of-privileged-actions~1]
+# [impl -> dsn~delegate-authorization-decisions-to-exasol~1]
+# [impl -> dsn~exasol-authorization-enforcement~1]
 def execute_queries(
     connection: _ExasolConnection,
     query: str | list[str],

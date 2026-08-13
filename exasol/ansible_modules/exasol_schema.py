@@ -73,6 +73,7 @@ class SchemaMetadata:
 
 # [impl -> dsn~intrinsic-schema-property-reconciliation~1]
 # [impl -> dsn~explicit-schema-drop-cascade~1]
+# [impl -> dsn~schema-identifier-comparison-follows-session~1]
 # [impl -> dsn~derive-changed-from-planned-sql~1]
 # [impl -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
 def ensure_schema(

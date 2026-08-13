@@ -114,7 +114,6 @@ def test_exasol_query_single_select(
     )
 
 
-# [itest -> dsn~canonical-schema-connection-parameter~1]
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-login-schema-canonical")
@@ -141,7 +140,6 @@ def test_exasol_query_selects_schema_with_login_schema(
     _assert_selected_schema(result["module_result"], schema_name)
 
 
-# [itest -> dsn~canonical-schema-connection-parameter~1]
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-login-db-deprecated-alias")
@@ -168,7 +166,6 @@ def test_exasol_query_selects_schema_with_login_db_alias(
     _assert_selected_schema(result["module_result"], schema_name)
 
 
-# [itest -> dsn~canonical-schema-connection-parameter~1]
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-login-schema-legacy-precedence")
@@ -207,7 +204,6 @@ def test_exasol_query_prefers_login_db_when_both_schema_parameters_are_set(
     )
 
 
-# [itest -> dsn~canonical-schema-connection-parameter~1]
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-login-schema-same-value-warning")

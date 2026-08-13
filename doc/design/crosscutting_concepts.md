@@ -77,8 +77,8 @@ The collection models Exasol's password comparison limitation explicitly: `updat
 Status: draft
 
 Covers:
-- `scn~creation-only-password-update~1`
-- `scn~forced-password-update~1`
+- `scn~ansible-modules.exasol-user-leave-existing-user-unchanged~1`
+- `scn~ansible-modules.exasol-user-update-existing-user-password~1`
 
 Needs: impl, utest
 
@@ -133,7 +133,7 @@ names are present.
 Status: draft
 
 Covers:
-- `scn~canonical-schema-connection-parameter-is-used~1`
+- `scn~ansible-playbook.exasol-query-login-schema-canonical~1`
 
 Needs: impl, utest
 

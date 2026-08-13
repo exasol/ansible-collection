@@ -2,6 +2,7 @@ Feature: exasol-grants Ansible module runtime specification
   Manage Exasol database grants directly through the exasol_grants Python
   runtime helpers.
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-missing-system-privilege~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -15,6 +16,7 @@ Scenario: Grant missing system privilege
     And executed_queries equals a single GRANT CREATE SESSION statement
     And EXA_DBA_SYS_PRIVS contains CREATE SESSION for the user
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-system-privilege-idempotent~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -26,6 +28,7 @@ Scenario: Existing system privilege is unchanged
     And executed_queries equals []
     And EXA_DBA_SYS_PRIVS still contains one CREATE SESSION grant
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-multiple-system-and-object-privileges~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -38,6 +41,7 @@ Scenario: Grant multiple system and object privileges
     And executed_queries contains the missing GRANT statements
     And the requested privileges exist in Exasol metadata
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-revoke-existing-schema-object-privilege~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -49,6 +53,7 @@ Scenario: Revoke existing schema object privilege
     And executed_queries equals a single REVOKE USAGE statement
     And EXA_DBA_OBJ_PRIVS no longer contains USAGE on the schema for the user
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-absent-schema-object-privilege-idempotent~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -59,6 +64,7 @@ Scenario: Missing schema object privilege is unchanged when absent
     Then changed is false
     And executed_queries equals []
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-check-mode-predicts-system-grant~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -70,6 +76,7 @@ Scenario: Check mode predicts system grant
     And executed_queries equals a single GRANT CREATE SESSION statement
     And EXA_DBA_SYS_PRIVS still does not contain CREATE SESSION for the user
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-reject-mutually-exclusive-principals~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -79,6 +86,7 @@ Scenario: Reject mutually exclusive principals
     Then the runtime fails with a validation error
     And no privilege-changing SQL is generated
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-role-membership-to-user~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -90,6 +98,7 @@ Scenario: Grant role membership to a user
     And executed_queries equals a single GRANT role statement
     And EXA_DBA_ROLE_PRIVS contains "APP_ROLE" for "ALICE"
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-role-membership-idempotent~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -100,6 +109,7 @@ Scenario: Existing role membership is unchanged
     Then changed is false
     And executed_queries equals []
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-revoke-role-membership~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -111,6 +121,7 @@ Scenario: Revoke existing role membership
     And executed_queries equals a single REVOKE role statement
     And EXA_DBA_ROLE_PRIVS no longer contains "APP_ROLE" for "ALICE"
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-check-mode-role-membership~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -121,6 +132,7 @@ Scenario: Check mode predicts role membership grant
     Then changed is true
     And EXA_DBA_ROLE_PRIVS still does not contain "APP_ROLE" for "ALICE"
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-missing-system-privilege-to-role~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -132,6 +144,7 @@ Scenario: Grant missing system privilege to a role
     And executed_queries equals a single role-principal GRANT statement
     And EXA_DBA_SYS_PRIVS contains CREATE SESSION for "APP_ROLE"
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-script-execute-privilege~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -142,6 +155,7 @@ Scenario: Grant EXECUTE on a script object
     Then changed is true
     And executed_queries equals a SCRIPT object GRANT statement
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-view-select-privilege~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -152,6 +166,7 @@ Scenario: Grant SELECT on a view object
     Then changed is true
     And executed_queries equals a VIEW object GRANT statement
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-check-mode-predicts-no-action-when-granted~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -162,6 +177,7 @@ Scenario: Check mode predicts no action when privilege already granted
     Then changed is false
     And executed_queries equals []
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-check-mode-predicts-revoke~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -172,6 +188,7 @@ Scenario: Check mode predicts a revoke without executing it
     Then changed is true
     And EXA_DBA_OBJ_PRIVS still contains USAGE on "APP_SCHEMA" for "ALICE"
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-batch-with-some-privileges-already-present~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -183,6 +200,7 @@ Scenario: Grant a batch where some privileges already exist
     Then changed is true
     And executed_queries equals a single GRANT CREATE SCHEMA statement
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-absent-system-privilege-idempotent~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -193,6 +211,7 @@ Scenario: Missing system privilege is unchanged when absent
     Then changed is false
     And executed_queries equals []
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-reject-unsupported-privilege~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -201,6 +220,7 @@ Scenario: Reject an unsupported privilege name
     When the grants runtime runs with an unsupported system privilege
     Then the runtime fails with a validation error
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-reject-empty-request~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -209,6 +229,7 @@ Scenario: Reject a request with no privileges
     When the grants runtime runs with no grant requests
     Then the runtime fails with a validation error
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-preserves-exact-identifier~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -219,6 +240,7 @@ Scenario: Grant to an exact-identifier principal
     Then changed is true
     And executed_queries preserves the exact role identifier
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-idempotent-with-different-case-spelling~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -229,6 +251,7 @@ Scenario: Grant stays idempotent across case-only spelling changes
     Then changed is false
     And executed_queries equals []
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-system-privilege-with-admin-option~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -240,6 +263,7 @@ Scenario: Grant system privilege with admin option
     And executed_queries equals a GRANT statement with WITH ADMIN OPTION
     And EXA_DBA_SYS_PRIVS records admin option for the privilege
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-mixed-system-privileges-with-admin-options~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -251,6 +275,7 @@ Scenario: Grant mixed system privileges with per-privilege admin option
     And one system privilege is granted with admin option
     And one system privilege is granted without admin option
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-role-membership-with-admin-option~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -262,6 +287,7 @@ Scenario: Grant role membership with admin option
     And executed_queries equals a role GRANT statement with WITH ADMIN OPTION
     And EXA_DBA_ROLE_PRIVS records admin option for the role membership
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-grant-mixed-role-memberships-with-admin-options~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -273,6 +299,7 @@ Scenario: Grant mixed role memberships with per-role admin option
     And one role membership is granted with admin option
     And one role membership is granted without admin option
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-downgrade-system-privilege-admin-option~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -283,6 +310,7 @@ Scenario: Downgrade system privilege admin option
     Then changed is true
     And the privilege is re-granted without admin option
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-grants-reject-admin-option-for-object-only-request~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest

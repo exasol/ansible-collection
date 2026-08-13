@@ -15,7 +15,6 @@ from common.user_assertions import assert_user_can_log_in
 from exasol.ansible_modules import exasol_user
 
 
-# [itest -> dsn~use-least-privileged-catalog-metadata~1]
 @pytest.mark.scenario_id("exasol-user-password-lifecycle-avoids-privileged-metadata")
 # [itest -> scn~ansible-modules.exasol-user-password-lifecycle-avoids-privileged-metadata~1]
 def test_password_user_metadata_probe_avoids_privileged_catalog() -> None:
@@ -24,7 +23,6 @@ def test_password_user_metadata_probe_avoids_privileged_catalog() -> None:
     assert "EXA_DBA_USERS" not in exasol_user.USER_EXISTS_QUERY
 
 
-# [itest -> dsn~use-least-privileged-catalog-metadata~1]
 @pytest.mark.scenario_id("exasol-user-ldap-metadata-lookup-is-privileged-and-separate")
 # [itest -> scn~ansible-modules.exasol-user-ldap-metadata-lookup-is-privileged-and-separate~1]
 def test_ldap_metadata_probe_is_separate_and_privileged() -> None:

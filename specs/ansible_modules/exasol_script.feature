@@ -5,15 +5,17 @@ Feature: exasol-script Ansible module runtime specification
   Background:
     Given an Exasol database is reachable at localhost
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-execute-multi-statement-script-against-backend~1
 # Covers: req~exasol-script-module~1
-# Needs: itest
+# Needs: dsn, itest
 Scenario: Execute a multi-statement script against the backend
     When the script runtime executes a script creating a schema, a table, and a row
     Then changed is true
     And executed_queries equals the individual statements in the script
     And the created schema exists in EXA_ALL_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-execute-script-body-terminated-by-slash~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -23,6 +25,7 @@ Scenario: Execute a script body terminated by a standalone slash line
     And executed_queries contains a single CREATE SCRIPT statement
     And the created script exists in EXA_ALL_SCRIPTS
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-execute-multiple-script-bodies-terminated-by-slash~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -32,6 +35,7 @@ Scenario: Execute multiple script bodies terminated by standalone slash lines
     And executed_queries contains two CREATE SCRIPT statements
     And both created scripts exist in EXA_ALL_SCRIPTS
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-execute-read-only-script-against-backend~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -40,6 +44,7 @@ Scenario: Execute a read-only script against the backend
     Then changed is false
     And query_result contains the last statement's selected value
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-failing-statement-stops-later-statements~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -49,6 +54,7 @@ Scenario: Stop execution after a failing statement
     And the first statement's effect exists in EXA_ALL_SCHEMAS
     And the third statement's effect does not exist in EXA_ALL_TABLES
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-check-mode-ignores-read-only-script~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -57,6 +63,7 @@ Scenario: Keep read-only scripts on the execution path in check mode
     Then changed is false
     And query_result is not empty
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-check-mode-predicts-write-without-execution~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -67,6 +74,7 @@ Scenario: Predict a write script without executing it in check mode
     And query_result is empty
     And the created schema does not exist in EXA_ALL_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-check-mode-predicts-mixed-write-and-read-script~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -77,6 +85,7 @@ Scenario: Predict a mixed write and read script without executing it in check mo
     And query_result is empty
     And the created schema does not exist in EXA_ALL_SCHEMAS
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-semicolon-in-string-literal-does-not-split-statement~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -86,6 +95,7 @@ Scenario: A semicolon inside a string literal does not split a statement
     And executed_queries contains exactly two statements
     And query_result contains the value with the embedded semicolon
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-semicolon-in-comment-does-not-split-statement~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -94,6 +104,7 @@ Scenario: A semicolon inside a comment does not split a statement
     Then changed is false
     And executed_queries contains exactly two statements
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-execute-script-invocation-side-effect~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
@@ -102,6 +113,7 @@ Scenario: Invoking a created script has a write side effect
     Then changed is true
     And the table created by the invoked script exists in EXA_ALL_TABLES
 
+Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-script-empty-script-executes-nothing~1
 # Covers: req~exasol-script-module~1
 # Needs: itest
