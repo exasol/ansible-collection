@@ -402,7 +402,9 @@ def _scenario_id_marker_value(decorator: ast.expr) -> str | None:
     )
 
 
-def _assert_scenario_trace_tags_declared_once(path: Path, scenarios: list[Scenario]) -> None:
+def _assert_scenario_trace_tags_declared_once(
+    path: Path, scenarios: list[Scenario]
+) -> None:
     content = path.read_text(encoding="utf-8")
     for scenario in scenarios:
         pattern = re.compile(rf"\[itest -> {re.escape(scenario.oft_scenario_id)}\]")
