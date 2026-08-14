@@ -4,7 +4,6 @@ Feature: exasol-user specification
   Background:
     Given an Exasol database is reachable at localhost
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-create-missing-user~1
 # Covers: req~exasol-user-module~1
 # Needs: itest
@@ -23,7 +22,6 @@ Scenario: Create missing user
     And user "ALICE" can run query "SELECT 17 AS A" with password "Initial_Secret_42"
     And the module result does not contain "Initial_Secret_42"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-preserves-exact-identifier~1
 # Covers: req~exasol-user-module~1
 # Needs: itest
@@ -42,7 +40,6 @@ Scenario: Create user with exact identifier semantics
     And user "Alice+/=User" can run query "SELECT 17 AS A" with password "Initial_Secret_42"
     And the module result does not contain "Initial_Secret_42"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-apply-unchanged~1
 # Covers: req~exasol-user-module~1
 # Needs: itest
@@ -55,7 +52,6 @@ Scenario: Applying identical user state results in no changes
     And exists is true
     And executed_queries equals []
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-apply-unchanged-with-different-case-spelling~1
 # Covers: req~exasol-user-module~1
 # Needs: itest
@@ -70,7 +66,6 @@ Scenario: Applying same user with different case spelling stays idempotent
     And executed_queries equals []
     And EXA_DBA_USERS contains one row where USER_NAME equals "Alice+/=User"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-change-authentication-to-ldap~1
 # Covers: req~exasol-user-module~1
 # Needs: itest
@@ -88,7 +83,6 @@ Scenario: Change authentication to LDAP
     And the module result does not contain "cn=alice,dc=authorization,dc=exasol,dc=com"
 
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-rotate-password~1
 # Covers: req~exasol-user-module~1
 # Needs: itest
@@ -107,7 +101,6 @@ Scenario: Rotate password
     And the module result does not contain "Rotated_Secret_42"
     And the module result does not contain "Initial_Secret_42"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-check-mode-create~1
 # Covers: req~exasol-user-module~1
 # Needs: itest
@@ -125,7 +118,6 @@ Scenario: Check mode predicts create
     And user "BOB" does not exist in EXA_ALL_USERS
     And the module result does not contain "Check_Secret_42"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-check-mode-update-ldap~1
 # Covers: req~exasol-user-module~1
 # Needs: itest
@@ -142,7 +134,6 @@ Scenario: Check mode predicts LDAP update
     And EXA_DBA_USERS.DISTINGUISHED_NAME for "ALICE" is unchanged
     And the module result does not contain "cn=alice-check,dc=authorization,dc=exasol,dc=com"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-check-mode-drop~1
 # Covers: req~exasol-user-module~1
 # Needs: itest
@@ -158,7 +149,6 @@ Scenario: Check mode predicts drop
       | DROP USER "ALICE" CASCADE |
     And user "ALICE" still exists in EXA_ALL_USERS
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-drop-existing-user~1
 # Covers: req~exasol-user-module~1
 # Needs: itest
@@ -174,7 +164,6 @@ Scenario: Drop existing user
       | DROP USER "ALICE" CASCADE |
     And user "ALICE" no longer exists in EXA_ALL_USERS
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-user-drop-missing-user~1
 # Covers: req~exasol-user-module~1
 # Needs: itest

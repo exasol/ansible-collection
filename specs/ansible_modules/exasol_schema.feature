@@ -5,7 +5,6 @@ Feature: exasol-schema Ansible module runtime specification
   Background:
     Given an Exasol database is reachable at localhost
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-create-missing-schema~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -18,7 +17,6 @@ Scenario: Create a missing schema
     And executed_queries equals a single CREATE SCHEMA statement
     And the schema exists in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-leave-existing-schema-unchanged~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -31,7 +29,6 @@ Scenario: Leave an existing schema unchanged
     And executed_queries equals []
     And the schema still exists in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-identifiers-follow-session-comparison~1
 # Covers: req~exasol-schema-module~1
 # Needs: dsn, itest
@@ -43,7 +40,6 @@ Scenario: Create a case-distinct schema in a case-sensitive session
     And executed_queries equals a single CREATE SCHEMA statement
     And both exact-identifier schemas exist in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-drop-existing-schema~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -56,7 +52,6 @@ Scenario: Drop an existing schema
     And executed_queries equals a single DROP SCHEMA statement
     And the schema no longer exists in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-check-mode-predicts-create-without-writing~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -68,7 +63,6 @@ Scenario: Check mode predicts create without writing
     And executed_queries equals a single CREATE SCHEMA statement
     And the schema still does not exist in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-check-mode-predicts-no-action-when-schema-exists~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -80,7 +74,6 @@ Scenario: Check mode predicts no action when schema exists
     And executed_queries equals []
     And the schema still exists in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-check-mode-predicts-drop-without-writing~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -92,7 +85,6 @@ Scenario: Check mode predicts drop without writing
     And executed_queries equals a single DROP SCHEMA CASCADE statement
     And the schema still exists in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-create-with-owner~1
 # Covers: req~exasol-schema-module~1
 # Needs: dsn, itest
@@ -104,7 +96,6 @@ Scenario: Create a schema with an owner
     And executed_queries equals CREATE SCHEMA followed by ALTER SCHEMA CHANGE OWNER
     And EXA_SCHEMAS reports the requested owner
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-owner-does-not-exist~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -116,7 +107,6 @@ Scenario: Refuse to assign a non-existent owner
     And the CREATE SCHEMA statement already committed before the failure
     And the schema exists but is not owned by the requested owner
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-change-owner~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -128,7 +118,6 @@ Scenario: Change the owner of an existing schema
     And executed_queries equals a single ALTER SCHEMA CHANGE OWNER statement
     And EXA_SCHEMAS reports the requested owner
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-owner-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -139,7 +128,6 @@ Scenario: Leave an identical schema owner unchanged
     And executed_queries equals []
     And EXA_SCHEMAS still reports the requested owner
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-owner-check-mode~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -151,7 +139,6 @@ Scenario: Check mode predicts an owner change without writing
     And executed_queries equals a single ALTER SCHEMA CHANGE OWNER statement
     And EXA_SCHEMAS still reports the original owner
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-owner-check-mode-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -162,7 +149,6 @@ Scenario: Check mode predicts no owner change when already matching
     And executed_queries equals []
     And EXA_SCHEMAS still reports the requested owner
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-set-comment~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -173,7 +159,6 @@ Scenario: Set a schema comment
     And executed_queries equals a single COMMENT ON SCHEMA statement
     And EXA_SCHEMAS reports the requested comment
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-clear-comment~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -184,7 +169,6 @@ Scenario: Clear a schema comment
     And executed_queries equals COMMENT ON SCHEMA IS NULL
     And EXA_SCHEMAS reports no comment
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-comment-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -195,7 +179,6 @@ Scenario: Leave an identical schema comment unchanged
     And executed_queries equals []
     And EXA_SCHEMAS still reports the requested comment
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-comment-check-mode~1
 # Covers: req~exasol-schema-module~1
 # Needs: dsn, itest
@@ -206,7 +189,6 @@ Scenario: Check mode predicts a comment change without writing
     And executed_queries equals a single COMMENT ON SCHEMA statement
     And EXA_SCHEMAS still reports the original comment
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-comment-check-mode-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -217,7 +199,6 @@ Scenario: Check mode predicts no comment change when already matching
     And executed_queries equals []
     And EXA_SCHEMAS still reports the requested comment
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-rename~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -229,7 +210,6 @@ Scenario: Rename an existing schema
     And executed_queries equals a single RENAME SCHEMA statement
     And only the target schema exists in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-rename-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -241,7 +221,6 @@ Scenario: Leave an already renamed schema unchanged
     And executed_queries equals []
     And only the target schema exists in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-rename-check-mode~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -253,7 +232,6 @@ Scenario: Check mode predicts a rename without writing
     And executed_queries equals a single RENAME SCHEMA statement
     And only the source schema exists in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-rename-check-mode-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -265,7 +243,6 @@ Scenario: Check mode predicts no rename when already renamed
     And executed_queries equals []
     And only the target schema exists in EXA_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-set-raw-size-limit~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -276,7 +253,6 @@ Scenario: Set a schema raw size limit
     And executed_queries equals a single ALTER SCHEMA SET RAW_SIZE_LIMIT statement
     And EXA_ALL_OBJECT_SIZES reports the requested raw size limit
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-change-raw-size-limit~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -287,7 +263,6 @@ Scenario: Change a schema raw size limit
     And executed_queries equals a single ALTER SCHEMA SET RAW_SIZE_LIMIT statement
     And EXA_ALL_OBJECT_SIZES reports the requested raw size limit
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-raw-size-limit-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -298,7 +273,6 @@ Scenario: Leave an identical schema raw size limit unchanged
     And executed_queries equals []
     And EXA_ALL_OBJECT_SIZES still reports the requested raw size limit
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-clear-raw-size-limit~1
 # Covers: req~exasol-schema-module~1
 # Needs: dsn, itest
@@ -309,7 +283,6 @@ Scenario: Clear a schema raw size limit
     And executed_queries equals a single ALTER SCHEMA SET RAW_SIZE_LIMIT NULL statement
     And EXA_ALL_OBJECT_SIZES reports no raw size limit
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-clear-raw-size-limit-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -319,7 +292,6 @@ Scenario: Leave an already cleared schema raw size limit unchanged
     Then changed is false
     And executed_queries equals []
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-clear-raw-size-limit-check-mode~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -330,7 +302,6 @@ Scenario: Check mode predicts clearing a raw size limit without writing
     And executed_queries equals a single ALTER SCHEMA SET RAW_SIZE_LIMIT NULL statement
     And EXA_ALL_OBJECT_SIZES still reports the original raw size limit
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-raw-size-limit-check-mode~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -341,7 +312,6 @@ Scenario: Check mode predicts a raw size limit change without writing
     And executed_queries equals a single ALTER SCHEMA SET RAW_SIZE_LIMIT statement
     And EXA_ALL_OBJECT_SIZES still reports the original raw size limit
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-raw-size-limit-check-mode-idempotent~1
 # Covers: req~exasol-schema-module~1
 # Needs: itest
@@ -352,7 +322,6 @@ Scenario: Check mode predicts no raw size limit change when already matching
     And executed_queries equals []
     And EXA_ALL_OBJECT_SIZES still reports the requested raw size limit
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-schema-drop-non-empty-without-cascade~1
 # Covers: req~exasol-schema-module~1
 # Needs: dsn, itest

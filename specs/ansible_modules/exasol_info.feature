@@ -5,7 +5,6 @@ Feature: exasol-info Ansible module runtime specification
   Background:
     Given an Exasol database is reachable at localhost
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-info-returns-version-and-cluster-size~1
 # Covers: req~exasol-info-module~1
 # Needs: dsn, itest
@@ -17,7 +16,6 @@ Scenario: Return basic server metadata
     And database_name exists and is non-empty
     And cluster_size exists and is at least 1
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-info-uses-qualified-statistical-cluster-metadata-view~1
 # Covers: req~exasol-info-module~1
 # Needs: itest

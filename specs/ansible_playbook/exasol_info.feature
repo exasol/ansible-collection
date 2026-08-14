@@ -4,7 +4,6 @@ Feature: exasol-info specification
   Background:
     Given an Exasol cluster reachable at login_host
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-info-return-cluster-info~1
 # Covers: req~exasol-info-module~1
 # Needs: itest
@@ -17,7 +16,6 @@ Scenario: Returns version and cluster info
       And result.cluster_size MUST be at least 1
       And changed MUST always be false
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-info-check-mode~1
 # Covers: req~exasol-info-module~1
 # Needs: itest

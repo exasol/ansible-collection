@@ -5,7 +5,6 @@ Feature: exasol-query Ansible module runtime specification
   Background:
     Given an Exasol database is reachable at localhost
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-query-execute-write-query-against-backend~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -15,7 +14,6 @@ Scenario: Execute a write query against the backend
     And executed_queries equals the executed CREATE SCHEMA statement
     And the created schema exists in EXA_ALL_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-query-execute-read-query-against-backend~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -25,7 +23,6 @@ Scenario: Execute a read-only query against the backend
     And executed_queries equals the executed SELECT statement
     And query_result contains the selected value
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-query-check-mode-ignores-read-only-query~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -34,7 +31,6 @@ Scenario: Keep read-only queries on the execution path in check mode
     Then changed is false
     And query_result is not empty
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-query-check-mode-predicts-write-without-execution~1
 # Covers: req~exasol-query-module~1
 # Needs: itest
@@ -45,7 +41,6 @@ Scenario: Predict a write query without executing it in check mode
     And query_result is empty
     And the created schema does not exist in EXA_ALL_SCHEMAS
 
-Rule: Scenario behavior
 @id:scn~ansible-modules.exasol-query-check-mode-predicts-no-action-for-comment-only-query~1
 # Covers: req~exasol-query-module~1
 # Needs: itest

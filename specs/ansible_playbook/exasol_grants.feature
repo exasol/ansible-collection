@@ -4,7 +4,6 @@ Feature: exasol-grants specification
   Background:
     Given an Exasol database is reachable at localhost
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-grant-missing-system-privilege~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -21,7 +20,6 @@ Scenario: Grant missing system privilege
       | GRANT CREATE SESSION TO "ALICE" |
     And EXA_DBA_SYS_PRIVS contains CREATE SESSION for "ALICE"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-system-privilege-idempotent~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -33,7 +31,6 @@ Scenario: Existing system privilege is unchanged
     Then changed is false
     And executed_queries equals []
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-grant-multiple-system-and-object-privileges~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -55,7 +52,6 @@ Scenario: Grant multiple system and object privileges
     And EXA_DBA_OBJ_PRIVS contains SELECT on "APP_SCHEMA"."FACT_SALES" for "ALICE"
     And EXA_DBA_OBJ_PRIVS contains INSERT on "APP_SCHEMA"."FACT_SALES" for "ALICE"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-revoke-existing-schema-object-privilege~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -70,7 +66,6 @@ Scenario: Revoke existing schema object privilege
       | REVOKE USAGE ON "APP_SCHEMA" FROM "ALICE"      |
     And EXA_DBA_OBJ_PRIVS no longer contains USAGE on "APP_SCHEMA" for "ALICE"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-absent-schema-object-privilege-idempotent~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -82,7 +77,6 @@ Scenario: Missing schema object privilege is unchanged when absent
     Then changed is false
     And executed_queries equals []
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-check-mode-predicts-system-grant~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -97,7 +91,6 @@ Scenario: Check mode predicts system grant
       | GRANT CREATE SESSION TO "ALICE" |
     And EXA_DBA_SYS_PRIVS still does not contain CREATE SESSION for "ALICE"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-reject-mutually-exclusive-principals~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -106,7 +99,6 @@ Scenario: Reject mutually exclusive principals
     Then the module fails with a validation error
     And no privilege-changing SQL is generated
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-grant-role-membership-to-user~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -117,7 +109,6 @@ Scenario: Grant role membership to a user
     Then changed is true
     And EXA_DBA_ROLE_PRIVS contains "APP_ROLE" for "ALICE"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-role-membership-idempotent~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -128,7 +119,6 @@ Scenario: Existing role membership is unchanged
     Then changed is false
     And executed_queries equals []
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-revoke-role-membership~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -139,7 +129,6 @@ Scenario: Revoke existing role membership
     Then changed is true
     And EXA_DBA_ROLE_PRIVS no longer contains "APP_ROLE" for "ALICE"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-check-mode-role-membership~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
@@ -150,7 +139,6 @@ Scenario: Check mode predicts role membership grant
     Then changed is true
     And EXA_DBA_ROLE_PRIVS still does not contain "APP_ROLE" for "ALICE"
 
-Rule: Scenario behavior
 @id:scn~ansible-playbook.exasol-grants-insufficient-privilege-sanitized-error~1
 # Covers: req~exasol-grants-module~1
 # Needs: itest
