@@ -33,6 +33,7 @@ class ConnectionContext(AbstractContextManager[object]):
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-info-returns-version-and-cluster-size")
+# [itest -> scn~ansible-modules.exasol-info-returns-version-and-cluster-size~1]
 def test_info_runtime_reads_basic_server_metadata(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -58,6 +59,7 @@ def test_info_runtime_reads_basic_server_metadata(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-info-uses-qualified-statistical-cluster-metadata-view")
+# [itest -> scn~ansible-modules.exasol-info-uses-qualified-statistical-cluster-metadata-view~1]
 # [itest -> dsn~exasol-info-read-only-metadata-retrieval~3]
 def test_info_runtime_uses_qualified_statistical_cluster_metadata_view(
     exasol_login_vars: dict[str, object],

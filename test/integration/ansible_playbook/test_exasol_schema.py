@@ -24,6 +24,7 @@ MODULE_NAME = "exasol_schema"
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-create-missing-schema")
+# [itest -> scn~ansible-playbook.exasol-schema-create-missing-schema~1]
 def test_exasol_schema_create_missing_schema(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -64,6 +65,7 @@ def test_exasol_schema_create_missing_schema(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-preserves-exact-identifier")
+# [itest -> scn~ansible-playbook.exasol-schema-preserves-exact-identifier~1]
 def test_exasol_schema_preserves_exact_identifier(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -104,6 +106,7 @@ def test_exasol_schema_preserves_exact_identifier(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-apply-unchanged")
+# [itest -> scn~ansible-playbook.exasol-schema-apply-unchanged~1]
 # [itest -> dsn~intrinsic-schema-property-reconciliation~1]
 def test_exasol_schema_apply_unchanged(
     ansible_runner_workspace: Any,
@@ -146,6 +149,7 @@ def test_exasol_schema_apply_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-creates-case-distinct-schema-by-default")
+# [itest -> scn~ansible-playbook.exasol-schema-creates-case-distinct-schema-by-default~1]
 def test_exasol_schema_creates_case_distinct_schema_by_default(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -190,6 +194,7 @@ def test_exasol_schema_creates_case_distinct_schema_by_default(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-check-mode-create")
+# [itest -> scn~ansible-playbook.exasol-schema-check-mode-create~1]
 def test_exasol_schema_check_mode_create(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -231,6 +236,7 @@ def test_exasol_schema_check_mode_create(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-check-mode-drop")
+# [itest -> scn~ansible-playbook.exasol-schema-check-mode-drop~1]
 def test_exasol_schema_check_mode_drop(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -273,6 +279,7 @@ def test_exasol_schema_check_mode_drop(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-check-mode-drop-cascade")
+# [itest -> scn~ansible-playbook.exasol-schema-check-mode-drop-cascade~1]
 def test_exasol_schema_check_mode_drop_cascade(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -316,6 +323,7 @@ def test_exasol_schema_check_mode_drop_cascade(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-existing-schema")
+# [itest -> scn~ansible-playbook.exasol-schema-drop-existing-schema~1]
 def test_exasol_schema_drop_existing_schema(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -357,6 +365,7 @@ def test_exasol_schema_drop_existing_schema(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-existing-schema-cascade")
+# [itest -> scn~ansible-playbook.exasol-schema-drop-existing-schema-cascade~1]
 def test_exasol_schema_drop_existing_schema_cascade(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -399,6 +408,7 @@ def test_exasol_schema_drop_existing_schema_cascade(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-non-empty-without-cascade")
+# [itest -> scn~ansible-playbook.exasol-schema-drop-non-empty-without-cascade~1]
 # [itest -> dsn~explicit-schema-drop-cascade~1]
 def test_exasol_schema_drop_non_empty_without_cascade(
     ansible_runner_workspace: Any,
@@ -439,6 +449,7 @@ def test_exasol_schema_drop_non_empty_without_cascade(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-missing-schema")
+# [itest -> scn~ansible-playbook.exasol-schema-drop-missing-schema~1]
 def test_exasol_schema_drop_missing_schema(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -479,6 +490,7 @@ def test_exasol_schema_drop_missing_schema(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-create-with-owner")
+# [itest -> scn~ansible-playbook.exasol-schema-create-with-owner~1]
 def test_exasol_schema_create_with_owner(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -517,6 +529,7 @@ def test_exasol_schema_create_with_owner(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-change-owner")
+# [itest -> scn~ansible-playbook.exasol-schema-change-owner~1]
 def test_exasol_schema_change_owner(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -561,6 +574,7 @@ def test_exasol_schema_change_owner(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-owner-idempotent")
+# [itest -> scn~ansible-playbook.exasol-schema-owner-idempotent~1]
 def test_exasol_schema_owner_idempotent(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -598,6 +612,7 @@ def test_exasol_schema_owner_idempotent(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-set-comment")
+# [itest -> scn~ansible-playbook.exasol-schema-set-comment~1]
 def test_exasol_schema_set_comment(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -633,6 +648,7 @@ def test_exasol_schema_set_comment(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-rename")
+# [itest -> scn~ansible-playbook.exasol-schema-rename~1]
 def test_exasol_schema_rename(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -666,6 +682,7 @@ def test_exasol_schema_rename(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-rename-idempotent")
+# [itest -> scn~ansible-playbook.exasol-schema-rename-idempotent~1]
 def test_exasol_schema_rename_idempotent(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -700,6 +717,7 @@ def test_exasol_schema_rename_idempotent(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-raw-size-limit-check-mode")
+# [itest -> scn~ansible-playbook.exasol-schema-raw-size-limit-check-mode~1]
 def test_exasol_schema_raw_size_limit_check_mode(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -737,6 +755,7 @@ def test_exasol_schema_raw_size_limit_check_mode(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-clear-raw-size-limit-playbook")
+# [itest -> scn~ansible-playbook.exasol-schema-clear-raw-size-limit-playbook~1]
 # [itest -> dsn~intrinsic-schema-property-reconciliation~1]
 def test_exasol_schema_clears_raw_size_limit(
     ansible_runner_workspace: Any,

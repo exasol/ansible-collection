@@ -5,8 +5,10 @@ Feature: exasol-info Ansible module runtime specification
   Background:
     Given an Exasol database is reachable at localhost
 
-  @exasol-info-returns-version-and-cluster-size
-  Scenario: Return basic server metadata
+@id:scn~ansible-modules.exasol-info-returns-version-and-cluster-size~1
+# Covers: req~exasol-info-module~1
+# Needs: dsn, itest
+Scenario: Return basic server metadata
     Given the connected database account has read access to SYS.EXA_METADATA and EXA_STATISTICS.EXA_SYSTEM_EVENTS
     When the info runtime runs with valid login parameters
     Then changed is false
@@ -14,8 +16,10 @@ Feature: exasol-info Ansible module runtime specification
     And database_name exists and is non-empty
     And cluster_size exists and is at least 1
 
-  @exasol-info-uses-qualified-statistical-cluster-metadata-view
-  Scenario: Use the qualified statistical cluster metadata view
+@id:scn~ansible-modules.exasol-info-uses-qualified-statistical-cluster-metadata-view~1
+# Covers: req~exasol-info-module~1
+# Needs: itest
+Scenario: Use the qualified statistical cluster metadata view
     Given the connected database account has read access to SYS.EXA_METADATA and EXA_STATISTICS.EXA_SYSTEM_EVENTS
     When the info runtime reads the cluster size
     Then it queries EXA_STATISTICS.EXA_SYSTEM_EVENTS

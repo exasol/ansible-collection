@@ -15,16 +15,16 @@ from common.user_assertions import assert_user_can_log_in
 from exasol.ansible_modules import exasol_user
 
 
-# [itest -> dsn~use-least-privileged-catalog-metadata~1]
 @pytest.mark.scenario_id("exasol-user-password-lifecycle-avoids-privileged-metadata")
+# [itest -> scn~ansible-modules.exasol-user-password-lifecycle-avoids-privileged-metadata~1]
 def test_password_user_metadata_probe_avoids_privileged_catalog() -> None:
     """Verify password user existence probing has no DBA catalog dependency."""
     assert "FROM SYS.EXA_ALL_USERS" in exasol_user.USER_EXISTS_QUERY
     assert "EXA_DBA_USERS" not in exasol_user.USER_EXISTS_QUERY
 
 
-# [itest -> dsn~use-least-privileged-catalog-metadata~1]
 @pytest.mark.scenario_id("exasol-user-ldap-metadata-lookup-is-privileged-and-separate")
+# [itest -> scn~ansible-modules.exasol-user-ldap-metadata-lookup-is-privileged-and-separate~1]
 def test_ldap_metadata_probe_is_separate_and_privileged() -> None:
     """Verify only the LDAP distinguished-name probe uses DBA metadata."""
     assert "FROM SYS.EXA_DBA_USERS" in exasol_user.USER_LDAP_DN_QUERY
@@ -34,6 +34,7 @@ def test_ldap_metadata_probe_is_separate_and_privileged() -> None:
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-create-missing-user")
+# [itest -> scn~ansible-modules.exasol-user-create-missing-user~1]
 def test_user_runtime_creates_missing_user(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -69,6 +70,7 @@ def test_user_runtime_creates_missing_user(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-leave-existing-user-unchanged")
+# [itest -> scn~ansible-modules.exasol-user-leave-existing-user-unchanged~1]
 def test_user_runtime_leaves_existing_user_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -107,6 +109,7 @@ def test_user_runtime_leaves_existing_user_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-update-existing-user-password")
+# [itest -> scn~ansible-modules.exasol-user-update-existing-user-password~1]
 def test_user_runtime_updates_existing_user_password(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -150,6 +153,7 @@ def test_user_runtime_updates_existing_user_password(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-drop-existing-user")
+# [itest -> scn~ansible-modules.exasol-user-drop-existing-user~1]
 def test_user_runtime_drops_existing_user(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -188,6 +192,7 @@ def test_user_runtime_drops_existing_user(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-check-mode-predicts-create-without-writing")
+# [itest -> scn~ansible-modules.exasol-user-check-mode-predicts-create-without-writing~1]
 def test_user_runtime_check_mode_predicts_create_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -223,6 +228,7 @@ def test_user_runtime_check_mode_predicts_create_without_writing(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-check-mode-predicts-no-change-when-user-exists")
+# [itest -> scn~ansible-modules.exasol-user-check-mode-predicts-no-change-when-user-exists~1]
 def test_user_runtime_check_mode_predicts_no_change_when_user_exists(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -256,6 +262,7 @@ def test_user_runtime_check_mode_predicts_no_change_when_user_exists(
 @pytest.mark.scenario_id(
     "exasol-user-check-mode-predicts-password-update-without-writing"
 )
+# [itest -> scn~ansible-modules.exasol-user-check-mode-predicts-password-update-without-writing~1]
 def test_user_runtime_check_mode_predicts_password_update_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -292,6 +299,7 @@ def test_user_runtime_check_mode_predicts_password_update_without_writing(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-check-mode-predicts-drop-without-writing")
+# [itest -> scn~ansible-modules.exasol-user-check-mode-predicts-drop-without-writing~1]
 def test_user_runtime_check_mode_predicts_drop_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:

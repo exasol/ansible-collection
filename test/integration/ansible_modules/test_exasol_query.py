@@ -12,6 +12,7 @@ from exasol.ansible_modules import exasol_query
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-execute-write-query-against-backend")
+# [itest -> scn~ansible-modules.exasol-query-execute-write-query-against-backend~1]
 def test_query_runtime_executes_write_query_against_backend(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -39,6 +40,7 @@ def test_query_runtime_executes_write_query_against_backend(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-execute-read-query-against-backend")
+# [itest -> scn~ansible-modules.exasol-query-execute-read-query-against-backend~1]
 def test_query_runtime_executes_read_query_against_backend(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -60,6 +62,7 @@ def test_query_runtime_executes_read_query_against_backend(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-check-mode-ignores-read-only-query")
+# [itest -> scn~ansible-modules.exasol-query-check-mode-ignores-read-only-query~1]
 def test_query_runtime_check_mode_ignores_read_only_query(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -86,6 +89,7 @@ def test_query_runtime_check_mode_ignores_read_only_query(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-query-check-mode-predicts-write-without-execution")
+# [itest -> scn~ansible-modules.exasol-query-check-mode-predicts-write-without-execution~1]
 def test_query_runtime_check_mode_predicts_write_without_execution(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -113,6 +117,7 @@ def test_query_runtime_check_mode_predicts_write_without_execution(
 @pytest.mark.scenario_id(
     "exasol-query-check-mode-predicts-no-action-for-comment-only-query"
 )
+# [itest -> scn~ansible-modules.exasol-query-check-mode-predicts-no-action-for-comment-only-query~1]
 def test_query_runtime_check_mode_predicts_no_action_for_comment_only_query() -> None:
     """Verify check mode predicts no action for a query with no real statement.
 

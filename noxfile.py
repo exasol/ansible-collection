@@ -24,7 +24,7 @@ from noxconfig import PROJECT_CONFIG
 nox.options.sessions = ["format:fix"]
 
 PROJECT_ROOT = PROJECT_CONFIG.root_path.resolve()
-OPENFASTTRACE_VERSION = "4.4.0"
+OPENFASTTRACE_VERSION = "4.9.0"
 
 
 @lru_cache(maxsize=1)
@@ -172,6 +172,40 @@ def _initialize_temporary_git_repository(path: Path) -> None:
     subprocess.run(["git", "init", "--quiet"], cwd=path, check=True)
 
 
+def _prepare_openfasttrace_input(tmp_path: Path) -> Path:
+    """Create an OFT input copy that works around its Gherkin importer defect.
+
+    OFT 4.9.0 documents consecutive tagged scenarios as supported, but its
+    released importer only begins metadata parsing again after a Gherkin
+    boundary. Add temporary boundaries for tracing only, keeping the checked-in
+    specifications idiomatic Gherkin.
+    """
+    trace_root = tmp_path / "trace-input"
+    shutil.copytree(
+        PROJECT_ROOT,
+        trace_root,
+        ignore=shutil.ignore_patterns(
+            ".git",
+            ".nox",
+            ".venv",
+            ".pytest_cache",
+            "__pycache__",
+            "*.pyc",
+        ),
+    )
+
+    for feature_file in (trace_root / "specs").rglob("*.feature"):
+        source = feature_file.read_text()
+        feature_file.write_text(
+            source.replace(
+                "\n@id:",
+                "\nRule: OpenFastTrace scenario boundary\n@id:",
+            )
+        )
+
+    return trace_root
+
+
 @nox.session(name="collection:build", python=False)
 def collection_build(session: nox.Session) -> None:
     """Build the Ansible collection archive."""
@@ -317,16 +351,14 @@ url = https://galaxy.ansible.com/
 
 @nox.session(name="requirements:trace", python=False)
 def requirements_trace(session: nox.Session) -> None:
-    """Run OpenFastTrace locally or in CI without a shell wrapper."""
+    """Run OpenFastTrace locally or in CI without altering Gherkin specs."""
     jar_file = _openfasttrace_jar_file(session)
-    default_args = ["trace", "."]
-    # Only include artifact types currently present in the repository.
-    default_args = default_args + [
-        "--wanted-artifact-types",
-        "feat,req,scn,thrt,dsn,uman",
-    ]
 
-    trace_args = session.posargs or default_args
+    if session.posargs:
+        with session.chdir(PROJECT_ROOT):
+            session.run("java", "-jar", str(jar_file), *session.posargs)
+        return
 
-    with session.chdir(PROJECT_ROOT):
-        session.run("java", "-jar", str(jar_file), *trace_args)
+    with tempfile.TemporaryDirectory(prefix="openfasttrace-input-") as tmp_dir:
+        trace_root = _prepare_openfasttrace_input(Path(tmp_dir))
+        session.run("java", "-jar", str(jar_file), "trace", str(trace_root))

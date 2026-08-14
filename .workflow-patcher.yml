@@ -1,3 +1,5 @@
+# [impl -> dsn~require-explicit-compliance-review-for-security-relevant-integrations~1]
+# [impl -> dsn~review-dependency-changes-during-release-verification~1]
 workflows:
   - name: fast-tests
     step_customizations:

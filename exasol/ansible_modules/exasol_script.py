@@ -48,6 +48,7 @@ def module_argument_spec() -> dict[str, object]:
     }
 
 
+# [impl -> dsn~exasol-script-execution-via-pyexasol~1]
 def execute_script(
     connection: _ScriptCapableConnection, script: str
 ) -> ExasolScriptResult:

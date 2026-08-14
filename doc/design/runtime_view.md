@@ -34,7 +34,7 @@ system tables
 Status: draft
 
 Covers:
-- `scn~exasol-info-returns-version-and-cluster-size~1`
+- `scn~ansible-modules.exasol-info-returns-version-and-cluster-size~1`
 
 Needs: impl, utest, itest
 
@@ -50,7 +50,7 @@ Needs: impl, utest, itest
 Status: draft
 
 Covers:
-- `scn~exasol-script-executes-multi-statement-scripts~1`
+- `scn~ansible-modules.exasol-script-execute-multi-statement-script-against-backend~1`
 
 Needs: impl, utest, itest
 
@@ -71,9 +71,9 @@ limit is currently set
 Status: draft
 
 Covers:
-- `scn~schema-intrinsic-state-is-reconciled~1`
-- `scn~schema-check-mode-reports-property-changes-without-writing~1`
-- `scn~schema-raw-size-limit-can-be-cleared~1`
+- `scn~ansible-modules.exasol-schema-create-with-owner~1`
+- `scn~ansible-modules.exasol-schema-comment-check-mode~1`
+- `scn~ansible-modules.exasol-schema-clear-raw-size-limit~1`
 
 Needs: impl, utest, itest
 
@@ -88,7 +88,7 @@ operator explicitly enables the `cascade` option
 Status: draft
 
 Covers:
-- `scn~non-cascading-drop-protects-non-empty-schema~1`
+- `scn~ansible-modules.exasol-schema-drop-non-empty-without-cascade~1`
 
 Needs: impl, utest, itest
 
@@ -109,6 +109,6 @@ roles
 Status: draft
 
 Covers:
-- `scn~schema-identifiers-follow-session-comparison~1`
+- `scn~ansible-modules.exasol-schema-identifiers-follow-session-comparison~1`
 
 Needs: impl, utest, itest

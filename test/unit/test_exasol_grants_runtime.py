@@ -187,6 +187,7 @@ class FakeConnection:
         }
 
 
+# [utest -> dsn~make-privilege-changes-reviewable-through-planned-sql-and-exasol-audit-trails~1]
 def test_ensure_grants_grants_missing_system_privilege_to_user() -> None:
     """Verify a missing system privilege produces one GRANT statement."""
     connection = FakeConnection()

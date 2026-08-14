@@ -69,6 +69,7 @@ def test_connection_argument_spec_is_shared_with_query_module() -> None:
     assert argument_spec["client_kwargs"]["no_log"] is True
 
 
+# [utest -> dsn~exasol-script-execution-via-pyexasol~1]
 def test_execute_script_returns_design_doc_result_shape() -> None:
     """Verify script execution returns the collection's public result contract."""
     connection = FakeConnection(

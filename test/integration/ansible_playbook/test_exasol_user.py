@@ -18,6 +18,7 @@ MODULE_NAME = "exasol_user"
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-create-missing-user")
+# [itest -> scn~ansible-playbook.exasol-user-create-missing-user~1]
 def test_exasol_user_create_missing_user(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -66,6 +67,7 @@ def test_exasol_user_create_missing_user(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-preserves-exact-identifier")
+# [itest -> scn~ansible-playbook.exasol-user-preserves-exact-identifier~1]
 # [itest -> dsn~exact-principal-identifier-lifecycle~1]
 def test_exasol_user_preserves_exact_identifier(
     ansible_runner_workspace: Any,
@@ -118,6 +120,7 @@ def test_exasol_user_preserves_exact_identifier(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-apply-unchanged")
+# [itest -> scn~ansible-playbook.exasol-user-apply-unchanged~1]
 # [itest -> dsn~authorization-state-reconciliation~1]
 # [itest -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
 # [itest -> dsn~derive-changed-from-planned-sql~1]
@@ -166,6 +169,7 @@ def test_exasol_user_apply_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-apply-unchanged-with-different-case-spelling")
+# [itest -> scn~ansible-playbook.exasol-user-apply-unchanged-with-different-case-spelling~1]
 def test_exasol_user_apply_unchanged_with_different_case_spelling(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -224,6 +228,7 @@ def test_exasol_user_apply_unchanged_with_different_case_spelling(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-change-authentication-to-ldap")
+# [itest -> scn~ansible-playbook.exasol-user-change-authentication-to-ldap~1]
 def test_exasol_user_change_authentication_to_ldap(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -271,6 +276,7 @@ def test_exasol_user_change_authentication_to_ldap(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-rotate-password")
+# [itest -> scn~ansible-playbook.exasol-user-rotate-password~1]
 def test_exasol_user_rotate_password(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -322,6 +328,7 @@ def test_exasol_user_rotate_password(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-check-mode-create")
+# [itest -> scn~ansible-playbook.exasol-user-check-mode-create~1]
 def test_exasol_user_check_mode_create(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -371,6 +378,7 @@ def test_exasol_user_check_mode_create(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-check-mode-update-ldap")
+# [itest -> scn~ansible-playbook.exasol-user-check-mode-update-ldap~1]
 def test_exasol_user_check_mode_update_ldap(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -420,6 +428,7 @@ def test_exasol_user_check_mode_update_ldap(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-check-mode-drop")
+# [itest -> scn~ansible-playbook.exasol-user-check-mode-drop~1]
 def test_exasol_user_check_mode_drop(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -466,6 +475,7 @@ def test_exasol_user_check_mode_drop(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-drop-existing-user")
+# [itest -> scn~ansible-playbook.exasol-user-drop-existing-user~1]
 def test_exasol_user_drop_existing_user(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],
@@ -511,6 +521,7 @@ def test_exasol_user_drop_existing_user(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-user-drop-missing-user")
+# [itest -> scn~ansible-playbook.exasol-user-drop-missing-user~1]
 def test_exasol_user_drop_missing_user(
     ansible_runner_workspace: Any,
     exasol_login_vars: dict[str, object],

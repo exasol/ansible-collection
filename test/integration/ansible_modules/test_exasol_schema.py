@@ -20,6 +20,7 @@ from exasol.ansible_modules import (
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-create-missing-schema")
+# [itest -> scn~ansible-modules.exasol-schema-create-missing-schema~1]
 def test_schema_runtime_creates_missing_schema(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -44,6 +45,7 @@ def test_schema_runtime_creates_missing_schema(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-leave-existing-schema-unchanged")
+# [itest -> scn~ansible-modules.exasol-schema-leave-existing-schema-unchanged~1]
 def test_schema_runtime_leaves_existing_schema_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -69,6 +71,7 @@ def test_schema_runtime_leaves_existing_schema_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-identifiers-follow-session-comparison")
+# [itest -> scn~ansible-modules.exasol-schema-identifiers-follow-session-comparison~1]
 # [itest -> dsn~schema-identifier-comparison-follows-session~1]
 def test_schema_runtime_creates_case_distinct_schema_in_default_session(
     exasol_login_vars: dict[str, object],
@@ -91,6 +94,7 @@ def test_schema_runtime_creates_case_distinct_schema_in_default_session(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-existing-schema")
+# [itest -> scn~ansible-modules.exasol-schema-drop-existing-schema~1]
 def test_schema_runtime_drops_existing_schema(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -117,6 +121,7 @@ def test_schema_runtime_drops_existing_schema(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-check-mode-predicts-create-without-writing")
+# [itest -> scn~ansible-modules.exasol-schema-check-mode-predicts-create-without-writing~1]
 def test_schema_runtime_check_mode_predicts_create_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -143,6 +148,7 @@ def test_schema_runtime_check_mode_predicts_create_without_writing(
 @pytest.mark.scenario_id(
     "exasol-schema-check-mode-predicts-no-action-when-schema-exists"
 )
+# [itest -> scn~ansible-modules.exasol-schema-check-mode-predicts-no-action-when-schema-exists~1]
 def test_schema_runtime_check_mode_predicts_no_action_when_schema_exists(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -169,6 +175,7 @@ def test_schema_runtime_check_mode_predicts_no_action_when_schema_exists(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-check-mode-predicts-drop-without-writing")
+# [itest -> scn~ansible-modules.exasol-schema-check-mode-predicts-drop-without-writing~1]
 def test_schema_runtime_check_mode_predicts_drop_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -198,6 +205,7 @@ def test_schema_runtime_check_mode_predicts_drop_without_writing(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-create-with-owner")
+# [itest -> scn~ansible-modules.exasol-schema-create-with-owner~1]
 def test_schema_runtime_creates_schema_with_owner(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -222,6 +230,7 @@ def test_schema_runtime_creates_schema_with_owner(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-owner-does-not-exist")
+# [itest -> scn~ansible-modules.exasol-schema-owner-does-not-exist~1]
 def test_schema_runtime_rejects_non_existent_owner(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -245,6 +254,7 @@ def test_schema_runtime_rejects_non_existent_owner(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-change-owner")
+# [itest -> scn~ansible-modules.exasol-schema-change-owner~1]
 def test_schema_runtime_changes_owner(exasol_login_vars: dict[str, object]) -> None:
     schema_name = unique_name("ANSIBLE_SCHEMA")
     old_owner = unique_name("ANSIBLE_OLD_OWNER")
@@ -273,6 +283,7 @@ def test_schema_runtime_changes_owner(exasol_login_vars: dict[str, object]) -> N
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-owner-idempotent")
+# [itest -> scn~ansible-modules.exasol-schema-owner-idempotent~1]
 def test_schema_runtime_leaves_matching_owner_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -298,6 +309,7 @@ def test_schema_runtime_leaves_matching_owner_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-owner-check-mode")
+# [itest -> scn~ansible-modules.exasol-schema-owner-check-mode~1]
 def test_schema_runtime_predicts_owner_change_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -326,6 +338,7 @@ def test_schema_runtime_predicts_owner_change_without_writing(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-owner-check-mode-idempotent")
+# [itest -> scn~ansible-modules.exasol-schema-owner-check-mode-idempotent~1]
 def test_schema_runtime_check_mode_predicts_no_owner_change_when_matching(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -351,6 +364,7 @@ def test_schema_runtime_check_mode_predicts_no_owner_change_when_matching(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-set-comment")
+# [itest -> scn~ansible-modules.exasol-schema-set-comment~1]
 def test_schema_runtime_sets_comment(exasol_login_vars: dict[str, object]) -> None:
     schema_name = unique_name("ANSIBLE_SCHEMA")
     comment = "Sales team's reporting schema"
@@ -372,6 +386,7 @@ def test_schema_runtime_sets_comment(exasol_login_vars: dict[str, object]) -> No
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-clear-comment")
+# [itest -> scn~ansible-modules.exasol-schema-clear-comment~1]
 def test_schema_runtime_clears_comment(exasol_login_vars: dict[str, object]) -> None:
     schema_name = unique_name("ANSIBLE_SCHEMA")
     execute_sql(exasol_login_vars, f'CREATE SCHEMA "{schema_name}"')
@@ -390,6 +405,7 @@ def test_schema_runtime_clears_comment(exasol_login_vars: dict[str, object]) -> 
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-comment-idempotent")
+# [itest -> scn~ansible-modules.exasol-schema-comment-idempotent~1]
 def test_schema_runtime_leaves_matching_comment_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -411,6 +427,7 @@ def test_schema_runtime_leaves_matching_comment_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-comment-check-mode")
+# [itest -> scn~ansible-modules.exasol-schema-comment-check-mode~1]
 def test_schema_runtime_predicts_comment_change_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -435,6 +452,7 @@ def test_schema_runtime_predicts_comment_change_without_writing(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-comment-check-mode-idempotent")
+# [itest -> scn~ansible-modules.exasol-schema-comment-check-mode-idempotent~1]
 def test_schema_runtime_check_mode_predicts_no_comment_change_when_matching(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -461,6 +479,7 @@ def test_schema_runtime_check_mode_predicts_no_comment_change_when_matching(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-rename")
+# [itest -> scn~ansible-modules.exasol-schema-rename~1]
 def test_schema_runtime_renames_schema(exasol_login_vars: dict[str, object]) -> None:
     source = unique_name("ANSIBLE_SOURCE_SCHEMA")
     target = unique_name("ANSIBLE_TARGET_SCHEMA")
@@ -479,6 +498,7 @@ def test_schema_runtime_renames_schema(exasol_login_vars: dict[str, object]) -> 
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-rename-idempotent")
+# [itest -> scn~ansible-modules.exasol-schema-rename-idempotent~1]
 def test_schema_runtime_recognizes_existing_rename_target(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -499,6 +519,7 @@ def test_schema_runtime_recognizes_existing_rename_target(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-rename-check-mode")
+# [itest -> scn~ansible-modules.exasol-schema-rename-check-mode~1]
 def test_schema_runtime_predicts_rename_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -518,6 +539,7 @@ def test_schema_runtime_predicts_rename_without_writing(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-rename-check-mode-idempotent")
+# [itest -> scn~ansible-modules.exasol-schema-rename-check-mode-idempotent~1]
 def test_schema_runtime_check_mode_predicts_no_rename_when_already_renamed(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -538,6 +560,7 @@ def test_schema_runtime_check_mode_predicts_no_rename_when_already_renamed(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-set-raw-size-limit")
+# [itest -> scn~ansible-modules.exasol-schema-set-raw-size-limit~1]
 def test_schema_runtime_sets_raw_size_limit(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -557,6 +580,7 @@ def test_schema_runtime_sets_raw_size_limit(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-change-raw-size-limit")
+# [itest -> scn~ansible-modules.exasol-schema-change-raw-size-limit~1]
 def test_schema_runtime_changes_raw_size_limit(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -578,6 +602,7 @@ def test_schema_runtime_changes_raw_size_limit(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-raw-size-limit-idempotent")
+# [itest -> scn~ansible-modules.exasol-schema-raw-size-limit-idempotent~1]
 def test_schema_runtime_leaves_matching_raw_size_limit_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -598,6 +623,7 @@ def test_schema_runtime_leaves_matching_raw_size_limit_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-clear-raw-size-limit")
+# [itest -> scn~ansible-modules.exasol-schema-clear-raw-size-limit~1]
 # [itest -> dsn~intrinsic-schema-property-reconciliation~1]
 def test_schema_runtime_clears_raw_size_limit(
     exasol_login_vars: dict[str, object],
@@ -623,6 +649,7 @@ def test_schema_runtime_clears_raw_size_limit(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-clear-raw-size-limit-idempotent")
+# [itest -> scn~ansible-modules.exasol-schema-clear-raw-size-limit-idempotent~1]
 def test_schema_runtime_leaves_cleared_raw_size_limit_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -642,6 +669,7 @@ def test_schema_runtime_leaves_cleared_raw_size_limit_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-clear-raw-size-limit-check-mode")
+# [itest -> scn~ansible-modules.exasol-schema-clear-raw-size-limit-check-mode~1]
 def test_schema_runtime_predicts_raw_size_limit_clearing_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -667,6 +695,7 @@ def test_schema_runtime_predicts_raw_size_limit_clearing_without_writing(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-raw-size-limit-check-mode")
+# [itest -> scn~ansible-modules.exasol-schema-raw-size-limit-check-mode~1]
 def test_schema_runtime_predicts_raw_size_limit_change_without_writing(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -688,6 +717,7 @@ def test_schema_runtime_predicts_raw_size_limit_change_without_writing(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-raw-size-limit-check-mode-idempotent")
+# [itest -> scn~ansible-modules.exasol-schema-raw-size-limit-check-mode-idempotent~1]
 def test_schema_runtime_check_mode_predicts_no_raw_size_limit_change_when_matching(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -710,6 +740,7 @@ def test_schema_runtime_check_mode_predicts_no_raw_size_limit_change_when_matchi
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-schema-drop-non-empty-without-cascade")
+# [itest -> scn~ansible-modules.exasol-schema-drop-non-empty-without-cascade~1]
 def test_schema_runtime_does_not_drop_non_empty_schema_without_cascade(
     exasol_login_vars: dict[str, object],
 ) -> None:

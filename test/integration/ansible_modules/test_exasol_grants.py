@@ -22,6 +22,8 @@ from exasol.ansible_modules.common_identifier_validation import (
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-missing-system-privilege")
+# [itest -> scn~ansible-modules.exasol-grants-grant-missing-system-privilege~1]
+# [itest -> dsn~make-privilege-changes-reviewable-through-planned-sql-and-exasol-audit-trails~1]
 def test_grants_runtime_grants_missing_system_privilege(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -54,6 +56,7 @@ def test_grants_runtime_grants_missing_system_privilege(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-system-privilege-idempotent")
+# [itest -> scn~ansible-modules.exasol-grants-system-privilege-idempotent~1]
 # [itest -> dsn~authorization-state-reconciliation~1]
 # [itest -> dsn~plan-authorization-lifecycle-sql-from-metadata~1]
 # [itest -> dsn~derive-changed-from-planned-sql~1]
@@ -85,6 +88,7 @@ def test_grants_runtime_existing_system_privilege_is_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-multiple-system-and-object-privileges")
+# [itest -> scn~ansible-modules.exasol-grants-grant-multiple-system-and-object-privileges~1]
 def test_grants_runtime_grants_multiple_system_and_object_privileges(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -154,6 +158,7 @@ def test_grants_runtime_grants_multiple_system_and_object_privileges(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-revoke-existing-schema-object-privilege")
+# [itest -> scn~ansible-modules.exasol-grants-revoke-existing-schema-object-privilege~1]
 def test_grants_runtime_revokes_existing_schema_object_privilege(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -190,6 +195,7 @@ def test_grants_runtime_revokes_existing_schema_object_privilege(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-absent-schema-object-privilege-idempotent")
+# [itest -> scn~ansible-modules.exasol-grants-absent-schema-object-privilege-idempotent~1]
 def test_grants_runtime_missing_schema_object_privilege_absent_is_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -214,7 +220,7 @@ def test_grants_runtime_missing_schema_object_privilege_absent_is_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-check-mode-predicts-system-grant")
-# [itest -> dsn~keep-check-mode-planning-deterministic-and-side-effect-free~1]
+# [itest -> scn~ansible-modules.exasol-grants-check-mode-predicts-system-grant~1]
 def test_grants_runtime_check_mode_predicts_system_grant(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -245,6 +251,7 @@ def test_grants_runtime_check_mode_predicts_system_grant(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-reject-mutually-exclusive-principals")
+# [itest -> scn~ansible-modules.exasol-grants-reject-mutually-exclusive-principals~1]
 def test_grants_runtime_rejects_mutually_exclusive_principals(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -263,6 +270,7 @@ def test_grants_runtime_rejects_mutually_exclusive_principals(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-role-membership-to-user")
+# [itest -> scn~ansible-modules.exasol-grants-grant-role-membership-to-user~1]
 def test_grants_runtime_grants_role_membership_to_user(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -289,6 +297,7 @@ def test_grants_runtime_grants_role_membership_to_user(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-role-membership-idempotent")
+# [itest -> scn~ansible-modules.exasol-grants-role-membership-idempotent~1]
 def test_grants_runtime_existing_role_membership_is_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -312,6 +321,7 @@ def test_grants_runtime_existing_role_membership_is_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-revoke-role-membership")
+# [itest -> scn~ansible-modules.exasol-grants-revoke-role-membership~1]
 def test_grants_runtime_revokes_role_membership(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -340,6 +350,7 @@ def test_grants_runtime_revokes_role_membership(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-check-mode-role-membership")
+# [itest -> scn~ansible-modules.exasol-grants-check-mode-role-membership~1]
 def test_grants_runtime_check_mode_predicts_role_membership(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -367,6 +378,7 @@ def test_grants_runtime_check_mode_predicts_role_membership(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-missing-system-privilege-to-role")
+# [itest -> scn~ansible-modules.exasol-grants-grant-missing-system-privilege-to-role~1]
 def test_grants_runtime_grants_missing_system_privilege_to_role(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -398,6 +410,7 @@ def test_grants_runtime_grants_missing_system_privilege_to_role(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-script-execute-privilege")
+# [itest -> scn~ansible-modules.exasol-grants-grant-script-execute-privilege~1]
 def test_grants_runtime_grants_script_execute_privilege(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -443,6 +456,7 @@ def test_grants_runtime_grants_script_execute_privilege(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-view-select-privilege")
+# [itest -> scn~ansible-modules.exasol-grants-grant-view-select-privilege~1]
 def test_grants_runtime_grants_view_select_privilege(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -488,6 +502,7 @@ def test_grants_runtime_grants_view_select_privilege(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-check-mode-predicts-no-action-when-granted")
+# [itest -> scn~ansible-modules.exasol-grants-check-mode-predicts-no-action-when-granted~1]
 def test_grants_runtime_check_mode_predicts_no_action_when_granted(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -511,6 +526,7 @@ def test_grants_runtime_check_mode_predicts_no_action_when_granted(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-check-mode-predicts-revoke")
+# [itest -> scn~ansible-modules.exasol-grants-check-mode-predicts-revoke~1]
 def test_grants_runtime_check_mode_predicts_revoke(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -550,6 +566,7 @@ def test_grants_runtime_check_mode_predicts_revoke(
 @pytest.mark.scenario_id(
     "exasol-grants-grant-batch-with-some-privileges-already-present"
 )
+# [itest -> scn~ansible-modules.exasol-grants-grant-batch-with-some-privileges-already-present~1]
 def test_grants_runtime_grants_batch_with_some_privileges_already_present(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -574,6 +591,7 @@ def test_grants_runtime_grants_batch_with_some_privileges_already_present(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-absent-system-privilege-idempotent")
+# [itest -> scn~ansible-modules.exasol-grants-absent-system-privilege-idempotent~1]
 def test_grants_runtime_missing_system_privilege_absent_is_unchanged(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -596,6 +614,7 @@ def test_grants_runtime_missing_system_privilege_absent_is_unchanged(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-reject-unsupported-privilege")
+# [itest -> scn~ansible-modules.exasol-grants-reject-unsupported-privilege~1]
 def test_grants_runtime_rejects_unsupported_privilege(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -613,6 +632,7 @@ def test_grants_runtime_rejects_unsupported_privilege(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-reject-empty-request")
+# [itest -> scn~ansible-modules.exasol-grants-reject-empty-request~1]
 def test_grants_runtime_rejects_empty_request(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -624,6 +644,7 @@ def test_grants_runtime_rejects_empty_request(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-preserves-exact-identifier")
+# [itest -> scn~ansible-modules.exasol-grants-preserves-exact-identifier~1]
 def test_grants_runtime_preserves_exact_identifier(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -651,6 +672,7 @@ def test_grants_runtime_preserves_exact_identifier(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-idempotent-with-different-case-spelling")
+# [itest -> scn~ansible-modules.exasol-grants-idempotent-with-different-case-spelling~1]
 def test_grants_runtime_idempotent_with_different_case_spelling(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -677,6 +699,7 @@ def test_grants_runtime_idempotent_with_different_case_spelling(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-system-privilege-with-admin-option")
+# [itest -> scn~ansible-modules.exasol-grants-grant-system-privilege-with-admin-option~1]
 def test_grants_runtime_grants_system_privilege_with_admin_option(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -712,6 +735,7 @@ def test_grants_runtime_grants_system_privilege_with_admin_option(
 @pytest.mark.scenario_id(
     "exasol-grants-grant-mixed-system-privileges-with-admin-options"
 )
+# [itest -> scn~ansible-modules.exasol-grants-grant-mixed-system-privileges-with-admin-options~1]
 def test_grants_runtime_grants_mixed_system_privileges_with_admin_options(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -757,6 +781,7 @@ def test_grants_runtime_grants_mixed_system_privileges_with_admin_options(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-grant-role-membership-with-admin-option")
+# [itest -> scn~ansible-modules.exasol-grants-grant-role-membership-with-admin-option~1]
 def test_grants_runtime_grants_role_membership_with_admin_option(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -793,6 +818,7 @@ def test_grants_runtime_grants_role_membership_with_admin_option(
 @pytest.mark.scenario_id(
     "exasol-grants-grant-mixed-role-memberships-with-admin-options"
 )
+# [itest -> scn~ansible-modules.exasol-grants-grant-mixed-role-memberships-with-admin-options~1]
 def test_grants_runtime_grants_mixed_role_memberships_with_admin_options(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -840,6 +866,7 @@ def test_grants_runtime_grants_mixed_role_memberships_with_admin_options(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-downgrade-system-privilege-admin-option")
+# [itest -> scn~ansible-modules.exasol-grants-downgrade-system-privilege-admin-option~1]
 def test_grants_runtime_downgrades_system_privilege_admin_option(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -877,6 +904,7 @@ def test_grants_runtime_downgrades_system_privilege_admin_option(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-grants-reject-admin-option-for-object-only-request")
+# [itest -> scn~ansible-modules.exasol-grants-reject-admin-option-for-object-only-request~1]
 def test_grants_runtime_rejects_admin_option_for_object_only_request(
     exasol_login_vars: dict[str, object],
 ) -> None:

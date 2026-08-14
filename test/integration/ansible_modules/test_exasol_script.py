@@ -16,6 +16,7 @@ from exasol.ansible_modules import exasol_script
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-execute-multi-statement-script-against-backend")
+# [itest -> scn~ansible-modules.exasol-script-execute-multi-statement-script-against-backend~1]
 def test_script_runtime_executes_multi_statement_script_against_backend(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -49,6 +50,7 @@ def test_script_runtime_executes_multi_statement_script_against_backend(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-execute-script-body-terminated-by-slash")
+# [itest -> scn~ansible-modules.exasol-script-execute-script-body-terminated-by-slash~1]
 def test_script_runtime_executes_script_body_terminated_by_slash(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -81,6 +83,7 @@ def test_script_runtime_executes_script_body_terminated_by_slash(
 @pytest.mark.scenario_id(
     "exasol-script-execute-multiple-script-bodies-terminated-by-slash"
 )
+# [itest -> scn~ansible-modules.exasol-script-execute-multiple-script-bodies-terminated-by-slash~1]
 # [itest -> dsn~exasol-script-execution-via-pyexasol~1]
 def test_script_runtime_executes_multiple_script_bodies_terminated_by_slash(
     exasol_login_vars: dict[str, object],
@@ -127,6 +130,7 @@ def test_script_runtime_executes_multiple_script_bodies_terminated_by_slash(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-execute-read-only-script-against-backend")
+# [itest -> scn~ansible-modules.exasol-script-execute-read-only-script-against-backend~1]
 def test_script_runtime_executes_read_only_script_against_backend(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -143,6 +147,7 @@ def test_script_runtime_executes_read_only_script_against_backend(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-failing-statement-stops-later-statements")
+# [itest -> scn~ansible-modules.exasol-script-failing-statement-stops-later-statements~1]
 def test_script_runtime_stops_after_failing_statement(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -182,6 +187,7 @@ def test_script_runtime_stops_after_failing_statement(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-check-mode-ignores-read-only-script")
+# [itest -> scn~ansible-modules.exasol-script-check-mode-ignores-read-only-script~1]
 def test_script_runtime_check_mode_ignores_read_only_script(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -202,6 +208,7 @@ def test_script_runtime_check_mode_ignores_read_only_script(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-check-mode-predicts-write-without-execution")
+# [itest -> scn~ansible-modules.exasol-script-check-mode-predicts-write-without-execution~1]
 def test_script_runtime_check_mode_predicts_write_without_execution(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -230,6 +237,7 @@ def test_script_runtime_check_mode_predicts_write_without_execution(
 @pytest.mark.scenario_id(
     "exasol-script-check-mode-predicts-mixed-write-and-read-script"
 )
+# [itest -> scn~ansible-modules.exasol-script-check-mode-predicts-mixed-write-and-read-script~1]
 # [itest -> dsn~exasol-script-execution-via-pyexasol~1]
 def test_script_runtime_check_mode_predicts_mixed_write_and_read_script(
     exasol_login_vars: dict[str, object],
@@ -259,6 +267,7 @@ def test_script_runtime_check_mode_predicts_mixed_write_and_read_script(
 @pytest.mark.scenario_id(
     "exasol-script-semicolon-in-string-literal-does-not-split-statement"
 )
+# [itest -> scn~ansible-modules.exasol-script-semicolon-in-string-literal-does-not-split-statement~1]
 def test_script_runtime_semicolon_in_string_literal_does_not_split_statement(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -281,6 +290,7 @@ def test_script_runtime_semicolon_in_string_literal_does_not_split_statement(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-semicolon-in-comment-does-not-split-statement")
+# [itest -> scn~ansible-modules.exasol-script-semicolon-in-comment-does-not-split-statement~1]
 def test_script_runtime_semicolon_in_comment_does_not_split_statement(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -301,6 +311,7 @@ def test_script_runtime_semicolon_in_comment_does_not_split_statement(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-execute-script-invocation-side-effect")
+# [itest -> scn~ansible-modules.exasol-script-execute-script-invocation-side-effect~1]
 def test_script_runtime_execute_script_invocation_side_effect(
     exasol_login_vars: dict[str, object],
 ) -> None:
@@ -334,6 +345,7 @@ def test_script_runtime_execute_script_invocation_side_effect(
 @pytest.mark.integration
 @pytest.mark.slow
 @pytest.mark.scenario_id("exasol-script-empty-script-executes-nothing")
+# [itest -> scn~ansible-modules.exasol-script-empty-script-executes-nothing~1]
 def test_script_runtime_empty_script_executes_nothing(
     exasol_login_vars: dict[str, object],
 ) -> None:

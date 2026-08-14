@@ -526,6 +526,7 @@ def test_authentication_error_is_sanitized() -> None:
     assert "token-value" not in exception
 
 
+# [utest -> dsn~surface-exasol-authorization-rejections-without-local-privilege-logic~1]
 def test_execution_error_is_sanitized() -> None:
     """Verify statement execution errors are normalized and redacted."""
     params = {"login_password": "swordfish"}

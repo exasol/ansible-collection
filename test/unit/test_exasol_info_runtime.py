@@ -69,7 +69,7 @@ def test_module_argument_spec_matches_shared_connection_options() -> None:
     assert "name" not in argument_spec
 
 
-# [utest -> dsn~exasol-info-read-only-metadata-retrieval~2]
+# [utest -> dsn~exasol-info-read-only-metadata-retrieval~3]
 def test_ensure_info_returns_basic_server_metadata() -> None:
     """Verify the info runtime returns version, database, and cluster size."""
     connection = FakeConnection()
