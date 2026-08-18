@@ -22,6 +22,7 @@ design/deployment_view
 design/crosscutting_concepts
 design/security_considerations
 design/architecture_decisions
+design/confd_access_spike_evaluation
 design/quality_requirements
 design/risks_and_technical_debt
 design/domain/entity_model_relationship
@@ -69,6 +70,10 @@ See [Security Considerations](design/security_considerations.md).
 ### Architecture Decisions
 
 See [Architecture Decisions](design/architecture_decisions.md).
+
+### Confd Access-Spike Evaluation
+
+See [Confd Access-Spike Evaluation](design/confd_access_spike_evaluation.md).
 
 ### Quality Requirements
 
