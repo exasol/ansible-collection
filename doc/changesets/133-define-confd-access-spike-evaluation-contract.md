@@ -22,7 +22,8 @@ In scope:
   that must be answered before selecting JSON-RPC
 * define how the spike determines whether
   `integration-test-docker-environment` needs an additional exposed port
-* define the evidence required before proposing a dedicated Python API project
+* assess ConfD Python API reuse beyond Ansible and define the evidence required
+  before proposing a dedicated project
 
 Out of scope:
 
@@ -62,6 +63,8 @@ when that evidence cannot settle the decision.
   JSON-RPC communication proof against confd.
 - [x] Record Ansible execution topology and secure confd-port reachability as
   explicit decision inputs rather than deployment assumptions.
+- [x] Record potential ConfD Python API consumers beyond Ansible as an input to
+  the dedicated-project decision.
 - [x] Define evidence, decision criteria, prototype stop conditions, and
   follow-up ownership rules.
 - [x] Define security and isolation requirements for credentials, transport,

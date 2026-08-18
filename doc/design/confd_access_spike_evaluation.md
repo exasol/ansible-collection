@@ -158,11 +158,16 @@ must not grow into a reusable framework.
 
 ## Dedicated Python API Project Gate
 
-A new Python API project is not a default outcome. It may be proposed only
-when the selected JSON-RPC boundary has a demonstrated reuse case outside this
-collection, a stable public API contract, identified ownership and release
-responsibility, and a justified dependency/packaging model. Otherwise the
-selected adapter remains within the Ansible-facing runtime package.
+A new Python API project is not a default outcome, but potential ConfD
+automation use cases beyond this collection are a required input to the
+decision. The spike must identify the plausible consumers of a ConfD Python
+API and determine whether they need the same stable abstraction as Ansible.
+
+A dedicated project may be proposed when that assessment establishes a shared
+public API contract, identified ownership and release responsibility, and a
+justified dependency and packaging model. Otherwise the selected adapter
+remains within the Ansible-facing runtime package, while the decision record
+captures the potential reuse cases for later review.
 
 ## Required Spike Output
 
