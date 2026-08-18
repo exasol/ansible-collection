@@ -16,8 +16,10 @@ In scope:
 
 * document the comparison operation, evidence to collect, decision criteria,
   and security guardrails for the confd access spike
-* define the generic JSON-RPC smoke-test boundary that must be satisfied before
-  using JSON-RPC evidence for confd
+* distinguish generic JSON-RPC client smoke-test evidence from the required
+  authenticated JSON-RPC communication test against confd
+* define the Ansible execution-topology and secure port-exposure questions
+  that must be answered before selecting JSON-RPC
 * define how the spike determines whether
   `integration-test-docker-environment` needs an additional exposed port
 * define the evidence required before proposing a dedicated Python API project
@@ -55,8 +57,11 @@ when that evidence cannot settle the decision.
   no new system requirement or acceptance scenario.
 - [x] Add the confd access-spike evaluation contract to the design
   documentation.
-- [x] Define the two interfaces, a common read-only comparison operation, and
-  the generic JSON-RPC smoke-test prerequisite.
+- [x] Define the two interfaces, a common read-only comparison operation, the
+  generic JSON-RPC smoke-test prerequisite, and the required authenticated
+  JSON-RPC communication proof against confd.
+- [x] Record Ansible execution topology and secure confd-port reachability as
+  explicit decision inputs rather than deployment assumptions.
 - [x] Define evidence, decision criteria, prototype stop conditions, and
   follow-up ownership rules.
 - [x] Define security and isolation requirements for credentials, transport,

@@ -45,10 +45,10 @@ The comparison must distinguish an unavailable service, a blocked network
 path, an authentication or authorization denial, and a protocol/client defect.
 It must not report all of these as a generic integration failure.
 
-## JSON-RPC Prerequisite
+## JSON-RPC Validation
 
-Before confd is used as JSON-RPC evidence, a controlled generic JSON-RPC smoke
-test must show that the proposed Python client can:
+A controlled generic JSON-RPC smoke test is a prerequisite, not the confd
+validation itself. It must show that the proposed Python client can:
 
 * send a JSON-RPC request with a request ID and parse its successful response;
 * correlate the response to that request ID;
@@ -63,14 +63,46 @@ confd compatibility, reachable deployment topology, or confd authorization.
 If this prerequisite fails, the JSON-RPC candidate must not be treated as a
 viable confd path until a focused follow-up explains and resolves the failure.
 
+After the generic smoke test passes, the JSON-RPC candidate must be evaluated
+against confd itself. From a representative Ansible execution environment, the
+spike must prove that the client can:
+
+* authenticate to the confd JSON-RPC endpoint with the intended
+  least-privileged identity;
+* send the agreed read-only confd request and receive the expected response;
+* correlate the confd response to its request ID when the protocol provides
+  one; and
+* distinguish authentication or authorization denial, endpoint reachability,
+  and protocol failure without exposing secrets in the recorded evidence.
+
+Only this authenticated confd exchange establishes that JSON-RPC is a viable
+confd access path. If the environment or credentials needed for it are not
+available, the spike must record that as an unresolved decision blocker rather
+than infer success from the generic smoke test.
+
+## Ansible Execution Topology And Port Exposure
+
+The spike must establish where operators are expected to run Ansible: for
+example, on a host within the Exasol network, on a separate automation host,
+or through a controlled bastion. This is an open input to the decision, not an
+assumption that confd ports are exposed to every Ansible control node.
+
+For each supported execution topology, the spike must record whether the confd
+JSON-RPC endpoint is deliberately reachable from the Ansible host and, if so,
+how that reachability is secured. A JSON-RPC recommendation is acceptable only
+when the required route is compatible with least exposure and the supported
+operator topology. If the route would require broadly exposing a confd port to
+machines that should not reach it, that is evidence against the JSON-RPC
+candidate or requires a separately reviewed deployment change.
+
 ## Test-Environment Reachability Assessment
 
 The JSON-RPC assessment must inspect the current
 `integration-test-docker-environment` configuration and record:
 
 * whether confd listens on a JSON-RPC endpoint in the test image;
-* whether the endpoint is reachable from the Python test process with the
-  current network topology;
+* whether the endpoint is reachable from a Python process representing the
+  intended Ansible execution topology;
 * whether a host port mapping, Docker-network-only route, or no additional
   exposure is required; and
 * the least-exposure configuration that permits the read-only test.
@@ -137,8 +169,9 @@ selected adapter remains within the Ansible-facing runtime package.
 The final decision record must contain:
 
 1. the recommendation and rejected alternative;
-2. the sanitized evidence for the generic JSON-RPC smoke test and both confd
-   candidates, including any unavailable candidate;
+2. the sanitized evidence for the generic JSON-RPC smoke test, the
+   authenticated JSON-RPC-to-confd exchange, and both confd candidates,
+   including any unavailable candidate;
 3. the yes/no conclusion on JSON-RPC port exposure and the linked environment
    issue if a change is required;
 4. the yes/no conclusion on a dedicated Python API project and its rationale;
