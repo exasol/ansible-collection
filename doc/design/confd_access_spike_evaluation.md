@@ -63,6 +63,49 @@ confd compatibility, reachable deployment topology, or confd authorization.
 If this prerequisite fails, the JSON-RPC candidate must not be treated as a
 viable confd path until a focused follow-up explains and resolves the failure.
 
+### Generic JSON-RPC Client Viability
+`dsn~generic-json-rpc-client-viability~1`
+
+The generic prerequisite is implemented as a reproducible, loopback-only unit
+test. It uses Python's `urllib.request` standard-library client and a
+controlled local HTTP fixture to serialize an HTTP JSON-RPC request, parse its
+response, correlate its request ID, and safely handle JSON-RPC errors and
+timeouts. The test helper is not a confd adapter or a public Python API.
+
+The standard-library approach adds no runtime dependency, credential store, or
+network access beyond the local fixture. It is appropriate for this protocol
+viability check because request serialization, timeout behavior, and error
+handling remain explicit. It does not decide the eventual confd client library,
+confd authentication model, TLS configuration, or endpoint topology.
+
+The smoke test passes for a JSON-RPC round trip, response-ID correlation,
+protocol-error redaction, and timeout redaction. JSON-RPC is therefore viable
+as a Python integration mechanism in general. This result is limited to the
+generic protocol path and does not establish confd compatibility.
+
+Status: draft
+
+Covers:
+- `constr~generic-json-rpc-evidence-isolated-from-confd~1`
+
+Needs: utest
+
+#### Test-Level Rationale
+
+This evidence is a unit test because its purpose is to isolate Python-side
+JSON-RPC behavior from confd, credentials, network topology, and deployment
+configuration. Although it is a unit test, it performs a real HTTP/JSON-RPC
+round trip to the controlled loopback fixture rather than mocking the HTTP
+client.
+
+An integration test at this stage would need a confd endpoint, credentials,
+and a representative Ansible execution environment. A failure could then be
+caused by confd compatibility, authentication, authorization, reachability,
+or port exposure instead of the Python client. Those concerns are deliberate
+inputs to the later confd comparison: that work must run an authenticated,
+read-only JSON-RPC operation against confd and compare it with
+`confd_client` over SSH.
+
 After the generic smoke test passes, the JSON-RPC candidate must be evaluated
 against confd itself. From a representative Ansible execution environment, the
 spike must prove that the client can:

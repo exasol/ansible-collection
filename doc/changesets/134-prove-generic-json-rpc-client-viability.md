@@ -31,6 +31,7 @@ Out of scope:
 
 * [System Requirements](../system_requirements.md)
 * [Confd Access-Spike Evaluation](../design/confd_access_spike_evaluation.md)
+* [Architecture Constraints](../design/constraints.md)
 * [Quality Requirements](../design/quality_requirements.md)
 * [External Interfaces and APIs](../design/security/impacts_external_interfaces_apis.md)
 * [Sensitive Data Handling](../design/security/introduces_or_modifies_sensitive_data_handling_security_relevant_processing_or_data_access_behavior.md)
@@ -56,6 +57,8 @@ without adding a package dependency or reaching a confd deployment.
   evidence.
 - [x] Record the passing generic JSON-RPC viability result and its explicit
   confd-specific limits.
+- [x] Document why the generic protocol proof uses a controlled unit test and
+  reserves confd integration testing for the later interface comparison.
 
 ### Implementation
 
