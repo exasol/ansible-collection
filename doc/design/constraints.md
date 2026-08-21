@@ -9,11 +9,11 @@ This chapter documents technical and organizational constraints that shape the a
 ### Generic JSON-RPC Evidence Is Isolated From Confd
 `constr~generic-json-rpc-evidence-isolated-from-confd~1`
 
-The generic JSON-RPC viability check must use a controlled local endpoint and
-must not contact confd, use confd credentials, or require
-`integration-test-docker-environment` configuration. Confd compatibility,
-authentication, and network-topology evidence belong to the later interface
-comparison.
+The generic JSON-RPC viability check must use a controlled local stub server.
+It must not contact confd. It must not use confd credentials. It must not
+require `integration-test-docker-environment` configuration. Confd
+compatibility, authentication, and network-topology evidence belong to the
+later interface comparison.
 
 Rationale:
 

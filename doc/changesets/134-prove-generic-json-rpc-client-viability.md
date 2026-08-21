@@ -57,8 +57,8 @@ without adding a package dependency or reaching a confd deployment.
   evidence.
 - [x] Record the passing generic JSON-RPC viability result and its explicit
   confd-specific limits.
-- [x] Document why the generic protocol proof uses a controlled unit test and
-  reserves confd integration testing for the later interface comparison.
+- [x] Document the JSON-RPC stub-server and confd exchanges as separate
+  integration tests with distinct evidence boundaries.
 
 ### Implementation
 

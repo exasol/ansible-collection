@@ -162,7 +162,7 @@ def _call_json_rpc(
     try:
         with urlopen(
             request, timeout=json_rpc_request.timeout
-        ) as response:  # noqa: S310
+        ) as response:  # noqa: S310 -- controlled loopback test fixture
             response_payload = json.loads(response.read())
     except (HTTPError, TimeoutError, URLError) as error:
         message = _redact(str(error), json_rpc_request.sensitive_values)
@@ -184,7 +184,7 @@ def _call_json_rpc(
     return response_payload["result"]
 
 
-# [utest -> dsn~generic-json-rpc-client-viability~1]
+# [itest -> dsn~generic-json-rpc-client-viability~1]
 def test_json_rpc_smoke_round_trip_serializes_and_correlates_request_id(
     json_rpc_endpoint: _JsonRpcEndpoint,
 ) -> None:
@@ -210,7 +210,7 @@ def test_json_rpc_smoke_round_trip_serializes_and_correlates_request_id(
     ]
 
 
-# [utest -> dsn~generic-json-rpc-client-viability~1]
+# [itest -> dsn~generic-json-rpc-client-viability~1]
 def test_json_rpc_smoke_rejects_a_response_with_another_request_id(
     json_rpc_endpoint: _JsonRpcEndpoint,
 ) -> None:
@@ -229,7 +229,7 @@ def test_json_rpc_smoke_rejects_a_response_with_another_request_id(
         _call_json_rpc(json_rpc_endpoint.url, request)
 
 
-# [utest -> dsn~generic-json-rpc-client-viability~1]
+# [itest -> dsn~generic-json-rpc-client-viability~1]
 def test_json_rpc_smoke_redacts_a_protocol_error(
     json_rpc_endpoint: _JsonRpcEndpoint,
 ) -> None:
@@ -250,7 +250,7 @@ def test_json_rpc_smoke_redacts_a_protocol_error(
     assert token not in str(error.value)
 
 
-# [utest -> dsn~generic-json-rpc-client-viability~1]
+# [itest -> dsn~generic-json-rpc-client-viability~1]
 def test_json_rpc_smoke_redacts_timeout_failures(
     json_rpc_endpoint: _JsonRpcEndpoint,
 ) -> None:
