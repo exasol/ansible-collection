@@ -72,7 +72,9 @@ standard-library HTTP client and a controlled local fixture. It covers a
 JSON-RPC round trip, response-ID correlation, and redaction of protocol errors
 and timeouts.
 
-Rationale: The standard-library approach adds no runtime dependency,
+Rationale:
+
+The standard-library approach adds no runtime dependency,
 credential store, or external network access, while keeping request
 serialization, timeouts, and error handling explicit. It validates only the
 generic Python JSON-RPC path; it does not establish confd compatibility or
