@@ -54,7 +54,8 @@ validation itself. It must show that the proposed Python client can:
 * correlate the response to that request ID;
 * surface a JSON-RPC error response without exposing request credentials or
   endpoint-sensitive data; and
-* fail predictably on a timeout or unavailable local endpoint.
+* fail predictably when the controlled endpoint delays its response beyond the
+  configured timeout, or when the local endpoint is unavailable.
 
 The smoke endpoint is a controlled fixture, not confd. Passing it establishes
 only that the Python protocol path is viable in general; it does not establish
@@ -62,6 +63,36 @@ confd compatibility, reachable deployment topology, or confd authorization.
 
 If this prerequisite fails, the JSON-RPC candidate must not be treated as a
 viable confd path until a focused follow-up explains and resolves the failure.
+
+### Generic JSON-RPC Client Viability
+`dsn~generic-json-rpc-client-viability~1`
+
+The generic prerequisite is a loopback-only integration test using Python's
+standard-library HTTP client and a controlled local fixture. It covers a
+JSON-RPC round trip, response-ID correlation, and redaction of protocol errors
+and timeouts.
+
+Rationale:
+
+The standard-library approach adds no runtime dependency,
+credential store, or external network access, while keeping request
+serialization, timeouts, and error handling explicit. It validates only the
+generic Python JSON-RPC path; it does not establish confd compatibility or
+decide the confd client library, authentication, TLS, or endpoint topology.
+
+Status: draft
+
+Covers:
+- `constr~generic-json-rpc-evidence-isolated-from-confd~1`
+
+Needs: itest
+
+#### Test-Level Rationale
+
+This is an integration test because it performs a real HTTP/JSON-RPC exchange
+with a stub server. It isolates Python-side JSON-RPC behavior from confd while
+the separate confd-level integration test evaluates compatibility,
+authentication, authorization, reachability, and port exposure against confd.
 
 After the generic smoke test passes, the JSON-RPC candidate must be evaluated
 against confd itself. From a representative Ansible execution environment, the
