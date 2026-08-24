@@ -24,6 +24,24 @@ Status: draft
 
 Needs: dsn
 
+### Confd Spike Evidence Uses Disposable Test Infrastructure
+`constr~confd-spike-evidence-is-disposable~1`
+
+Confd access-spike evidence must run only against a disposable ITDE Docker-DB
+fixture. The fixture must use temporary collection-owned output, SSH-key, and
+known-host paths, clean up its container, volume, and network, and never use a
+non-test deployment.
+
+Rationale:
+
+The spike evaluates a privileged administration boundary. Isolating the test
+fixture prevents test credentials or ConfD commands from reaching an operator
+environment and makes the result reproducible in the integration pipeline.
+
+Status: draft
+
+Needs: dsn
+
 ### `<Technical Constraint Title>`
 `constr~<technical-constraint-id>~1`
 
