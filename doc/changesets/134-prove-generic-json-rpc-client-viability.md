@@ -30,7 +30,7 @@ Out of scope:
 ## Design References
 
 * [System Requirements](../system_requirements.md)
-* [Confd Access-Spike Evaluation](../design/confd_access_spike_evaluation.md)
+* [Temporary ConfD Access-Spike Trace Contract](../design/confd_access_spike_evaluation.md)
 * [Architecture Constraints](../design/constraints.md)
 * [Quality Requirements](../design/quality_requirements.md)
 * [External Interfaces and APIs](../design/security/impacts_external_interfaces_apis.md)

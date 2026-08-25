@@ -31,7 +31,7 @@ Out of scope:
 
 ## Design References
 
-* [Confd Access-Spike Evaluation Contract](../design/confd_access_spike_evaluation.md)
+* [Temporary ConfD Access-Spike Trace Contract](../design/confd_access_spike_evaluation.md)
 * [ConfD Access Spike Experiment Log](../experiments/confd_access_spike_log.md)
 * [Quality Requirements](../design/quality_requirements.md)
 * [System Requirements](../system_requirements.md)
@@ -53,7 +53,8 @@ without inferring the ConfD protocol from the EXAConf port name.
 - [x] Record comparable sanitized JSON-RPC and SSH evidence in the separate
   ConfD access-spike experiment log.
 - [x] Record the configured RPC-port boundary and the need for a separately
-  owned ITDE port-exposure issue before JSON-RPC evidence can run.
+  owned ITDE [#676](https://github.com/exasol/integration-test-docker-environment/issues/676)
+  port-exposure issue before JSON-RPC evidence can run.
 - [x] Record the unresolved decision and the approval-gated hand-off to GH-136.
 - [x] Add traced design items for the disposable JSON-RPC boundary and
   read-only `confd_client` SSH evidence.

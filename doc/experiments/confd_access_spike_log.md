@@ -46,9 +46,9 @@ evidence. It does not substitute for a protocol-level request.
   must make `db_os_access=SSH` produce an SSH-ready Docker-DB fixture.
 * Collection [#143](https://github.com/exasol/ansible-collection/issues/143)
   restores failure behavior and reruns the SSH evidence tests after #673.
-* A separate ITDE port-exposure issue is required before JSON-RPC evidence can
-  run. It must define the port, local exposure boundary, authentication,
-  transport protection, and ITDE-level verification.
+* ITDE [#676](https://github.com/exasol/integration-test-docker-environment/issues/676)
+  must expose the ConfD RPC port with a local security boundary before
+  JSON-RPC evidence can run.
 
 ## Security Notes
 

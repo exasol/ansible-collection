@@ -14,6 +14,7 @@ The structure follows arc42 with the user-perspective parts reduced to short ref
 
 system_requirements
 design/constraints
+design/confd_access_spike_evaluation
 design/context_and_scope
 design/solution_strategy
 design/building_block_view
@@ -22,7 +23,6 @@ design/deployment_view
 design/crosscutting_concepts
 design/security_considerations
 design/architecture_decisions
-design/confd_access_spike_evaluation
 design/quality_requirements
 design/risks_and_technical_debt
 design/domain/entity_model_relationship
@@ -38,6 +38,10 @@ This design document explains how the system realizes the requirements defined i
 ### Architecture Constraints
 
 See [Architecture Constraints](design/constraints.md).
+
+### Temporary ConfD Access-Spike Trace Contract
+
+See the [temporary ConfD access-spike trace contract](design/confd_access_spike_evaluation.md).
 
 ### Context and Scope
 
@@ -70,10 +74,6 @@ See [Security Considerations](design/security_considerations.md).
 ### Architecture Decisions
 
 See [Architecture Decisions](design/architecture_decisions.md).
-
-### Confd Access-Spike Evaluation Contract
-
-See [Confd Access-Spike Evaluation Contract](design/confd_access_spike_evaluation.md).
 
 ### Quality Requirements
 
