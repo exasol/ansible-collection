@@ -189,7 +189,6 @@ def _prepare_openfasttrace_input(tmp_path: Path) -> Path:
             ".nox",
             ".venv",
             ".pytest_cache",
-            ".html-documentation",
             "__pycache__",
             "*.pyc",
         ),
