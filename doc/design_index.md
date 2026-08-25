@@ -71,9 +71,9 @@ See [Security Considerations](design/security_considerations.md).
 
 See [Architecture Decisions](design/architecture_decisions.md).
 
-### Confd Access-Spike Evaluation
+### Confd Access-Spike Evaluation Contract
 
-See [Confd Access-Spike Evaluation](design/confd_access_spike_evaluation.md).
+See [Confd Access-Spike Evaluation Contract](design/confd_access_spike_evaluation.md).
 
 ### Quality Requirements
 

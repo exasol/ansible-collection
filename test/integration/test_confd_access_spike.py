@@ -132,11 +132,11 @@ def _ssh(
 
 @pytest.mark.integration
 @pytest.mark.slow
-# [itest -> dsn~confd-docker-json-rpc-boundary-evidence~1]
-def test_itde_confd_exposes_ssh_but_not_a_json_rpc_endpoint(
+# [itest -> dsn~confd-docker-json-rpc-boundary-evidence~2]
+def test_itde_confd_does_not_forward_the_configured_rpc_port(
     confd_itde_environment: _ConfdItdeEnvironment,
 ) -> None:
-    """Verify the image's XML-RPC-only configuration and host port boundary."""
+    """Record the configured ConfD RPC port and current host port boundary."""
     with ContextDockerClient() as docker_client:
         container = docker_client.containers.get(confd_itde_environment.container_name)
         result = container.exec_run(
@@ -149,7 +149,6 @@ def test_itde_confd_exposes_ssh_but_not_a_json_rpc_endpoint(
 
     assert result.exit_code == 0
     assert "XMLRPCPort = 443" in exaconf
-    assert "JSONRPC" not in exaconf
     assert "22/tcp" in port_bindings
     assert "443/tcp" not in port_bindings
 

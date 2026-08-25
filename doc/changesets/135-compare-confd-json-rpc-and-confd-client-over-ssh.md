@@ -18,8 +18,8 @@ In scope:
   port mappings without committing any infrastructure change
 * execute the agreed read-only `confd_client db_list -j` operation over the
   disposable SSH fixture
-* compare the result with the JSON-RPC candidate, recording a reproducible
-  unavailable-path reason when no ConfD JSON-RPC endpoint exists
+* determine the configured ConfD RPC port and whether ITDE must expose it for
+  JSON-RPC integration evidence
 * assess SSH keys, identity privilege, transport, timeout/session behavior,
   and secret-safe evidence handling
 
@@ -31,15 +31,16 @@ Out of scope:
 
 ## Design References
 
-* [Confd Access-Spike Evaluation](../design/confd_access_spike_evaluation.md)
+* [Confd Access-Spike Evaluation Contract](../design/confd_access_spike_evaluation.md)
+* [ConfD Access Spike Experiment Log](../experiments/confd_access_spike_log.md)
 * [Quality Requirements](../design/quality_requirements.md)
 * [System Requirements](../system_requirements.md)
 
 ## Strategy
 
 Use one disposable local Docker-DB fixture and the existing, test-only generic
-JSON-RPC smoke evidence. Document unavailable JSON-RPC as an interface/config
-boundary, not as a successful protocol test or a generic integration failure.
+JSON-RPC smoke evidence. Record the configured RPC port and its host mapping
+without inferring the ConfD protocol from the EXAConf port name.
 
 ## Task List
 
@@ -49,12 +50,11 @@ boundary, not as a successful protocol test or a generic integration failure.
 
 - [x] Confirm that this internal spike introduces no user-visible behavior or
   new acceptance scenario.
-- [x] Record comparable sanitized JSON-RPC and SSH evidence in the ConfD
-  access-spike design record.
-- [x] Record the port-exposure conclusion and the conditions for a separately
-  owned ITDE follow-up if XML-RPC is later evaluated.
-- [x] Record the suggested outcome, GH-135 correction work, and the
-  approval-gated hand-off to GH-136.
+- [x] Record comparable sanitized JSON-RPC and SSH evidence in the separate
+  ConfD access-spike experiment log.
+- [x] Record the configured RPC-port boundary and the need for a separately
+  owned ITDE port-exposure issue before JSON-RPC evidence can run.
+- [x] Record the unresolved decision and the approval-gated hand-off to GH-136.
 - [x] Add traced design items for the disposable JSON-RPC boundary and
   read-only `confd_client` SSH evidence.
 
