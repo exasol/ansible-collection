@@ -73,11 +73,9 @@ the selected implementation needs it.
 ### Verification
 
 - [x] Run the targeted generic JSON-RPC smoke tests.
-- [ ] Run the container-IP JSON-RPC evidence tests in Ubuntu CI and record the
-  sanitized protocol and authentication result. The initial run failed before
-  ConfD started because the on-prem fixture occupied ITDE shared default host
-  ports; the spike fixture now uses temporary database, BucketFS, and SSH host
-  ports.
+- [x] Run the container-IP JSON-RPC evidence tests in Ubuntu CI. The corrected
+  fixture proved read-only `db_list` through the container IP with the EXAConf
+  bearer token and a secret-safe authorization denial for an unknown token.
 - [x] Run requirement tracing with `poetry run nox --no-venv -s
   requirements:trace` (the repository's plain command requires an unavailable
   `uv` executable in this environment).

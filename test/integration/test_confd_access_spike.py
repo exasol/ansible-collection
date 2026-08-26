@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import ssl
 import stat
@@ -287,16 +288,14 @@ def test_itde_confd_does_not_forward_the_configured_rpc_port(
         container = docker_client.containers.get(
             confd_json_rpc_environment.container_name
         )
-        result = container.exec_run(
-            ["grep", "-E", "^(XMLRPCPort|ExposedPorts)", "/exa/etc/EXAConf"]
-        )
+        result = container.exec_run(["cat", "/exa/etc/EXAConf"])
         container.reload()
 
     exaconf = result.output.decode("utf-8")
     port_bindings = container.attrs["NetworkSettings"]["Ports"]
 
     assert result.exit_code == 0
-    assert "XMLRPCPort = 443" in exaconf
+    assert re.search(r"^\s*XMLRPCPort\s*=\s*443\s*$", exaconf, re.MULTILINE)
     assert "22/tcp" in port_bindings
     assert "443/tcp" not in port_bindings
 

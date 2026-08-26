@@ -35,6 +35,10 @@ environment changes are required?
   database (`8563`), which the on-prem fixture already occupied. The spike
   fixture now allocates temporary database, BucketFS, and SSH host ports; it
   still does not expose the ConfD RPC port.
+* The corrected Ubuntu CI run proved that `https://<container-ip>:443/rest`
+  accepts the EXAConf bearer token for the read-only `db_list` job. It also
+  proved that an unknown bearer token receives an authorization denial without
+  disclosing the valid token.
 
 ## Current Experiment
 
@@ -52,10 +56,11 @@ provides an SSH-ready fixture.
 
 ## Current Interpretation
 
-The ConfD JSON-RPC candidate remains unverified pending the corrected
-container-IP run in Ubuntu CI. The current Docker-DB host-port bindings do not
-provide an external route, but they do not prevent the private container-IP
-route from providing the required protocol and authentication evidence.
+The ConfD JSON-RPC candidate works for the read-only Docker-DB `db_list` job
+through the private container-IP route with bearer-token authentication. The
+current Docker-DB host-port bindings provide no external route. ITDE #676 stays
+deferred until the selected implementation needs a reviewed host-exposure
+boundary.
 
 The existing `XMLRPCPort = 443` observation remains useful configuration
 evidence. It does not substitute for a protocol-level request.
