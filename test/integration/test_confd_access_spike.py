@@ -150,7 +150,7 @@ def confd_json_rpc_environment(
         with ContextDockerClient() as docker_client:
             container = docker_client.containers.get(container_info.container_name)
             token_result = container.exec_run(
-                ["awk", "/^AuthenticationToken =/ { print $3 }", "/exa/etc/EXAConf"]
+                ["awk", '$1 == "AuthenticationToken" { print $3 }', "/exa/etc/EXAConf"]
             )
 
         authentication_token = token_result.output.decode("utf-8").strip()
