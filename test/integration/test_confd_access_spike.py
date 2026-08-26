@@ -4,15 +4,25 @@ from __future__ import annotations
 
 import json
 import shutil
+import ssl
 import stat
 import subprocess
 import sys
+import time
 from collections.abc import (
     Iterator,
     Sequence,
 )
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.error import (
+    HTTPError,
+    URLError,
+)
+from urllib.request import (
+    Request,
+    urlopen,
+)
 from uuid import uuid4
 
 import pytest
@@ -32,6 +42,15 @@ class _ConfdItdeEnvironment:
     ssh_key: Path
     ssh_port: int
     known_hosts: Path
+
+
+@dataclass(frozen=True)
+class _ConfdJsonRpcEnvironment:
+    """Only the disposable connection details needed by the JSON-RPC tests."""
+
+    container_name: str
+    container_ip: str
+    authentication_token: str
 
 
 @pytest.fixture(scope="module")
@@ -86,6 +105,51 @@ def confd_itde_environment(
         patch.undo()
 
 
+@pytest.fixture(scope="module")
+def confd_json_rpc_environment(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Iterator[_ConfdJsonRpcEnvironment]:
+    """Start a default ITDE fixture without requesting SSH OS access."""
+    _skip_when_docker_is_unavailable()
+    root = tmp_path_factory.mktemp("confd-json-rpc-itde")
+    environment_name = f"confd-json-rpc-spike-{uuid4().hex[:12]}"
+    patch = pytest.MonkeyPatch()
+    patch.setenv("HOME", str(root / "home"))
+    if sys.platform == "darwin":
+        patch.setenv("OBJC_DISABLE_INITIALIZE_FORK_SAFETY", "YES")
+    (root / "temporary").mkdir()
+
+    cleanup = None
+    try:
+        environment_info, cleanup = spawn_test_environment(
+            environment_name=environment_name,
+            output_directory=str(root / "output"),
+            temporary_base_directory=str(root / "temporary"),
+            workers=5,
+        )
+        container_info = environment_info.database_info.container_info
+        assert container_info is not None
+
+        with ContextDockerClient() as docker_client:
+            container = docker_client.containers.get(container_info.container_name)
+            token_result = container.exec_run(
+                ["awk", "/^AuthenticationToken =/ { print $3 }", "/exa/etc/EXAConf"]
+            )
+
+        authentication_token = token_result.output.decode("utf-8").strip()
+        assert token_result.exit_code == 0
+        assert authentication_token
+        yield _ConfdJsonRpcEnvironment(
+            container_name=container_info.container_name,
+            container_ip=container_info.ip_address,
+            authentication_token=authentication_token,
+        )
+    finally:
+        if cleanup is not None:
+            cleanup()
+        patch.undo()
+
+
 def _skip_when_docker_is_unavailable() -> None:
     try:
         with ContextDockerClient() as docker_client:
@@ -130,15 +194,82 @@ def _ssh(
     )
 
 
+def _confd_json_rpc_request(
+    environment: _ConfdJsonRpcEnvironment,
+    token: str,
+    payload: dict[str, object],
+) -> tuple[int, str]:
+    """Execute the agreed read-only ConfD request through the container IP."""
+    request = Request(
+        f"https://{environment.container_ip}:443/rest",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Authorization": f"Bearer {token}"},
+        method="POST",
+    )
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+
+    try:
+        with urlopen(
+            request,
+            timeout=30,
+            context=ssl_context,
+        ) as response:  # noqa: S310 -- disposable ITDE container IP
+            return response.status, response.read().decode("utf-8")
+    except HTTPError as error:
+        return error.code, error.read().decode("utf-8")
+    except (TimeoutError, URLError) as error:
+        return 0, type(error).__name__
+
+
+def _confd_json_rpc_db_list(
+    environment: _ConfdJsonRpcEnvironment,
+    token: str,
+) -> tuple[int, str]:
+    """Start the read-only job and wait for its result."""
+    status, body = _confd_json_rpc_request(
+        environment,
+        token,
+        {
+            "method": "job_start",
+            "job": "db_list",
+            "params": {"params": {}, "dry_run": False, "volatile": False},
+        },
+    )
+    if status != 200:
+        return status, body
+
+    job_id = json.loads(body)
+    if not isinstance(job_id, str):
+        return status, body
+
+    for _ in range(30):
+        time.sleep(0.5)
+        status, body = _confd_json_rpc_request(
+            environment,
+            token,
+            {"method": "job_result", "params": {"job_id": job_id}},
+        )
+        if status != 200:
+            return status, body
+        if json.loads(body).get("result_code") != 5:
+            return status, body
+
+    return 0, "ConfD db_list job did not finish within 15 seconds"
+
+
 @pytest.mark.integration
 @pytest.mark.slow
 # [itest -> dsn~confd-docker-json-rpc-boundary-evidence~2]
 def test_itde_confd_does_not_forward_the_configured_rpc_port(
-    confd_itde_environment: _ConfdItdeEnvironment,
+    confd_json_rpc_environment: _ConfdJsonRpcEnvironment,
 ) -> None:
     """Record the configured ConfD RPC port and current host port boundary."""
     with ContextDockerClient() as docker_client:
-        container = docker_client.containers.get(confd_itde_environment.container_name)
+        container = docker_client.containers.get(
+            confd_json_rpc_environment.container_name
+        )
         result = container.exec_run(
             ["grep", "-E", "^(XMLRPCPort|ExposedPorts)", "/exa/etc/EXAConf"]
         )
@@ -151,6 +282,45 @@ def test_itde_confd_does_not_forward_the_configured_rpc_port(
     assert "XMLRPCPort = 443" in exaconf
     assert "22/tcp" in port_bindings
     assert "443/tcp" not in port_bindings
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+# [itest -> dsn~confd-container-ip-json-rpc-evidence~1]
+def test_itde_confd_container_ip_runs_authenticated_json_rpc_db_list(
+    confd_json_rpc_environment: _ConfdJsonRpcEnvironment,
+) -> None:
+    """Verify the read-only ConfD JSON request through the container IP."""
+    status, body = _confd_json_rpc_db_list(
+        confd_json_rpc_environment,
+        confd_json_rpc_environment.authentication_token,
+    )
+
+    assert status == 200, body
+    response = json.loads(body)
+    assert response["result_code"] == 0
+    assert isinstance(response["result_output"], list)
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+# [itest -> dsn~confd-container-ip-json-rpc-evidence~1]
+def test_itde_confd_container_ip_rejects_an_unknown_bearer_token(
+    confd_json_rpc_environment: _ConfdJsonRpcEnvironment,
+) -> None:
+    """Verify that rejected container-IP requests do not disclose the token."""
+    status, body = _confd_json_rpc_request(
+        confd_json_rpc_environment,
+        "confd-spike-invalid-token",
+        {
+            "method": "job_start",
+            "job": "db_list",
+            "params": {"params": {}, "dry_run": False, "volatile": False},
+        },
+    )
+
+    assert status in (401, 403)
+    assert confd_json_rpc_environment.authentication_token not in body
 
 
 @pytest.mark.integration

@@ -18,8 +18,8 @@ In scope:
   port mappings without committing any infrastructure change
 * execute the agreed read-only `confd_client db_list -j` operation over the
   disposable SSH fixture
-* determine the configured ConfD RPC port and whether ITDE must expose it for
-  JSON-RPC integration evidence
+* execute the agreed read-only ConfD JSON-RPC operation through the private
+  Docker-DB container IP without changing ITDE port mappings
 * assess SSH keys, identity privilege, transport, timeout/session behavior,
   and secret-safe evidence handling
 
@@ -39,8 +39,10 @@ Out of scope:
 ## Strategy
 
 Use one disposable local Docker-DB fixture and the existing, test-only generic
-JSON-RPC smoke evidence. Record the configured RPC port and its host mapping
-without inferring the ConfD protocol from the EXAConf port name.
+JSON-RPC smoke evidence. First use the private container-IP route for ConfD
+JSON-RPC protocol and authentication evidence. Consider SSH tunnelling only
+after ITDE #673 if that route cannot reach ConfD; defer host-port exposure until
+the selected implementation needs it.
 
 ## Task List
 
@@ -52,9 +54,9 @@ without inferring the ConfD protocol from the EXAConf port name.
   new acceptance scenario.
 - [x] Record comparable sanitized JSON-RPC and SSH evidence in the separate
   ConfD access-spike experiment log.
-- [x] Record the configured RPC-port boundary and the need for a separately
-  owned ITDE [#676](https://github.com/exasol/integration-test-docker-environment/issues/676)
-  port-exposure issue before JSON-RPC evidence can run.
+- [x] Record the configured RPC-port boundary and defer ITDE
+  [#676](https://github.com/exasol/integration-test-docker-environment/issues/676)
+  until the selected implementation needs host-port exposure.
 - [x] Record the unresolved decision and the approval-gated hand-off to GH-136.
 - [x] Add traced design items for the disposable JSON-RPC boundary and
   read-only `confd_client` SSH evidence.
@@ -65,12 +67,15 @@ without inferring the ConfD protocol from the EXAConf port name.
 - [x] Do not add production code, public module parameters, dependencies, or
   permanent test-environment configuration.
 - [x] Add traced, removable ITDE-backed tests for the ConfD protocol/port
-  boundary and root SSH `db_list` operation, including an SSH authentication
-  denial that does not disclose private-key material.
+  boundary, authenticated container-IP JSON-RPC `db_list`, and root SSH
+  `db_list`, including secret-safe authorization-denial checks.
 
 ### Verification
 
 - [x] Run the targeted generic JSON-RPC smoke tests.
+- [ ] Run the container-IP JSON-RPC evidence tests in Ubuntu CI and record the
+  sanitized protocol and authentication result. The local Docker Desktop
+  attempt ended with Docker-DB exit status 137 before an HTTP assertion.
 - [x] Run requirement tracing with `poetry run nox --no-venv -s
   requirements:trace` (the repository's plain command requires an unavailable
   `uv` executable in this environment).

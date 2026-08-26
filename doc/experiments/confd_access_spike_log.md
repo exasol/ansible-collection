@@ -27,15 +27,30 @@ environment changes are required?
   passed, 174 skipped, 96 warnings, 3 errors` after 560.35 seconds. The three
   ConfD tests skipped after the sanitized fixture-precondition error so GH-135
   could deliver its recorded limitation.
+* The local Docker Desktop container-IP attempt started the default Docker-DB
+  fixture, but its container exited with status 137 before the first HTTP
+  assertion. It provides no JSON-RPC protocol or authentication result.
+
+## Current Experiment
+
+The next read-only experiment sends a `job_start` / `db_list` JSON request to
+`https://<container-ip>:443/rest`, then polls `job_result`, with the Docker-DB
+EXAConf bearer token. It uses the private container address and does not add an
+ITDE host-port mapping. The test also sends the same start request with an
+invalid bearer token to record the authorization response without recording
+either token.
+
+The container-IP route is being evaluated before SSH tunnelling. If it cannot
+reach ConfD, the recorded failure will support an SSH-tunnel experiment after
+ITDE [#673](https://github.com/exasol/integration-test-docker-environment/issues/673)
+provides an SSH-ready fixture.
 
 ## Current Interpretation
 
-The ConfD JSON-RPC candidate remains unverified. ConfD needs a reachable RPC
-endpoint from the test client; the current Docker-DB port bindings do not
-provide one. A dedicated ITDE change must expose the relevant ConfD RPC port
-with local-only or Docker-network-only reachability and protected transport
-before a JSON-RPC integration test can establish the protocol, authentication,
-authorization, error, and timeout behavior.
+The ConfD JSON-RPC candidate remains unverified pending the container-IP run
+in Ubuntu CI. The current Docker-DB host-port bindings do not provide an
+external route, but they do not prevent the private container-IP route from
+providing the required protocol and authentication evidence.
 
 The existing `XMLRPCPort = 443` observation remains useful configuration
 evidence. It does not substitute for a protocol-level request.
@@ -47,8 +62,8 @@ evidence. It does not substitute for a protocol-level request.
 * Collection [#143](https://github.com/exasol/ansible-collection/issues/143)
   restores failure behavior and reruns the SSH evidence tests after #673.
 * ITDE [#676](https://github.com/exasol/integration-test-docker-environment/issues/676)
-  must expose the ConfD RPC port with a local security boundary before
-  JSON-RPC evidence can run.
+  remains deferred until the selected implementation needs a secure host-port
+  exposure boundary.
 
 ## Security Notes
 

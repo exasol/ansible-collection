@@ -22,8 +22,22 @@ Needs: itest
 `dsn~confd-docker-json-rpc-boundary-evidence~2`
 
 The ITDE test records the configured ConfD RPC port and its Docker host-port
-mapping. ITDE [#676](https://github.com/exasol/integration-test-docker-environment/issues/676)
-tracks the secure port exposure needed for external JSON-RPC evidence.
+mapping. The JSON-RPC spike uses the container IP without a host-port mapping;
+ITDE [#676](https://github.com/exasol/integration-test-docker-environment/issues/676)
+remains deferred until a selected implementation needs host exposure.
+
+Status: draft
+
+Needs: itest
+
+## Container-IP JSON-RPC Evidence
+`dsn~confd-container-ip-json-rpc-evidence~1`
+
+The ITDE test sends authenticated, read-only `db_list` JSON requests to the
+ConfD container IP and verifies that an unknown bearer token is rejected
+without disclosing the valid token. SSH tunnelling is a fallback after ITDE
+[#673](https://github.com/exasol/integration-test-docker-environment/issues/673)
+if the container-IP route cannot reach ConfD.
 
 Status: draft
 
