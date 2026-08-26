@@ -74,8 +74,9 @@ the selected implementation needs it.
 
 - [x] Run the targeted generic JSON-RPC smoke tests.
 - [ ] Run the container-IP JSON-RPC evidence tests in Ubuntu CI and record the
-  sanitized protocol and authentication result. The local Docker Desktop
-  attempt ended with Docker-DB exit status 137 before an HTTP assertion.
+  sanitized protocol and authentication result. The initial run failed before
+  ConfD started because the on-prem fixture occupied ITDE's default BucketFS
+  port `2580`; the spike fixture now uses temporary BucketFS host ports.
 - [x] Run requirement tracing with `poetry run nox --no-venv -s
   requirements:trace` (the repository's plain command requires an unavailable
   `uv` executable in this environment).

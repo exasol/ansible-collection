@@ -30,6 +30,10 @@ environment changes are required?
 * The local Docker Desktop container-IP attempt started the default Docker-DB
   fixture, but its container exited with status 137 before the first HTTP
   assertion. It provides no JSON-RPC protocol or authentication result.
+* The initial Ubuntu CI container-IP attempt failed before ConfD started
+  because ITDE used its default BucketFS host port `2580`, which the on-prem
+  fixture already occupied. The spike fixture now allocates temporary BucketFS
+  host ports; it still does not expose the ConfD RPC port.
 
 ## Current Experiment
 
@@ -47,10 +51,10 @@ provides an SSH-ready fixture.
 
 ## Current Interpretation
 
-The ConfD JSON-RPC candidate remains unverified pending the container-IP run
-in Ubuntu CI. The current Docker-DB host-port bindings do not provide an
-external route, but they do not prevent the private container-IP route from
-providing the required protocol and authentication evidence.
+The ConfD JSON-RPC candidate remains unverified pending the corrected
+container-IP run in Ubuntu CI. The current Docker-DB host-port bindings do not
+provide an external route, but they do not prevent the private container-IP
+route from providing the required protocol and authentication evidence.
 
 The existing `XMLRPCPort = 443` observation remains useful configuration
 evidence. It does not substitute for a protocol-level request.

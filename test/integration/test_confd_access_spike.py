@@ -32,6 +32,11 @@ from exasol_integration_test_docker_environment.lib.docker import ContextDockerC
 from exasol_integration_test_docker_environment.lib.models.api_errors import (
     TaskRuntimeError,
 )
+from exasol_integration_test_docker_environment.lib.test_environment.ports import (
+    find_free_ports,
+)
+
+_DOCKER_DB_VERSION = "8.29.13"
 
 
 @dataclass(frozen=True)
@@ -121,8 +126,13 @@ def confd_json_rpc_environment(
 
     cleanup = None
     try:
+        bucketfs_http_port, bucketfs_https_port = find_free_ports(2)
         environment_info, cleanup = spawn_test_environment(
             environment_name=environment_name,
+            docker_db_image_version=_DOCKER_DB_VERSION,
+            # ITDE otherwise forwards BucketFS to its shared 2580 default.
+            bucketfs_port_forward=bucketfs_http_port,
+            bucketfs_https_port_forward=bucketfs_https_port,
             output_directory=str(root / "output"),
             temporary_base_directory=str(root / "temporary"),
             workers=5,
