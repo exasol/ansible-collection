@@ -73,9 +73,10 @@ the selected implementation needs it.
 ### Verification
 
 - [x] Run the targeted generic JSON-RPC smoke tests.
-- [ ] Run the readiness-aware container-IP JSON-RPC evidence tests in Ubuntu
-  CI. The corrected fixture reached ConfD but received its explicit `503`
-  startup response before the bearer-token assertions ran.
+- [x] Run the readiness-aware container-IP JSON-RPC evidence tests in Ubuntu
+  CI. The bounded startup wait completed, the authenticated read-only
+  `db_list` request succeeded, and the invalid bearer token was rejected
+  without exposing the valid token.
 - [x] Run requirement tracing with `poetry run nox --no-venv -s
   requirements:trace` (the repository's plain command requires an unavailable
   `uv` executable in this environment).
