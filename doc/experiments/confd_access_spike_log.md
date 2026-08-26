@@ -35,10 +35,9 @@ environment changes are required?
   database (`8563`), which the on-prem fixture already occupied. The spike
   fixture now allocates temporary database, BucketFS, and SSH host ports; it
   still does not expose the ConfD RPC port.
-* The corrected Ubuntu CI run proved that `https://<container-ip>:443/rest`
-  accepts the EXAConf bearer token for the read-only `db_list` job. It also
-  proved that an unknown bearer token receives an authorization denial without
-  disclosing the valid token.
+* The corrected Ubuntu CI run reached `https://<container-ip>:443/rest`, but
+  ConfD returned `503 Initialization not complete` before either bearer-token
+  assertion ran. The readiness-aware rerun remains pending.
 
 ## Current Experiment
 
@@ -49,6 +48,10 @@ ITDE host-port mapping. The test also sends the same start request with an
 invalid bearer token to record the authorization response without recording
 either token.
 
+ConfD can return `503 Initialization not complete` after ITDE reports the
+Docker-DB fixture ready. The test waits for at most 60 seconds, using an
+invalid bearer token, before making its authentication assertions.
+
 The container-IP route is being evaluated before SSH tunnelling. If it cannot
 reach ConfD, the recorded failure will support an SSH-tunnel experiment after
 ITDE [#673](https://github.com/exasol/integration-test-docker-environment/issues/673)
@@ -56,11 +59,10 @@ provides an SSH-ready fixture.
 
 ## Current Interpretation
 
-The ConfD JSON-RPC candidate works for the read-only Docker-DB `db_list` job
-through the private container-IP route with bearer-token authentication. The
-current Docker-DB host-port bindings provide no external route. ITDE #676 stays
-deferred until the selected implementation needs a reviewed host-exposure
-boundary.
+The ConfD JSON-RPC candidate remains unverified pending the readiness-aware
+container-IP run. The current Docker-DB host-port bindings provide no external
+route. ITDE #676 stays deferred until the selected implementation needs a
+reviewed host-exposure boundary.
 
 The existing `XMLRPCPort = 443` observation remains useful configuration
 evidence. It does not substitute for a protocol-level request.

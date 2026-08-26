@@ -38,6 +38,11 @@ from exasol_integration_test_docker_environment.lib.test_environment.ports impor
 )
 
 _DOCKER_DB_VERSION = "8.29.13"
+_DB_LIST_START_PAYLOAD = {
+    "method": "job_start",
+    "job": "db_list",
+    "params": {"params": {}, "dry_run": False, "volatile": False},
+}
 
 
 @dataclass(frozen=True)
@@ -157,11 +162,13 @@ def confd_json_rpc_environment(
         authentication_token = token_result.output.decode("utf-8").strip()
         assert token_result.exit_code == 0
         assert authentication_token
-        yield _ConfdJsonRpcEnvironment(
+        environment = _ConfdJsonRpcEnvironment(
             container_name=container_info.container_name,
             container_ip=container_info.ip_address,
             authentication_token=authentication_token,
         )
+        _wait_for_confd_json_rpc_initialization(environment)
+        yield environment
     finally:
         if cleanup is not None:
             cleanup()
@@ -249,11 +256,7 @@ def _confd_json_rpc_db_list(
     status, body = _confd_json_rpc_request(
         environment,
         token,
-        {
-            "method": "job_start",
-            "job": "db_list",
-            "params": {"params": {}, "dry_run": False, "volatile": False},
-        },
+        _DB_LIST_START_PAYLOAD,
     )
     if status != 200:
         return status, body
@@ -275,6 +278,23 @@ def _confd_json_rpc_db_list(
             return status, body
 
     return 0, "ConfD db_list job did not finish within 15 seconds"
+
+
+def _wait_for_confd_json_rpc_initialization(
+    environment: _ConfdJsonRpcEnvironment,
+) -> None:
+    """Wait for ConfD to leave its explicit startup state."""
+    deadline = time.monotonic() + 60
+    while time.monotonic() < deadline:
+        status, _ = _confd_json_rpc_request(
+            environment,
+            "confd-spike-readiness-token",
+            _DB_LIST_START_PAYLOAD,
+        )
+        if status not in (0, 503):
+            return
+        time.sleep(1)
+    pytest.fail("ConfD JSON-RPC service did not initialize within 60 seconds")
 
 
 @pytest.mark.integration
@@ -328,11 +348,7 @@ def test_itde_confd_container_ip_rejects_an_unknown_bearer_token(
     status, body = _confd_json_rpc_request(
         confd_json_rpc_environment,
         "confd-spike-invalid-token",
-        {
-            "method": "job_start",
-            "job": "db_list",
-            "params": {"params": {}, "dry_run": False, "volatile": False},
-        },
+        _DB_LIST_START_PAYLOAD,
     )
 
     assert status in (401, 403)

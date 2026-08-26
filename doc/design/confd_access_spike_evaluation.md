@@ -39,6 +39,9 @@ without disclosing the valid token. SSH tunnelling is a fallback after ITDE
 [#673](https://github.com/exasol/integration-test-docker-environment/issues/673)
 if the container-IP route cannot reach ConfD.
 
+The test waits for ConfD's bounded post-start initialization before evaluating
+the authenticated request or authorization denial.
+
 Status: draft
 
 Needs: itest
