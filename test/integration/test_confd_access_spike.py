@@ -126,13 +126,20 @@ def confd_json_rpc_environment(
 
     cleanup = None
     try:
-        bucketfs_http_port, bucketfs_https_port = find_free_ports(2)
+        (
+            database_port,
+            bucketfs_http_port,
+            bucketfs_https_port,
+            ssh_port,
+        ) = find_free_ports(4)
         environment_info, cleanup = spawn_test_environment(
             environment_name=environment_name,
             docker_db_image_version=_DOCKER_DB_VERSION,
-            # ITDE otherwise forwards BucketFS to its shared 2580 default.
+            # Avoid shared ITDE defaults; ConfD itself remains unforwarded.
+            database_port_forward=database_port,
             bucketfs_port_forward=bucketfs_http_port,
             bucketfs_https_port_forward=bucketfs_https_port,
+            ssh_port_forward=ssh_port,
             output_directory=str(root / "output"),
             temporary_base_directory=str(root / "temporary"),
             workers=5,

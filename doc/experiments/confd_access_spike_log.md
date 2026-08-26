@@ -30,10 +30,11 @@ environment changes are required?
 * The local Docker Desktop container-IP attempt started the default Docker-DB
   fixture, but its container exited with status 137 before the first HTTP
   assertion. It provides no JSON-RPC protocol or authentication result.
-* The initial Ubuntu CI container-IP attempt failed before ConfD started
-  because ITDE used its default BucketFS host port `2580`, which the on-prem
-  fixture already occupied. The spike fixture now allocates temporary BucketFS
-  host ports; it still does not expose the ConfD RPC port.
+* The initial Ubuntu CI container-IP attempts failed before ConfD started
+  because ITDE used shared default host ports for BucketFS (`2580`) and the
+  database (`8563`), which the on-prem fixture already occupied. The spike
+  fixture now allocates temporary database, BucketFS, and SSH host ports; it
+  still does not expose the ConfD RPC port.
 
 ## Current Experiment
 

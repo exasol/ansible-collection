@@ -75,8 +75,9 @@ the selected implementation needs it.
 - [x] Run the targeted generic JSON-RPC smoke tests.
 - [ ] Run the container-IP JSON-RPC evidence tests in Ubuntu CI and record the
   sanitized protocol and authentication result. The initial run failed before
-  ConfD started because the on-prem fixture occupied ITDE's default BucketFS
-  port `2580`; the spike fixture now uses temporary BucketFS host ports.
+  ConfD started because the on-prem fixture occupied ITDE shared default host
+  ports; the spike fixture now uses temporary database, BucketFS, and SSH host
+  ports.
 - [x] Run requirement tracing with `poetry run nox --no-venv -s
   requirements:trace` (the repository's plain command requires an unavailable
   `uv` executable in this environment).
