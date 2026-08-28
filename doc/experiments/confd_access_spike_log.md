@@ -59,8 +59,9 @@ successful Ubuntu run completed after that wait.
 
 The container-IP route is being evaluated before SSH tunnelling. If it cannot
 reach ConfD, the recorded failure will support an SSH-tunnel experiment after
-ITDE [#673](https://github.com/exasol/integration-test-docker-environment/issues/673)
-provides an SSH-ready fixture.
+ITDE provides the required ConfD port-forwarding capability and bearer-token
+extraction. The corresponding fixtures and configuration belong in
+`pytest-backend`, which consumes those ITDE capabilities.
 
 ## Current Interpretation
 
@@ -76,9 +77,13 @@ evidence. It does not substitute for a protocol-level request.
 ## Follow-ups
 
 * ITDE [#673](https://github.com/exasol/integration-test-docker-environment/issues/673)
-  must make `db_os_access=SSH` produce an SSH-ready Docker-DB fixture.
+  must provide ConfD port forwarding and bearer-token extraction. ITDE provides
+  capabilities; it does not implement test fixtures.
+* `pytest-backend` [#53](https://github.com/exasol/pytest-backend/issues/53)
+  must add fixtures and configuration that consume those ITDE capabilities.
 * Collection [#143](https://github.com/exasol/ansible-collection/issues/143)
-  restores failure behavior and reruns the SSH evidence tests after #673.
+  restores failure behavior and reruns the SSH evidence tests after the ITDE
+  and `pytest-backend` follow-ups are complete.
 * ITDE [#676](https://github.com/exasol/integration-test-docker-environment/issues/676)
   remains deferred until the selected implementation needs a secure host-port
   exposure boundary.
