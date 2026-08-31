@@ -8,4 +8,5 @@ Exasol Ansible Collection
    getting_started
    developer_guide
    design_index
+   experiments/index
    changes/changelog
