@@ -11,7 +11,7 @@ env:
 jobs:
   build-matrix:
     name: Build Matrix
-    uses: ./.github/workflows/matrix.yml
+    uses: $/.github/workflows/matrix.yml
     with:
       matrix_keys_json: '["exasol_versions", "python_versions"]'
     permissions:
