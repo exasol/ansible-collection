@@ -6,7 +6,7 @@ on:
 jobs:
   run-requirements-trace:
     name: Run requirements trace with OpenFastTrace
-    runs-on: ubuntu-24.04
+    runs-on: "ubuntu-26.04"
     permissions:
       contents: read
 
@@ -19,7 +19,7 @@ jobs:
 
       - name: Set up Python & Poetry Environment
         id: set-up-python-and-poetry-environment
-        uses: exasol/python-toolbox/.github/actions/python-environment@v10
+        uses: exasol/python-toolbox/.github/actions/python-environment@v12
         with:
           python-version: 3.13
           poetry-version: "2.3.0"

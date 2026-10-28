@@ -12,3 +12,7 @@
 
 * #134: Ansible confd: Prove generic JSON-RPC client viability
 * #135: Ansible confd: Compare confd JSON-RPC and confd_client over SSH
+
+## Refactorings
+
+* #155: Updated to exasol-toolbox 12.0.0
